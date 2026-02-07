@@ -15,18 +15,25 @@ import {
   BarChart,
   Bar,
   Legend,
+  Area,
+  AreaChart,
 } from "recharts";
 import {
   TrendingUp,
+  TrendingDown,
   ShoppingCart,
   Package,
   MapPin,
   Calendar,
   DollarSign,
   CreditCard,
+  Download,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { format, subDays, startOfDay, eachDayOfInterval } from "date-fns";
 import { es } from "date-fns/locale";
+import toast from "react-hot-toast";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,9 +68,9 @@ interface ReportsClientProps {
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const PAYMENT_COLORS: Record<string, string> = {
-  cash: "#3B82F6",
-  qr: "#8B5CF6",
-  card: "#F59E0B",
+  cash: "#10B981",
+  qr: "#3B82F6",
+  card: "#8B5CF6",
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -87,7 +94,34 @@ const DATE_RANGES = [
   { label: "7 días", days: 7 },
   { label: "14 días", days: 14 },
   { label: "30 días", days: 30 },
+  { label: "Personalizado", days: 0 },
 ];
+
+// Helper para formatear moneda
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("es-BO", {
+    style: "currency",
+    currency: "BOB",
+    minimumFractionDigits: 2,
+  }).format(amount).replace("BOB", "Bs");
+}
+
+// Helper para exportar a CSV
+function exportToCSV(data: any[], filename: string) {
+  const headers = Object.keys(data[0] || {});
+  const csv = [
+    headers.join(","),
+    ...data.map((row) =>
+      headers.map((h) => JSON.stringify(row[h] ?? "")).join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -97,20 +131,52 @@ export default function ReportsClient({
   locations,
 }: ReportsClientProps) {
   const [selectedRange, setSelectedRange] = useState(7);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
 
   // ── Filter sales by date range ─────────────────────────────────────────────
 
   const filteredSales = useMemo(() => {
+    if (selectedRange === 0 && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      end.setHours(23, 59, 59, 999);
+      return sales.filter((s) => {
+        const date = new Date(s.created_at);
+        return date >= start && date <= end;
+      });
+    }
     const cutoff = startOfDay(subDays(new Date(), selectedRange));
     return sales.filter((s) => new Date(s.created_at) >= cutoff);
-  }, [sales, selectedRange]);
+  }, [sales, selectedRange, customStartDate, customEndDate]);
 
   const filteredItems = useMemo(() => {
+    if (selectedRange === 0 && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      end.setHours(23, 59, 59, 999);
+      return saleItems.filter((item) => {
+        if (!item.sales) return false;
+        const date = new Date(item.sales.created_at);
+        return date >= start && date <= end;
+      });
+    }
     const cutoff = startOfDay(subDays(new Date(), selectedRange));
     return saleItems.filter(
       (item) => item.sales && new Date(item.sales.created_at) >= cutoff
     );
-  }, [saleItems, selectedRange]);
+  }, [saleItems, selectedRange, customStartDate, customEndDate]);
+
+  // ── Previous period for comparison ─────────────────────────────────────────
+
+  const previousPeriodSales = useMemo(() => {
+    const cutoff = startOfDay(subDays(new Date(), selectedRange * 2));
+    const periodStart = startOfDay(subDays(new Date(), selectedRange));
+    return sales.filter((s) => {
+      const date = new Date(s.created_at);
+      return date >= cutoff && date < periodStart;
+    });
+  }, [sales, selectedRange]);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
 
@@ -121,6 +187,22 @@ export default function ReportsClient({
     (sum, item) => sum + item.quantity,
     0
   );
+
+  // Previous period stats for comparison
+  const previousRevenue = previousPeriodSales.reduce(
+    (sum, s) => sum + s.total,
+    0
+  );
+  const revenueChange =
+    previousRevenue > 0
+      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
+      : 0;
+
+  const previousSalesCount = previousPeriodSales.length;
+  const salesCountChange =
+    previousSalesCount > 0
+      ? ((totalSalesCount - previousSalesCount) / previousSalesCount) * 100
+      : 0;
 
   // ── Sales by day (Line chart) ──────────────────────────────────────────────
 
@@ -212,17 +294,38 @@ export default function ReportsClient({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-        <p className="text-sm font-medium text-gray-900 mb-1">{label}</p>
+      <div className="bg-white border-2 border-gray-200 rounded-xl shadow-2xl p-4">
+        <p className="text-sm font-bold text-gray-900 mb-2">{label}</p>
         {payload.map((entry: any, i: number) => (
-          <p key={i} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {entry.name === "ventas"
-              ? `Bs ${entry.value.toFixed(2)}`
-              : entry.value}
-          </p>
+          <div key={i} className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-gray-600">
+              {entry.name === "ventas" ? "Ingresos" : entry.name}:
+            </span>
+            <span className="text-sm font-bold" style={{ color: entry.color }}>
+              {entry.name === "ventas" || entry.dataKey === "ventas"
+                ? formatCurrency(entry.value)
+                : entry.value}
+            </span>
+          </div>
         ))}
       </div>
     );
+  };
+
+  // Export to CSV
+  const handleExport = () => {
+    const exportData = filteredSales.map((sale) => ({
+      Fecha: format(new Date(sale.created_at), "dd/MM/yyyy HH:mm"),
+      Total: sale.total,
+      "Método de Pago": PAYMENT_LABELS[sale.payment_method],
+      Ubicación: sale.locations?.name || "N/A",
+    }));
+
+    exportToCSV(
+      exportData,
+      `ventas_${format(new Date(), "yyyy-MM-dd")}.csv`
+    );
+    toast.success("Reporte exportado exitosamente");
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -230,192 +333,300 @@ export default function ReportsClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Análisis de ventas e inventario
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Reportes</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Análisis de ventas e inventario
+            </p>
+          </div>
+
+          {/* Export button */}
+          <button
+            onClick={handleExport}
+            disabled={filteredSales.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed"
+          >
+            <Download className="w-5 h-5" />
+            Exportar a Excel
+          </button>
         </div>
 
         {/* Date range selector */}
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-400" />
-          <div className="flex bg-gray-100 rounded-lg p-0.5">
-            {DATE_RANGES.map((range) => (
-              <button
-                key={range.days}
-                onClick={() => setSelectedRange(range.days)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                  selectedRange === range.days
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                {range.label}
-              </button>
-            ))}
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-bold text-gray-700">
+                Rango de fechas
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {DATE_RANGES.map((range) => (
+                <button
+                  key={range.days}
+                  onClick={() => setSelectedRange(range.days)}
+                  className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                    selectedRange === range.days
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom date inputs */}
+            {selectedRange === 0 && (
+              <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-gray-200">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Fecha inicio
+                  </label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Fecha fin
+                  </label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-blue-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Revenue card */}
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md">
+              <DollarSign className="w-7 h-7 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-500">
-              Ingresos Totales
-            </span>
+            {revenueChange !== 0 && (
+              <div
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
+                  revenueChange > 0
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {revenueChange > 0 ? (
+                  <ArrowUp className="w-3 h-3" />
+                ) : (
+                  <ArrowDown className="w-3 h-3" />
+                )}
+                {Math.abs(revenueChange).toFixed(1)}%
+              </div>
+            )}
           </div>
-          <p className="text-xl font-bold text-gray-900">
-            Bs {totalRevenue.toFixed(2)}
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            Ingresos Totales
+          </p>
+          <p className="text-2xl font-bold text-gray-900">
+            {formatCurrency(totalRevenue)}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-              <ShoppingCart className="w-4 h-4 text-green-600" />
+        {/* Sales count card */}
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center shadow-md">
+              <ShoppingCart className="w-7 h-7 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-500">
-              Total Ventas
-            </span>
+            {salesCountChange !== 0 && (
+              <div
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
+                  salesCountChange > 0
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {salesCountChange > 0 ? (
+                  <ArrowUp className="w-3 h-3" />
+                ) : (
+                  <ArrowDown className="w-3 h-3" />
+                )}
+                {Math.abs(salesCountChange).toFixed(1)}%
+              </div>
+            )}
           </div>
-          <p className="text-xl font-bold text-gray-900">{totalSalesCount}</p>
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            Total Ventas
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{totalSalesCount}</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-purple-600" />
+        {/* Average ticket card */}
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center shadow-md">
+              <TrendingUp className="w-7 h-7 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-500">
-              Ticket Promedio
-            </span>
           </div>
-          <p className="text-xl font-bold text-gray-900">
-            Bs {avgTicket.toFixed(2)}
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            Ticket Promedio
+          </p>
+          <p className="text-2xl font-bold text-gray-900">
+            {formatCurrency(avgTicket)}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-              <Package className="w-4 h-4 text-amber-600" />
+        {/* Items sold card */}
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-md">
+              <Package className="w-7 h-7 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-500">
-              Ítems Vendidos
-            </span>
           </div>
-          <p className="text-xl font-bold text-gray-900">{totalItemsSold}</p>
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            Ítems Vendidos
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{totalItemsSold}</p>
         </div>
       </div>
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sales trend - Line chart */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-blue-600" />
-            <h2 className="font-semibold text-gray-900">
-              Ventas por Día
-            </h2>
+        {/* Sales trend - Area chart with gradient */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-900">
+                Ventas por Día
+              </h2>
+            </div>
           </div>
 
           {salesByDay.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-sm text-gray-400">
+            <div className="h-80 flex items-center justify-center text-sm text-gray-400">
               No hay datos de ventas
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={salesByDay}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <ResponsiveContainer width="100%" height={320}>
+              <AreaChart data={salesByDay}>
+                <defs>
+                  <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="5 5" stroke="#E5E7EB" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
-                  axisLine={{ stroke: "#E5E7EB" }}
+                  tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
+                  axisLine={{ stroke: "#D1D5DB" }}
+                  tickLine={{ stroke: "#D1D5DB" }}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
-                  axisLine={{ stroke: "#E5E7EB" }}
+                  tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
+                  axisLine={{ stroke: "#D1D5DB" }}
+                  tickLine={{ stroke: "#D1D5DB" }}
                   tickFormatter={(v) => `Bs ${v}`}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Line
+                <Area
                   type="monotone"
                   dataKey="ventas"
                   stroke="#3B82F6"
-                  strokeWidth={2.5}
-                  dot={{ fill: "#3B82F6", strokeWidth: 0, r: 4 }}
-                  activeDot={{ r: 6, fill: "#2563EB" }}
+                  strokeWidth={3}
+                  fill="url(#colorVentas)"
+                  dot={{ fill: "#3B82F6", strokeWidth: 0, r: 5 }}
+                  activeDot={{ r: 7, fill: "#2563EB", strokeWidth: 2, stroke: "#fff" }}
                   name="ventas"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           )}
         </div>
 
-        {/* Payment methods - Pie chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-5 h-5 text-purple-600" />
-            <h2 className="font-semibold text-gray-900">Métodos de Pago</h2>
+        {/* Payment methods - Donut chart */}
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center">
+              <CreditCard className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Métodos de Pago</h2>
           </div>
 
           {paymentData.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-sm text-gray-400">
+            <div className="h-80 flex items-center justify-center text-sm text-gray-400">
               No hay datos
             </div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
                     data={paymentData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={6}
                     dataKey="value"
                   >
                     {paymentData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
+                      <Cell
+                        key={index}
+                        fill={entry.color}
+                        className="hover:opacity-80 transition-opacity cursor-pointer"
+                      />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: number) => `Bs ${value.toFixed(2)}`}
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* Legend */}
-              <div className="space-y-2 mt-2">
-                {paymentData.map((entry, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: entry.color }}
-                      />
-                      <span className="text-gray-600">{entry.name}</span>
+              {/* Legend with percentages */}
+              <div className="space-y-3 mt-4">
+                {paymentData.map((entry, i) => {
+                  const percentage = (
+                    (entry.value / totalRevenue) *
+                    100
+                  ).toFixed(1);
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-4 h-4 rounded-full shadow-sm"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="text-sm font-semibold text-gray-700">
+                          {entry.name}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-gray-900">
+                          {formatCurrency(entry.value)}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({percentage}%)
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-medium text-gray-900">
-                        Bs {entry.value.toFixed(0)}
-                      </span>
-                      <span className="text-gray-400 ml-1">
-                        ({entry.count})
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}
@@ -425,52 +636,81 @@ export default function ReportsClient({
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top 5 products */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Package className="w-5 h-5 text-green-600" />
-            <h2 className="font-semibold text-gray-900">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center">
+              <Package className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">
               Top 5 Productos Vendidos
             </h2>
           </div>
 
           {topProducts.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-sm text-gray-400">
+            <div className="h-64 flex items-center justify-center text-sm text-gray-400">
               No hay datos de productos
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {topProducts.map((product, i) => {
                 const maxRevenue = topProducts[0]?.revenue || 1;
                 const pct = (product.revenue / maxRevenue) * 100;
+                const gradientId = `gradient-${i}`;
 
                 return (
-                  <div key={i} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-bold text-gray-400 w-5">
-                          #{i + 1}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {product.name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {product.sku} · {product.qty} unid.
-                          </p>
-                        </div>
+                  <div
+                    key={i}
+                    className="group hover:bg-gray-50 p-3 rounded-xl transition-all"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      {/* Ranking badge */}
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-md"
+                        style={{
+                          background: `linear-gradient(135deg, ${CHART_COLORS[i]}, ${CHART_COLORS[i]}dd)`,
+                        }}
+                      >
+                        {i + 1}
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 flex-shrink-0 ml-2">
-                        Bs {product.revenue.toFixed(0)}
+
+                      {/* Product image placeholder */}
+                      <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                        <Package className="w-5 h-5 text-gray-400" />
+                      </div>
+
+                      {/* Product info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {product.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {product.sku} · {product.qty} unidades vendidas
+                        </p>
+                      </div>
+
+                      {/* Revenue */}
+                      <span className="text-base font-bold text-gray-900 flex-shrink-0">
+                        {formatCurrency(product.revenue)}
                       </span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden ml-7">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-                        }}
-                      />
+
+                    {/* Progress bar with gradient */}
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden ml-11">
+                      <svg width="100%" height="100%">
+                        <defs>
+                          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor={CHART_COLORS[i]} />
+                            <stop offset="100%" stopColor={`${CHART_COLORS[i]}88`} />
+                          </linearGradient>
+                        </defs>
+                        <rect
+                          width={`${pct}%`}
+                          height="100%"
+                          fill={`url(#${gradientId})`}
+                          rx="4"
+                          className="transition-all duration-700"
+                        />
+                      </svg>
                     </div>
                   </div>
                 );
@@ -480,100 +720,123 @@ export default function ReportsClient({
         </div>
 
         {/* Sales by location - Bar chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <MapPin className="w-5 h-5 text-amber-600" />
-            <h2 className="font-semibold text-gray-900">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center">
+              <MapPin className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">
               Ventas por Ubicación
             </h2>
           </div>
 
           {salesByLocation.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-sm text-gray-400">
+            <div className="h-64 flex items-center justify-center text-sm text-gray-400">
               No hay datos
             </div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={salesByLocation}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                  <defs>
+                    {salesByLocation.map((_, i) => (
+                      <linearGradient
+                        key={i}
+                        id={`barGradient${i}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={CHART_COLORS[i % CHART_COLORS.length]}
+                          stopOpacity={1}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={CHART_COLORS[i % CHART_COLORS.length]}
+                          stopOpacity={0.6}
+                        />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="5 5" stroke="#E5E7EB" />
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                    axisLine={{ stroke: "#E5E7EB" }}
+                    tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
+                    axisLine={{ stroke: "#D1D5DB" }}
+                    tickLine={{ stroke: "#D1D5DB" }}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                    axisLine={{ stroke: "#E5E7EB" }}
+                    tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
+                    axisLine={{ stroke: "#D1D5DB" }}
+                    tickLine={{ stroke: "#D1D5DB" }}
                     tickFormatter={(v) => `Bs ${v}`}
                   />
-                  <Tooltip
-                    formatter={(value: number, name: string) => [
-                      name === "ventas"
-                        ? `Bs ${value.toFixed(2)}`
-                        : value,
-                      name === "ventas" ? "Ingresos" : "Cantidad",
-                    ]}
-                  />
-                  <Legend
-                    formatter={(value) =>
-                      value === "ventas" ? "Ingresos" : "Cantidad"
-                    }
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                   <Bar
                     dataKey="ventas"
-                    fill="#3B82F6"
-                    radius={[4, 4, 0, 0]}
+                    fill="url(#barGradient0)"
+                    radius={[8, 8, 0, 0]}
                     name="ventas"
-                  />
+                  >
+                    {salesByLocation.map((_, index) => (
+                      <Cell key={index} fill={`url(#barGradient${index})`} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
 
               {/* Location summary table */}
-              <div className="mt-4 border-t border-gray-100 pt-3">
+              <div className="mt-6 border-t-2 border-gray-100 pt-4">
                 <table className="w-full">
                   <thead>
-                    <tr>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left text-xs font-bold text-gray-600 uppercase tracking-wider pb-3">
                         Ubicación
                       </th>
-                      <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                      <th className="text-right text-xs font-bold text-gray-600 uppercase tracking-wider pb-3">
                         Ventas
                       </th>
-                      <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                      <th className="text-right text-xs font-bold text-gray-600 uppercase tracking-wider pb-3">
                         Ingresos
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-gray-100">
                     {salesByLocation.map((loc, i) => (
-                      <tr key={i}>
-                        <td className="py-2 text-sm font-medium text-gray-900">
-                          {loc.fullName}
+                      <tr key={i} className="hover:bg-gray-50 transition">
+                        <td className="py-3 flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                              backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                            }}
+                          />
+                          <span className="text-sm font-semibold text-gray-900">
+                            {loc.fullName}
+                          </span>
                         </td>
-                        <td className="py-2 text-sm text-gray-600 text-right">
+                        <td className="py-3 text-sm font-medium text-gray-700 text-right">
                           {loc.cantidad}
                         </td>
-                        <td className="py-2 text-sm font-semibold text-gray-900 text-right">
-                          Bs {loc.ventas.toFixed(2)}
+                        <td className="py-3 text-sm font-bold text-gray-900 text-right">
+                          {formatCurrency(loc.ventas)}
                         </td>
                       </tr>
                     ))}
-                    <tr className="border-t-2 border-gray-200">
-                      <td className="py-2 text-sm font-bold text-gray-900">
+                    <tr className="border-t-2 border-gray-200 bg-gray-50">
+                      <td className="py-3 text-sm font-bold text-gray-900">
                         Total
                       </td>
-                      <td className="py-2 text-sm font-bold text-gray-900 text-right">
-                        {salesByLocation.reduce(
-                          (sum, l) => sum + l.cantidad,
-                          0
-                        )}
+                      <td className="py-3 text-sm font-bold text-gray-900 text-right">
+                        {salesByLocation.reduce((sum, l) => sum + l.cantidad, 0)}
                       </td>
-                      <td className="py-2 text-sm font-bold text-gray-900 text-right">
-                        Bs{" "}
-                        {salesByLocation
-                          .reduce((sum, l) => sum + l.ventas, 0)
-                          .toFixed(2)}
+                      <td className="py-3 text-base font-bold text-blue-600 text-right">
+                        {formatCurrency(
+                          salesByLocation.reduce((sum, l) => sum + l.ventas, 0)
+                        )}
                       </td>
                     </tr>
                   </tbody>
