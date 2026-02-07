@@ -34,7 +34,7 @@ export default async function ReportesPage() {
         payment_method,
         location_id,
         created_at,
-        locations(name)
+        locations!inner(name)
       `
       )
       .eq("organization_id", orgId)
