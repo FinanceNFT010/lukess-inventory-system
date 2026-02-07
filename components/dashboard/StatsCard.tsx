@@ -6,6 +6,7 @@ interface StatsCardProps {
   icon: LucideIcon;
   color: "blue" | "green" | "orange" | "red" | "purple";
   subtitle?: string;
+  delay?: number;
 }
 
 const colorMap = {
@@ -15,9 +16,9 @@ const colorMap = {
     text: "text-blue-600",
   },
   green: {
-    bg: "bg-emerald-50",
-    icon: "bg-emerald-600",
-    text: "text-emerald-600",
+    bg: "bg-green-50",
+    icon: "bg-green-600",
+    text: "text-green-600",
   },
   orange: {
     bg: "bg-amber-50",
@@ -42,23 +43,27 @@ export default function StatsCard({
   icon: Icon,
   color,
   subtitle,
+  delay = 0,
 }: StatsCardProps) {
   const colors = colorMap[color];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+    <div
+      className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-200 animate-fade-in"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="flex items-start justify-between">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-3xl font-bold text-gray-900">{value}</p>
           {subtitle && (
-            <p className={`text-xs font-medium ${colors.text}`}>{subtitle}</p>
+            <p className={`text-xs font-semibold ${colors.text}`}>{subtitle}</p>
           )}
         </div>
         <div
-          className={`w-10 h-10 ${colors.bg} rounded-lg flex items-center justify-center`}
+          className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}
         >
-          <Icon className={`w-5 h-5 ${colors.text}`} />
+          <Icon className={`w-7 h-7 ${colors.text}`} />
         </div>
       </div>
     </div>

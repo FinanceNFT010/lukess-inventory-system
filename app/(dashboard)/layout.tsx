@@ -50,9 +50,19 @@ export default async function DashboardLayout({
     .eq("is_active", true)
     .order("name");
 
+  // Get low stock count for badge
+  const LOW_STOCK_THRESHOLD = 10;
+  const { data: lowStockItems } = await supabase
+    .from("inventory")
+    .select("id, products!inner(organization_id)")
+    .eq("products.organization_id", profile.organization_id)
+    .lt("quantity", LOW_STOCK_THRESHOLD);
+
+  const lowStockCount = lowStockItems?.length || 0;
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar profile={profile as Profile} />
+      <Sidebar profile={profile as Profile} lowStockCount={lowStockCount} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
