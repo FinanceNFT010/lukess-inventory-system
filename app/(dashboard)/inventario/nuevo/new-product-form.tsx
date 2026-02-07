@@ -26,27 +26,17 @@ import Link from "next/link";
 // ── Schema ───────────────────────────────────────────────────────────────────
 
 const productSchema = z.object({
-  sku: z
-    .string()
-    .min(3, "El SKU debe tener al menos 3 caracteres")
-    .max(20, "El SKU no puede exceder 20 caracteres"),
-  name: z
-    .string()
-    .min(2, "El nombre debe tener al menos 2 caracteres")
-    .max(100, "El nombre no puede exceder 100 caracteres"),
-  description: z.string().max(500, "Máximo 500 caracteres").optional(),
-  category_id: z.string().optional(),
+  sku: z.string().min(1, "SKU es requerido").max(50, "Máximo 50 caracteres"),
+  name: z.string().min(1, "Nombre es requerido").max(200, "Máximo 200 caracteres"),
+  description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
+  category_id: z.string().uuid("Selecciona una categoría válida").optional(),
   brand: z.string().max(50, "Máximo 50 caracteres").optional(),
-  price: z
-    .number({ invalid_type_error: "Ingresa un precio válido" })
-    .positive("El precio debe ser mayor a 0"),
-  cost: z
-    .number({ invalid_type_error: "Ingresa un costo válido" })
-    .min(0, "El costo no puede ser negativo"),
-  min_stock: z
-    .number({ invalid_type_error: "Ingresa un valor válido" })
-    .int("Debe ser un número entero")
-    .min(0, "No puede ser negativo"),
+  price: z.coerce.number().positive("El precio debe ser mayor a 0"),
+  cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
+  sizes: z.array(z.string()).min(1, "Selecciona al menos una talla"),
+  colors: z.array(z.string()).min(1, "Selecciona al menos un color"),
+  low_stock_threshold: z.coerce.number().int().min(1, "Mínimo 1").default(5),
+  initial_stock: z.record(z.string(), z.coerce.number().int().min(0)).optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
