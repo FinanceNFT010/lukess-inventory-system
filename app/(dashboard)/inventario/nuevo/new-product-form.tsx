@@ -93,7 +93,8 @@ export default function NewProductForm({
   );
 
   const form = useForm({
-    resolver: zodResolver(productSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(productSchema) as any,
     defaultValues: {
       sku: "",
       name: "",
@@ -110,8 +111,6 @@ export default function NewProductForm({
   });
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = form;
-
-  const currentSku = watch("sku");
 
   // ── Auto-generate SKU ──────────────────────────────────────────────────────
 
@@ -189,7 +188,7 @@ export default function NewProductForm({
         product_id: product.id,
         location_id: loc.id,
         quantity: stockByLocation[loc.id] || 0,
-        min_stock: data.min_stock,
+        min_stock: data.low_stock_threshold,
       }));
 
       const { error: inventoryError } = await supabase
@@ -547,13 +546,13 @@ export default function NewProductForm({
               </span>
               <input
                 type="number"
-                {...register("min_stock", { valueAsNumber: true })}
+                {...register("low_stock_threshold", { valueAsNumber: true })}
                 className="w-16 px-2 py-1 border border-gray-300 rounded-md text-xs text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900"
               />
             </div>
           </div>
-          {errors.min_stock && (
-            <p className="text-xs text-red-600">{errors.min_stock.message}</p>
+          {errors.low_stock_threshold && (
+            <p className="text-xs text-red-600">{errors.low_stock_threshold.message}</p>
           )}
 
           <div className="space-y-3">
