@@ -235,8 +235,8 @@ export default async function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="table-container">
+              <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-3">

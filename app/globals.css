@@ -41,3 +41,39 @@ body {
   animation: fade-in 0.5s ease-out forwards;
   opacity: 0;
 }
+
+/* Responsive tables */
+.table-container {
+  @apply w-full overflow-x-auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-lg;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-lg;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Hide scrollbar for mobile but keep functionality */
+@media (max-width: 768px) {
+  .table-container {
+    scrollbar-width: thin;
+  }
+}
+
+/* Responsive grid utilities */
+@media (max-width: 640px) {
+  .grid-responsive {
+    @apply grid-cols-1;
+  }
+}

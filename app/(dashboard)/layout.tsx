@@ -71,7 +71,9 @@ export default async function DashboardLayout({
           locations={(locations as Location[]) || []}
         />
 
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">{children}</main>
+        <main className="flex-1 p-4 pt-20 lg:pt-6 lg:p-6 overflow-auto">
+          {children}
+        </main>
       </div>
     </div>
   );

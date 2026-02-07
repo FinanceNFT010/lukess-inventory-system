@@ -8,6 +8,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Location } from "@/lib/types";
 import toast from "react-hot-toast";
+import { LoadingButton } from "@/components/ui/LoadingButton";
 import {
   ArrowLeft,
   Save,
@@ -627,22 +628,19 @@ export default function NewProductForm({
         <div className="flex items-center justify-between pt-2 pb-8">
           <Link
             href="/inventario"
-            className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
+            className="px-6 py-3 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-xl transition"
           >
             Cancelar
           </Link>
-          <button
+          <LoadingButton
             type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition shadow-sm"
+            loading={saving}
+            loadingText="Guardando..."
+            variant="primary"
           >
-            {saving ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {saving ? "Guardando..." : "Crear Producto"}
-          </button>
+            <Save className="w-5 h-5" />
+            Crear Producto
+          </LoadingButton>
         </div>
       </form>
     </div>

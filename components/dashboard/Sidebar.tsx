@@ -15,8 +15,9 @@ import {
   ChevronLeft,
   Menu,
   Store,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const navLinks = [
   {
@@ -104,6 +105,24 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [mobileOpen]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -122,30 +141,33 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile toggle */}
+      {/* Mobile hamburger button */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-white p-2 rounded-lg shadow-md border border-gray-200"
+        onClick={() => setMobileOpen(!mobileOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-xl shadow-lg border-2 border-gray-200 hover:bg-gray-50 transition-colors"
       >
-        <Menu className="w-5 h-5 text-gray-700" />
+        {mobileOpen ? (
+          <X className="w-6 h-6 text-gray-700" />
+        ) : (
+          <Menu className="w-6 h-6 text-gray-700" />
+        )}
       </button>
 
-      {/* Overlay for mobile */}
-      {!collapsed && (
+      {/* Mobile overlay */}
+      {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
-          onClick={() => setCollapsed(true)}
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
         />
       )}
 
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-40
-          flex flex-col bg-white border-r border-gray-200 
-          transition-transform duration-300 ease-in-out
-          w-64 
-          ${collapsed ? "-translate-x-full lg:translate-x-0 lg:w-20" : "translate-x-0"}
+          fixed lg:sticky top-0 h-screen bg-white border-r border-gray-200 
+          flex flex-col z-40 transition-all duration-300
+          ${collapsed ? "w-20" : "w-64"}
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
         {/* Header */}

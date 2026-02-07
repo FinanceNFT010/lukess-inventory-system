@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Location } from "@/lib/types";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import toast from "react-hot-toast";
 import {
   Search,
   Plus,
@@ -80,6 +82,12 @@ export default function InventoryClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<"name" | "sku" | "price" | "stock">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; productId: string | null; productName: string }>({
+    isOpen: false,
+    productId: null,
+    productName: "",
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
   const itemsPerPage = 20;
 
   // ── Supabase Realtime ──────────────────────────────────────────────────────
@@ -596,13 +604,14 @@ export default function InventoryClient({
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm(`¿Eliminar "${product.name}"?`)) {
-                                // TODO: Implementar eliminación
-                                console.log("Eliminar", product.id);
-                              }
-                            }}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            onClick={() =>
+                              setDeleteModal({
+                                isOpen: true,
+                                productId: product.id,
+                                productName: product.name,
+                              })
+                            }
+                            className="p-2 text-gray-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
                             title="Eliminar producto"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -728,6 +737,44 @@ export default function InventoryClient({
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() =>
+          setDeleteModal({ isOpen: false, productId: null, productName: "" })
+        }
+        onConfirm={async () => {
+          if (!deleteModal.productId) return;
+          
+          setIsDeleting(true);
+          const supabase = createClient();
+          
+          try {
+            const { error } = await supabase
+              .from("products")
+              .delete()
+              .eq("id", deleteModal.productId);
+
+            if (error) throw error;
+
+            toast.success("Producto eliminado correctamente");
+            setDeleteModal({ isOpen: false, productId: null, productName: "" });
+            router.refresh();
+          } catch (error) {
+            console.error("Error al eliminar producto:", error);
+            toast.error("Error al eliminar el producto");
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+        title="¿Eliminar producto?"
+        message={`¿Estás seguro de que deseas eliminar "${deleteModal.productName}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={isDeleting}
+      />
     </div>
   );
 }
