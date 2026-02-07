@@ -92,25 +92,24 @@ export default function NewProductForm({
     )
   );
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<ProductFormData>({
+  const form = useForm({
     resolver: zodResolver(productSchema),
     defaultValues: {
       sku: "",
       name: "",
       description: "",
-      category_id: "",
+      category_id: undefined,
       brand: "",
       price: 0,
       cost: 0,
-      min_stock: 5,
+      sizes: [],
+      colors: [],
+      low_stock_threshold: 5,
+      initial_stock: {},
     },
   });
+
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = form;
 
   const currentSku = watch("sku");
 
