@@ -369,7 +369,7 @@ export default function ReportsClient({
                   onClick={() => setSelectedRange(range.days)}
                   className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
                     selectedRange === range.days
-                      ? "bg-gradient-to-r from-brand-600 to-purple-600 text-white shadow-lg scale-105"
+                      ? "bg-brand-600 text-white shadow-lg shadow-brand-500/50 scale-105"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >

@@ -21,6 +21,7 @@ import {
   Palette,
   Ruler,
   MapPin,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -373,23 +374,35 @@ export default function NewProductForm({
 
           {/* Margin preview */}
           {watch("price") > 0 && watch("cost") >= 0 && (
-            <div className="bg-gray-50 rounded-lg px-4 py-2.5 flex items-center justify-between">
-              <span className="text-sm text-gray-600">Margen de ganancia</span>
-              <span
-                className={`text-sm font-semibold ${
+            <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${
+              watch("price") - watch("cost") > 0
+                ? "bg-success-50 border-success-200"
+                : "bg-danger-50 border-danger-200"
+            }`}>
+              <div className="flex items-center gap-2">
+                <TrendingUp className={`w-5 h-5 ${
                   watch("price") - watch("cost") > 0
-                    ? "text-green-600"
-                    : "text-red-600"
+                    ? "text-success-600"
+                    : "text-danger-600"
+                }`} />
+                <span className="text-sm font-semibold text-gray-700">Margen de ganancia</span>
+              </div>
+              <span
+                className={`text-xl font-bold flex items-center gap-2 ${
+                  watch("price") - watch("cost") > 0
+                    ? "text-success-600"
+                    : "text-danger-600"
                 }`}
               >
-                Bs {(watch("price") - watch("cost")).toFixed(2)} (
-                {watch("cost") > 0
-                  ? (
-                      ((watch("price") - watch("cost")) / watch("cost")) *
-                      100
-                    ).toFixed(1)
-                  : "∞"}
-                %)
+                Bs {(watch("price") - watch("cost")).toFixed(2)}
+                <span className="text-base">
+                  ({watch("cost") > 0
+                    ? (
+                        ((watch("price") - watch("cost")) / watch("cost")) *
+                        100
+                      ).toFixed(1)
+                    : "∞"}%)
+                </span>
               </span>
             </div>
           )}

@@ -179,7 +179,7 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success-500 rounded-full border-2 border-white"></div>
               </div>
               <div>
-                <span className="font-display font-bold text-xl bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent block leading-tight">
+                <span className="font-display font-bold text-xl text-brand-600 block leading-tight">
                   LUKESS
                 </span>
                 <span className="text-xs font-semibold text-gray-500 tracking-wide">

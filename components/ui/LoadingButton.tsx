@@ -25,12 +25,12 @@ export function LoadingButton({
 }: LoadingButtonProps) {
   const variantStyles = {
     primary:
-      "bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white shadow-lg",
+      "bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/50 hover:shadow-xl hover:shadow-brand-600/50",
     secondary: "bg-gray-100 hover:bg-gray-200 text-gray-700",
     danger:
-      "bg-gradient-to-r from-danger-600 to-danger-700 hover:from-danger-700 hover:to-danger-800 text-white shadow-lg",
+      "bg-danger-600 hover:bg-danger-700 text-white shadow-lg shadow-danger-500/50 hover:shadow-xl hover:shadow-danger-600/50",
     success:
-      "bg-gradient-to-r from-success-600 to-success-700 hover:from-success-700 hover:to-success-800 text-white shadow-lg",
+      "bg-success-600 hover:bg-success-700 text-white shadow-lg shadow-success-500/50 hover:shadow-xl hover:shadow-success-600/50",
   };
 
   const isDisabled = disabled || loading || success;

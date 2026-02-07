@@ -46,24 +46,33 @@ export default function StatsCard({
   delay = 0,
 }: StatsCardProps) {
   const colors = colorMap[color];
+  const isAlert = color === "red" && typeof value === "number" && value > 0;
 
   return (
     <div
-      className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-200 animate-fade-in"
+      className={`bg-white rounded-xl border-2 p-6 hover:shadow-lg hover:scale-105 transition-all duration-200 animate-fade-in ${
+        isAlert ? "border-danger-300 animate-pulse" : "border-gray-200"
+      }`}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
+          <p className={`text-sm font-medium ${isAlert ? "text-danger-800" : "text-gray-500"}`}>
+            {title}
+          </p>
+          <p className={`text-4xl font-bold ${isAlert ? "text-danger-600" : "text-gray-900"}`}>
+            {value}
+          </p>
           {subtitle && (
-            <p className={`text-xs font-semibold ${colors.text}`}>{subtitle}</p>
+            <p className={`text-xs font-semibold ${isAlert ? "text-danger-800" : colors.text}`}>
+              {subtitle}
+            </p>
           )}
         </div>
         <div
-          className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}
+          className={`w-14 h-14 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0 group`}
         >
-          <Icon className={`w-7 h-7 ${colors.text}`} />
+          <Icon className={`w-8 h-8 ${colors.text} transition-transform group-hover:rotate-12`} />
         </div>
       </div>
     </div>

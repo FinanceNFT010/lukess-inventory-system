@@ -270,7 +270,7 @@ export default function InventoryClient({
         </div>
         <button
           onClick={() => router.push("/inventario/nuevo")}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-brand-500/50 hover:shadow-xl hover:shadow-brand-600/50 transform hover:scale-105"
         >
           <Plus className="w-5 h-5" />
           Nuevo Producto
@@ -451,7 +451,7 @@ export default function InventoryClient({
             {products.length === 0 && (
               <button
                 onClick={() => router.push("/inventario/nuevo")}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl"
+                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-brand-500/50 hover:shadow-xl hover:shadow-brand-600/50"
               >
                 <Plus className="w-5 h-5" />
                 Agregar Primer Producto
@@ -598,10 +598,10 @@ export default function InventoryClient({
                         <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => router.push(`/inventario/${product.id}`)}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2.5 text-brand-600 bg-brand-50 hover:text-white hover:bg-brand-600 rounded-lg transition-all shadow-sm hover:shadow-md"
                             title="Editar producto"
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() =>
@@ -611,10 +611,10 @@ export default function InventoryClient({
                                 productName: product.name,
                               })
                             }
-                            className="p-2 text-gray-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
+                            className="p-2.5 text-danger-600 bg-danger-50 hover:text-white hover:bg-danger-600 rounded-lg transition-all shadow-sm hover:shadow-md"
                             title="Eliminar producto"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
                       </td>

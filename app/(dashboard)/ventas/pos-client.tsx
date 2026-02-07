@@ -458,7 +458,7 @@ export default function POSClient({
       {/* ═══ RIGHT COLUMN: Cart ═══ */}
       <div className="lg:w-[40%] bg-white rounded-2xl border-2 border-gray-200 flex flex-col overflow-hidden shadow-xl">
         {/* Cart header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-brand-600 to-purple-600 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 bg-brand-600 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <ShoppingCart className="w-6 h-6 text-white" />
             <h2 className="font-bold text-white text-lg">Carrito</h2>
@@ -734,7 +734,7 @@ export default function POSClient({
               </button>
               <button
                 onClick={handleNewSale}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white font-bold rounded-xl transition-all shadow-lg"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-500/50"
               >
                 <RotateCcw className="w-5 h-5" />
                 Nueva Venta
