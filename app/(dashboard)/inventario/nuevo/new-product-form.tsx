@@ -85,6 +85,10 @@ export default function NewProductForm({
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [customSize, setCustomSize] = useState("");
+  const [customColor, setCustomColor] = useState("");
+  const [uniformStock, setUniformStock] = useState("");
+  const [recentBrands, setRecentBrands] = useState<string[]>([]);
+  const [customColors, setCustomColors] = useState<string[]>([]);
   const [stockByLocation, setStockByLocation] = useState<
     Record<string, number>
   >(
@@ -93,6 +97,14 @@ export default function NewProductForm({
       {} as Record<string, number>
     )
   );
+
+  // Load saved data from localStorage
+  useEffect(() => {
+    const savedBrands = localStorage.getItem("recentBrands");
+    const savedColors = localStorage.getItem("customColors");
+    if (savedBrands) setRecentBrands(JSON.parse(savedBrands));
+    if (savedColors) setCustomColors(JSON.parse(savedColors));
+  }, []);
 
   const form = useForm({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,9 +161,47 @@ export default function NewProductForm({
     );
   };
 
+  const addCustomColor = () => {
+    const trimmed = customColor.trim();
+    if (trimmed && !selectedColors.includes(trimmed)) {
+      setSelectedColors((prev) => [...prev, trimmed]);
+      // Save to localStorage
+      const updated = [...customColors, trimmed].slice(-10); // Keep last 10
+      setCustomColors(updated);
+      localStorage.setItem("customColors", JSON.stringify(updated));
+      setCustomColor("");
+    }
+  };
+
+  const clearAllSizes = () => {
+    setSelectedSizes([]);
+  };
+
+  const clearAllColors = () => {
+    setSelectedColors([]);
+  };
+
+  const applyUniformStock = () => {
+    const value = parseInt(uniformStock);
+    if (!isNaN(value) && value >= 0) {
+      const newStock: Record<string, number> = {};
+      locations.forEach((loc) => {
+        newStock[loc.id] = value;
+      });
+      setStockByLocation(newStock);
+      setUniformStock("");
+    }
+  };
+
   // ── Submit ─────────────────────────────────────────────────────────────────
 
   const onSubmit = async (data: ProductFormData) => {
+    // Save brand to localStorage
+    if (data.brand && data.brand.trim()) {
+      const updated = [data.brand, ...recentBrands.filter(b => b !== data.brand)].slice(0, 10);
+      setRecentBrands(updated);
+      localStorage.setItem("recentBrands", JSON.stringify(updated));
+    }
     setSaving(true);
 
     try {
@@ -324,9 +374,20 @@ export default function NewProductForm({
               </label>
               <input
                 {...register("brand")}
+                list="recentBrandsList"
                 placeholder="Ej: Levi's"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
               />
+              <datalist id="recentBrandsList">
+                {recentBrands.map((brand) => (
+                  <option key={brand} value={brand} />
+                ))}
+              </datalist>
+              {recentBrands.length > 0 && (
+                <p className="text-xs text-gray-500">
+                  Sugerencias: {recentBrands.slice(0, 3).join(", ")}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -410,13 +471,24 @@ export default function NewProductForm({
 
         {/* ── Tallas ───────────────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-            <Ruler className="w-4 h-4 text-purple-600" />
-            Tallas
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <Ruler className="w-4 h-4 text-purple-600" />
+              Tallas
+              {selectedSizes.length > 0 && (
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                  {selectedSizes.length}
+                </span>
+              )}
+            </div>
             {selectedSizes.length > 0 && (
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                {selectedSizes.length}
-              </span>
+              <button
+                type="button"
+                onClick={clearAllSizes}
+                className="text-xs text-danger-600 hover:text-danger-700 font-semibold underline"
+              >
+                Eliminar todas
+              </button>
             )}
           </div>
 
@@ -485,13 +557,24 @@ export default function NewProductForm({
 
         {/* ── Colores ──────────────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-            <Palette className="w-4 h-4 text-pink-600" />
-            Colores
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <Palette className="w-4 h-4 text-pink-600" />
+              Colores
+              {selectedColors.length > 0 && (
+                <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">
+                  {selectedColors.length}
+                </span>
+              )}
+            </div>
             {selectedColors.length > 0 && (
-              <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">
-                {selectedColors.length}
-              </span>
+              <button
+                type="button"
+                onClick={clearAllColors}
+                className="text-xs text-danger-600 hover:text-danger-700 font-semibold underline"
+              >
+                Eliminar todos
+              </button>
             )}
           </div>
 
@@ -514,6 +597,45 @@ export default function NewProductForm({
                 {color.name}
               </button>
             ))}
+          </div>
+
+          {/* Custom color input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Color personalizado:
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customColor}
+                onChange={(e) => setCustomColor(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomColor();
+                  }
+                }}
+                list="customColorsList"
+                placeholder="Ej: Texturizado, A rayas, Verde oliva"
+                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+              />
+              <datalist id="customColorsList">
+                {customColors.map((color) => (
+                  <option key={color} value={color} />
+                ))}
+              </datalist>
+              <button
+                type="button"
+                onClick={addCustomColor}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-pink-50 hover:bg-pink-100 rounded-lg text-sm font-medium text-pink-700 transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Agregar
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Presiona Enter para agregar
+            </p>
           </div>
 
           {selectedColors.length > 0 && (
@@ -568,6 +690,39 @@ export default function NewProductForm({
           {errors.low_stock_threshold && (
             <p className="text-xs text-red-600">{errors.low_stock_threshold.message}</p>
           )}
+
+          {/* Uniform stock setter */}
+          <div className="bg-brand-50 border-2 border-brand-200 rounded-lg p-3">
+            <label className="text-sm font-medium text-gray-700 mb-2 block">
+              Aplicar mismo stock a todas las ubicaciones:
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="0"
+                value={uniformStock}
+                onChange={(e) => setUniformStock(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyUniformStock();
+                  }
+                }}
+                placeholder="Cantidad"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-gray-900"
+              />
+              <button
+                type="button"
+                onClick={applyUniformStock}
+                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
+              >
+                Aplicar a todos
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Ingresa una cantidad y presiona Enter o click en "Aplicar a todos"
+            </p>
+          </div>
 
           <div className="space-y-3">
             {locations.map((loc) => (

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import type { Profile } from "@/lib/types";
+import type { Profile, Location } from "@/lib/types";
+import { useLocation } from "@/lib/context/LocationContext";
 import {
   Home,
   Package,
@@ -16,6 +17,7 @@ import {
   Menu,
   Store,
   X,
+  MapPin,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -89,6 +91,7 @@ const roleLabels: Record<string, string> = {
 interface SidebarProps {
   profile: Profile;
   lowStockCount?: number;
+  locations: Location[];
 }
 
 // Helper para obtener iniciales del nombre
@@ -101,11 +104,12 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
+export default function Sidebar({ profile, lowStockCount = 0, locations }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { selectedLocationId, setSelectedLocationId } = useLocation();
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -269,10 +273,43 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
               {initials}
             </div>
           )}
+
+          {/* Location Selector */}
+          {(profile.role === "admin" || profile.role === "manager") && locations.length > 0 && (
+            <div className="mt-3">
+              {!collapsed ? (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-3">
+                    Filtrar por ubicación
+                  </label>
+                  <select
+                    value={selectedLocationId || ""}
+                    onChange={(e) => setSelectedLocationId(e.target.value || null)}
+                    className="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all"
+                  >
+                    <option value="">Todas las ubicaciones</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCollapsed(false)}
+                  className="w-full p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Filtrar ubicación"
+                >
+                  <MapPin className="w-5 h-5 text-gray-400 mx-auto" />
+                </button>
+              )}
+            </div>
+          )}
           
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-danger-600 hover:bg-danger-50 hover:text-danger-700 transition-all duration-200 w-full group border-2 border-transparent hover:border-danger-200"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-danger-600 hover:bg-danger-50 hover:text-danger-700 transition-all duration-200 w-full group border-2 border-transparent hover:border-danger-200 mt-3"
             title={collapsed ? "Cerrar sesión" : undefined}
           >
             <LogOut className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-12" />
