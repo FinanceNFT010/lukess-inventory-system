@@ -262,7 +262,7 @@ export default function InventoryClient({
         </div>
         <button
           onClick={() => router.push("/inventario/nuevo")}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold text-sm px-5 py-3 rounded-xl transition-all shadow-md hover:shadow-lg transform hover:scale-105"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
         >
           <Plus className="w-5 h-5" />
           Nuevo Producto
@@ -443,7 +443,7 @@ export default function InventoryClient({
             {products.length === 0 && (
               <button
                 onClick={() => router.push("/inventario/nuevo")}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold text-sm px-5 py-3 rounded-xl transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl"
               >
                 <Plus className="w-5 h-5" />
                 Agregar Primer Producto

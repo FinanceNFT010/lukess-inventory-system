@@ -53,14 +53,14 @@ const navLinks = [
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
   blue: {
-    bg: "bg-blue-50",
-    text: "text-blue-600",
-    border: "border-blue-600",
+    bg: "bg-brand-50",
+    text: "text-brand-600",
+    border: "border-brand-600",
   },
   green: {
-    bg: "bg-green-50",
-    text: "text-green-600",
-    border: "border-green-600",
+    bg: "bg-success-50",
+    text: "text-success-600",
+    border: "border-success-600",
   },
   purple: {
     bg: "bg-purple-50",
@@ -68,9 +68,9 @@ const colorMap: Record<string, { bg: string; text: string; border: string }> = {
     border: "border-purple-600",
   },
   orange: {
-    bg: "bg-orange-50",
-    text: "text-orange-600",
-    border: "border-orange-600",
+    bg: "bg-warning-50",
+    text: "text-warning-600",
+    border: "border-warning-600",
   },
   gray: {
     bg: "bg-gray-50",
@@ -149,22 +149,26 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
         `}
       >
         {/* Header */}
-        <div className="h-20 flex items-center justify-between px-4 border-b border-gray-100">
+        <div className="h-20 flex items-center justify-between px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           {!collapsed ? (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md">
+              <div className="relative w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Store className="w-6 h-6 text-white" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success-500 rounded-full border-2 border-white"></div>
               </div>
               <div>
-                <span className="font-bold text-lg text-gray-900 block leading-tight">
-                  Lukess Home
+                <span className="font-display font-bold text-xl bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent block leading-tight">
+                  LUKESS
                 </span>
-                <span className="text-xs text-gray-500">Sistema de Inventario</span>
+                <span className="text-xs font-semibold text-gray-500 tracking-wide">
+                  HOME INVENTORY
+                </span>
               </div>
             </div>
           ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md mx-auto">
+            <div className="relative w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg mx-auto">
               <Store className="w-6 h-6 text-white" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success-500 rounded-full border-2 border-white"></div>
             </div>
           )}
           <button
@@ -224,32 +228,32 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
         {/* User section */}
         <div className="p-4 border-t border-gray-100 space-y-3">
           {!collapsed ? (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-50">
+            <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-gray-50 to-brand-50 border border-gray-200">
               {/* Avatar con iniciales */}
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-sm">
+              <div className="w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-lg">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
+                <p className="text-sm font-bold text-gray-900 truncate">
                   {profile.full_name}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-xs font-semibold text-brand-600 truncate">
                   {roleLabels[profile.role] || profile.role}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto text-white font-bold text-sm shadow-sm">
+            <div className="w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-full flex items-center justify-center mx-auto text-white font-bold text-sm shadow-lg">
               {initials}
             </div>
           )}
           
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-200 w-full group"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-danger-600 hover:bg-danger-50 hover:text-danger-700 transition-all duration-200 w-full group border-2 border-transparent hover:border-danger-200"
             title={collapsed ? "Cerrar sesión" : undefined}
           >
-            <LogOut className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110" />
+            <LogOut className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-12" />
             {!collapsed && <span>Cerrar sesión</span>}
           </button>
         </div>

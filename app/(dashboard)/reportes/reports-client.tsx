@@ -346,7 +346,7 @@ export default function ReportsClient({
           <button
             onClick={handleExport}
             disabled={filteredSales.length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-success-600 hover:bg-success-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed"
           >
             <Download className="w-5 h-5" />
             Exportar a Excel
@@ -369,7 +369,7 @@ export default function ReportsClient({
                   onClick={() => setSelectedRange(range.days)}
                   className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
                     selectedRange === range.days
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105"
+                      ? "bg-gradient-to-r from-brand-600 to-purple-600 text-white shadow-lg scale-105"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
@@ -414,15 +414,15 @@ export default function ReportsClient({
         {/* Revenue card */}
         <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-start justify-between mb-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md">
+            <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center shadow-md">
               <DollarSign className="w-7 h-7 text-white" />
             </div>
             {revenueChange !== 0 && (
               <div
                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
                   revenueChange > 0
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
+                    ? "bg-success-100 text-success-700"
+                    : "bg-danger-100 text-danger-700"
                 }`}
               >
                 {revenueChange > 0 ? (
@@ -445,15 +445,15 @@ export default function ReportsClient({
         {/* Sales count card */}
         <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-start justify-between mb-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center shadow-md">
+            <div className="w-12 h-12 bg-gradient-to-br from-success-500 to-success-700 rounded-xl flex items-center justify-center shadow-md">
               <ShoppingCart className="w-7 h-7 text-white" />
             </div>
             {salesCountChange !== 0 && (
               <div
                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
                   salesCountChange > 0
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
+                    ? "bg-success-100 text-success-700"
+                    : "bg-danger-100 text-danger-700"
                 }`}
               >
                 {salesCountChange > 0 ? (
@@ -506,7 +506,7 @@ export default function ReportsClient({
         <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <h2 className="text-lg font-bold text-gray-900">
@@ -638,7 +638,7 @@ export default function ReportsClient({
         {/* Top 5 products */}
         <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-success-500 to-success-700 rounded-xl flex items-center justify-center">
               <Package className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-lg font-bold text-gray-900">
