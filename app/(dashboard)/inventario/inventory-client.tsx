@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Location } from "@/lib/types";
 import {
@@ -61,6 +62,7 @@ export default function InventoryClient({
   userRole,
   userLocationId,
 }: InventoryClientProps) {
+  const router = useRouter();
   const [products, setProducts] =
     useState<ProductWithRelations[]>(initialProducts);
   const [search, setSearch] = useState("");
@@ -189,7 +191,10 @@ export default function InventoryClient({
               : " en total"}
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2.5 rounded-lg transition shadow-sm">
+        <button
+          onClick={() => router.push("/inventario/nuevo")}
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2.5 rounded-lg transition shadow-sm"
+        >
           <Plus className="w-4 h-4" />
           Nuevo Producto
         </button>
