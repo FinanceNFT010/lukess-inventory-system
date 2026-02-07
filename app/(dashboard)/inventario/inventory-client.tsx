@@ -751,19 +751,41 @@ export default function InventoryClient({
           const supabase = createClient();
           
           try {
-            const { error } = await supabase
+            // First delete related inventory records
+            const { error: invError } = await supabase
+              .from("inventory")
+              .delete()
+              .eq("product_id", deleteModal.productId);
+
+            if (invError) {
+              console.error("Error al eliminar inventario:", invError);
+              // Continue anyway, the product delete might cascade
+            }
+
+            // Then delete the product
+            const { error: productError } = await supabase
               .from("products")
               .delete()
               .eq("id", deleteModal.productId);
 
-            if (error) throw error;
+            if (productError) {
+              // Check for specific error types
+              if (productError.code === "23503") {
+                toast.error("No se puede eliminar: el producto tiene ventas registradas");
+              } else if (productError.message.includes("foreign key")) {
+                toast.error("No se puede eliminar: el producto está siendo usado");
+              } else {
+                toast.error(productError.message || "Error al eliminar el producto");
+              }
+              throw productError;
+            }
 
             toast.success("Producto eliminado correctamente");
             setDeleteModal({ isOpen: false, productId: null, productName: "" });
             router.refresh();
-          } catch (error) {
+          } catch (error: any) {
             console.error("Error al eliminar producto:", error);
-            toast.error("Error al eliminar el producto");
+            // Error already shown in toast above
           } finally {
             setIsDeleting(false);
           }

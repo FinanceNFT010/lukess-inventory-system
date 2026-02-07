@@ -30,7 +30,7 @@ const productSchema = z.object({
   sku: z.string().min(1, "SKU es requerido").max(50, "Máximo 50 caracteres"),
   name: z.string().min(1, "Nombre es requerido").max(200, "Máximo 200 caracteres"),
   description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
-  category_id: z.string().uuid("Selecciona una categoría válida").optional(),
+  category_id: z.string().optional().nullable().transform(val => val === "" ? null : val),
   brand: z.string().max(50, "Máximo 50 caracteres").optional(),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
