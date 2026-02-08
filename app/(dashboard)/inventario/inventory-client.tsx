@@ -790,6 +790,7 @@ export default function InventoryClient({
             router.refresh();
           } catch (error: any) {
             console.error("Error al eliminar producto:", error);
+            toast.error(error.message || "Error al eliminar el producto");
           } finally {
             setIsDeleting(false);
           }

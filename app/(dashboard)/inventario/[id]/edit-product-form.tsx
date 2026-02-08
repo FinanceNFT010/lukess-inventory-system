@@ -135,7 +135,7 @@ export default function EditProductForm({
           cost: data.cost,
           sizes: selectedSizes,
           colors: selectedColors,
-          low_stock_threshold: data.low_stock_threshold,
+          // low_stock_threshold: data.low_stock_threshold,  // Columna puede no existir aún
         })
         .eq("id", product.id)
         .eq("organization_id", organizationId);

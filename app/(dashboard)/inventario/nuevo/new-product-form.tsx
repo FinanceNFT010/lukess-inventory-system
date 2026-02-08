@@ -35,8 +35,8 @@ const productSchema = z.object({
   brand: z.string().max(50, "Máximo 50 caracteres").optional(),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
-  sizes: z.array(z.string()).min(1, "Selecciona al menos una talla"),
-  colors: z.array(z.string()).min(1, "Selecciona al menos un color"),
+  sizes: z.array(z.string()).optional().default([]),
+  colors: z.array(z.string()).optional().default([]),
   low_stock_threshold: z.coerce.number().int().min(1, "Mínimo 1").default(5),
   initial_stock: z.record(z.string(), z.coerce.number().int().min(0)).optional(),
 });
@@ -218,10 +218,10 @@ export default function NewProductForm({
           category_id: data.category_id || null,
           brand: data.brand || null,
           price: data.price,
-          cost: data.cost || null,
-          sizes: selectedSizes.length > 0 ? selectedSizes : null,
-          colors: selectedColors.length > 0 ? selectedColors : null,
-          low_stock_threshold: data.low_stock_threshold || 5,
+          cost: data.cost ?? 0,
+          sizes: selectedSizes,
+          colors: selectedColors,
+          // low_stock_threshold: data.low_stock_threshold || 5,  // Columna puede no existir aún
           is_active: true,
         })
         .select()
@@ -258,8 +258,9 @@ export default function NewProductForm({
       toast.success("Producto creado exitosamente");
       router.push("/inventario");
       router.refresh();
-    } catch {
-      toast.error("Error inesperado al guardar");
+    } catch (error: any) {
+      console.error("Error al crear producto:", error);
+      toast.error(error.message || "Error inesperado al guardar");
       setSaving(false);
     }
   };

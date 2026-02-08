@@ -263,22 +263,46 @@ export default function POSClient({
         return;
       }
 
-      // 3. Decrement inventory for each item
+      // 3. Actualizar inventario - LEER DE DB, NO DE MEMORIA
       for (const item of cart) {
-        const currentStock = getStock(item.product);
+        // Obtener stock actual de la BASE DE DATOS
+        const { data: currentInv, error: fetchError } = await supabase
+          .from("inventory")
+          .select("quantity")
+          .eq("product_id", item.product.id)
+          .eq("location_id", locationId)
+          .single();
 
+        if (fetchError) {
+          console.error(`Error obteniendo stock de ${item.product.name}:`, fetchError);
+          throw new Error(`Error al obtener inventario de ${item.product.name}`);
+        }
+
+        if (!currentInv) {
+          throw new Error(`No existe inventario para ${item.product.name} en esta ubicación`);
+        }
+
+        const newQuantity = currentInv.quantity - item.quantity;
+
+        if (newQuantity < 0) {
+          throw new Error(`Stock insuficiente para ${item.product.name}. Disponible: ${currentInv.quantity}, Solicitado: ${item.quantity}`);
+        }
+
+        // Actualizar con el nuevo stock
         const { error: invError } = await supabase
           .from("inventory")
-          .update({ quantity: currentStock - item.quantity })
+          .update({ quantity: newQuantity })
           .eq("product_id", item.product.id)
           .eq("location_id", locationId);
 
         if (invError) {
-          toast.error(
-            `Error al actualizar inventario de ${item.product.name}`
-          );
+          console.error(`Error actualizando inventario de ${item.product.name}:`, invError);
+          throw new Error(`Error al actualizar inventario de ${item.product.name}`);
         }
       }
+
+      // Si llegamos aquí, TODO salió bien
+      console.log('✅ Venta completada e inventario actualizado correctamente');
 
       // Show success modal with confetti
       setLastSale({
@@ -293,8 +317,9 @@ export default function POSClient({
       setTimeout(() => setShowConfetti(false), 5000);
 
       clearCart();
-    } catch {
-      toast.error("Error inesperado al procesar la venta");
+    } catch (error: any) {
+      console.error("Error al procesar venta:", error);
+      toast.error(error.message || "Error inesperado al procesar la venta");
     } finally {
       setProcessing(false);
     }
