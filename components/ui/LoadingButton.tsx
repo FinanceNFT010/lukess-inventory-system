@@ -25,7 +25,7 @@ export function LoadingButton({
 }: LoadingButtonProps) {
   const variantStyles = {
     primary:
-      "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl",
+      "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl",
     secondary: "bg-gray-100 hover:bg-gray-200 text-gray-700",
     danger:
       "bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl",

@@ -1,0 +1,9 @@
+-rw-r--r-- 1 diego 197121    264 Feb  7 15:46 .env.example
+-rw-r--r-- 1 diego 197121    269 Feb  7 13:11 .env.local
+-rw-r--r-- 1 diego 197121    465 Feb  7 13:54 eslint.config.mjs
+-rw-r--r-- 1 diego 197121    224 Feb  7 17:03 next.config.ts
+-rw-r--r-- 1 diego 197121 251850 Feb  7 18:16 package-lock.json
+-rw-r--r-- 1 diego 197121    860 Feb  7 18:16 package.json
+-rw-r--r-- 1 diego 197121     94 Feb  7 13:54 postcss.config.mjs
+-rw-r--r-- 1 diego 197121   1748 Feb  7 18:23 tailwind.config.ts
+-rw-r--r-- 1 diego 197121    598 Feb  7 15:38 tsconfig.json
