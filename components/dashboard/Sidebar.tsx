@@ -56,14 +56,14 @@ const navLinks = [
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
   blue: {
-    bg: "bg-brand-50",
-    text: "text-brand-600",
-    border: "border-brand-600",
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+    border: "border-blue-600",
   },
   green: {
-    bg: "bg-success-50",
-    text: "text-success-600",
-    border: "border-success-600",
+    bg: "bg-green-50",
+    text: "text-green-600",
+    border: "border-green-600",
   },
   purple: {
     bg: "bg-purple-50",
@@ -71,9 +71,9 @@ const colorMap: Record<string, { bg: string; text: string; border: string }> = {
     border: "border-purple-600",
   },
   orange: {
-    bg: "bg-warning-50",
-    text: "text-warning-600",
-    border: "border-warning-600",
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+    border: "border-amber-600",
   },
   gray: {
     bg: "bg-gray-50",
@@ -178,12 +178,12 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
         <div className="h-20 flex items-center justify-between px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           {!collapsed ? (
             <div className="flex items-center gap-3">
-              <div className="relative w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="relative w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Store className="w-6 h-6 text-white" />
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success-500 rounded-full border-2 border-white"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
               <div>
-                <span className="font-display font-bold text-xl text-brand-600 block leading-tight">
+                <span className="font-display font-bold text-xl text-blue-600 block leading-tight">
                   LUKESS
                 </span>
                 <span className="text-xs font-semibold text-gray-500 tracking-wide">
@@ -192,9 +192,9 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
               </div>
             </div>
           ) : (
-            <div className="relative w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg mx-auto">
+            <div className="relative w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg mx-auto">
               <Store className="w-6 h-6 text-white" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success-500 rounded-full border-2 border-white"></div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
           )}
           <button
@@ -254,22 +254,22 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
         {/* User section */}
         <div className="p-4 border-t border-gray-100 space-y-3">
           {!collapsed ? (
-            <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-gray-50 to-brand-50 border border-gray-200">
+            <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200">
               {/* Avatar con iniciales */}
-              <div className="w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-lg">
+              <div className="w-11 h-11 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-lg">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-gray-900 truncate">
                   {profile.full_name}
                 </p>
-                <p className="text-xs font-semibold text-brand-600 truncate">
+                <p className="text-xs font-semibold text-blue-600 truncate">
                   {roleLabels[profile.role] || profile.role}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="w-11 h-11 bg-gradient-to-br from-brand-500 via-brand-600 to-purple-600 rounded-full flex items-center justify-center mx-auto text-white font-bold text-sm shadow-lg">
+            <div className="w-11 h-11 bg-blue-600 rounded-full flex items-center justify-center mx-auto text-white font-bold text-sm shadow-lg">
               {initials}
             </div>
           )}
@@ -285,7 +285,7 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
                   <select
                     value={selectedLocationId || ""}
                     onChange={(e) => setSelectedLocationId(e.target.value || null)}
-                    className="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all"
+                    className="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
                   >
                     <option value="">Todas las ubicaciones</option>
                     {locations.map((loc) => (
@@ -309,7 +309,7 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
           
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-danger-600 hover:bg-danger-50 hover:text-danger-700 transition-all duration-200 w-full group border-2 border-transparent hover:border-danger-200 mt-3"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 w-full group border-2 border-transparent hover:border-red-200 mt-3"
             title={collapsed ? "Cerrar sesión" : undefined}
           >
             <LogOut className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-12" />

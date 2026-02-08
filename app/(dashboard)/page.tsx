@@ -29,8 +29,8 @@ const paymentLabels: Record<string, string> = {
 };
 
 const paymentColors: Record<string, string> = {
-  cash: "bg-success-100 text-success-800",
-  qr: "bg-brand-100 text-brand-800",
+  cash: "bg-green-100 text-green-800",
+  qr: "bg-blue-100 text-blue-800",
   card: "bg-purple-100 text-purple-800",
 };
 
@@ -255,10 +255,10 @@ export default async function DashboardPage() {
                     const qty = item.quantity;
                     const badgeColor =
                       qty <= 3
-                        ? "bg-danger-100 text-danger-800"
+                        ? "bg-red-100 text-red-800"
                         : qty <= 7
-                          ? "bg-warning-100 text-warning-800"
-                          : "bg-warning-100 text-warning-700";
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-amber-100 text-amber-700";
 
                     return (
                       <tr

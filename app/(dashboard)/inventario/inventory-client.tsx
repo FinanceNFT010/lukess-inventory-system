@@ -270,7 +270,7 @@ export default function InventoryClient({
         </div>
         <button
           onClick={() => router.push("/inventario/nuevo")}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-brand-500/50 hover:shadow-xl hover:shadow-brand-600/50 transform hover:scale-105"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
         >
           <Plus className="w-5 h-5" />
           Nuevo Producto
@@ -451,7 +451,7 @@ export default function InventoryClient({
             {products.length === 0 && (
               <button
                 onClick={() => router.push("/inventario/nuevo")}
-                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-brand-500/50 hover:shadow-xl hover:shadow-brand-600/50"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl"
               >
                 <Plus className="w-5 h-5" />
                 Agregar Primer Producto
@@ -595,10 +595,10 @@ export default function InventoryClient({
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => router.push(`/inventario/${product.id}`)}
-                            className="p-2.5 text-brand-600 bg-brand-50 hover:text-white hover:bg-brand-600 rounded-lg transition-all shadow-sm hover:shadow-md"
+                            className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
                             title="Editar producto"
                           >
                             <Pencil className="w-5 h-5" />
@@ -611,7 +611,7 @@ export default function InventoryClient({
                                 productName: product.name,
                               })
                             }
-                            className="p-2.5 text-danger-600 bg-danger-50 hover:text-white hover:bg-danger-600 rounded-lg transition-all shadow-sm hover:shadow-md"
+                            className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
                             title="Eliminar producto"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -751,29 +751,34 @@ export default function InventoryClient({
           const supabase = createClient();
           
           try {
-            // First delete related inventory records
-            const { error: invError } = await supabase
+            // 1. Verify no sales exist for this product
+            const { data: salesData } = await supabase
+              .from("sale_items")
+              .select("id")
+              .eq("product_id", deleteModal.productId)
+              .limit(1);
+
+            if (salesData && salesData.length > 0) {
+              toast.error("No se puede eliminar: el producto tiene ventas registradas");
+              setIsDeleting(false);
+              return;
+            }
+
+            // 2. Delete related inventory records first
+            await supabase
               .from("inventory")
               .delete()
               .eq("product_id", deleteModal.productId);
 
-            if (invError) {
-              console.error("Error al eliminar inventario:", invError);
-              // Continue anyway, the product delete might cascade
-            }
-
-            // Then delete the product
+            // 3. Delete the product
             const { error: productError } = await supabase
               .from("products")
               .delete()
               .eq("id", deleteModal.productId);
 
             if (productError) {
-              // Check for specific error types
               if (productError.code === "23503") {
-                toast.error("No se puede eliminar: el producto tiene ventas registradas");
-              } else if (productError.message.includes("foreign key")) {
-                toast.error("No se puede eliminar: el producto está siendo usado");
+                toast.error("No se puede eliminar: el producto está siendo usado en otro registro");
               } else {
                 toast.error(productError.message || "Error al eliminar el producto");
               }
@@ -785,7 +790,6 @@ export default function InventoryClient({
             router.refresh();
           } catch (error: any) {
             console.error("Error al eliminar producto:", error);
-            // Error already shown in toast above
           } finally {
             setIsDeleting(false);
           }

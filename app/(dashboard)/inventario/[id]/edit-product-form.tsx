@@ -20,6 +20,7 @@ import {
   Palette,
   Ruler,
   MapPin,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -29,7 +30,7 @@ const productSchema = z.object({
   sku: z.string().min(1, "SKU es requerido").max(50, "Máximo 50 caracteres"),
   name: z.string().min(1, "Nombre es requerido").max(200, "Máximo 200 caracteres"),
   description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
-  category_id: z.string().uuid("Selecciona una categoría válida").optional().nullable(),
+  category_id: z.string().optional().nullable().transform(val => val === "" ? null : val),
   brand: z.string().max(50, "Máximo 50 caracteres").optional(),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
@@ -103,7 +104,7 @@ export default function EditProductForm({
     },
   });
 
-  const { register, handleSubmit, setValue, formState: { errors } } = form;
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = form;
 
   // Update form when sizes/colors change
   useEffect(() => {
@@ -224,7 +225,7 @@ export default function EditProductForm({
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
             <Package className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -242,7 +243,7 @@ export default function EditProductForm({
               </label>
               <input
                 {...register("sku")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
                 placeholder="Ej: LH-0001"
               />
               {errors.sku && (
@@ -256,7 +257,7 @@ export default function EditProductForm({
               </label>
               <input
                 {...register("name")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
                 placeholder="Ej: Camisa Columbia Azul"
               />
               {errors.name && (
@@ -273,7 +274,7 @@ export default function EditProductForm({
             <textarea
               {...register("description")}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none text-gray-900 placeholder:text-gray-400"
               placeholder="Descripción detallada del producto..."
             />
           </div>
@@ -286,7 +287,7 @@ export default function EditProductForm({
               </label>
               <select
                 {...register("category_id")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-gray-700"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-700"
               >
                 <option value="">Sin categoría</option>
                 {categories.map((cat) => (
@@ -303,7 +304,7 @@ export default function EditProductForm({
               </label>
               <input
                 {...register("brand")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
                 placeholder="Ej: Columbia, Nike, Adidas"
               />
             </div>
@@ -319,7 +320,7 @@ export default function EditProductForm({
                 type="number"
                 step="0.01"
                 {...register("price")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
                 placeholder="0.00"
               />
               {errors.price && (
@@ -335,11 +336,41 @@ export default function EditProductForm({
                 type="number"
                 step="0.01"
                 {...register("cost")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
                 placeholder="0.00"
               />
             </div>
           </div>
+
+          {/* Margin preview */}
+          {watch("price") > 0 && watch("cost") > 0 && (
+            <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${
+              watch("price") - watch("cost") > 0
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
+            }`}>
+              <div className="flex items-center gap-2">
+                <TrendingUp className={`w-5 h-5 ${
+                  watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
+                }`} />
+                <span className="text-sm font-semibold text-gray-700">Margen de ganancia</span>
+              </div>
+              <div className="text-right">
+                <span className={`text-xl font-bold ${
+                  watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
+                }`}>
+                  +Bs {(watch("price") - watch("cost")).toFixed(2)}
+                </span>
+                <span className={`text-base ml-2 ${
+                  watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
+                }`}>
+                  ({watch("cost") > 0
+                    ? (((watch("price") - watch("cost")) / watch("cost")) * 100).toFixed(1)
+                    : "∞"}%)
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Sizes */}
           <div>
@@ -354,7 +385,7 @@ export default function EditProductForm({
                   onClick={() => toggleSize(size)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${
                     selectedSizes.includes(size)
-                      ? "bg-brand-600 text-white"
+                      ? "bg-blue-600 text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
@@ -367,8 +398,8 @@ export default function EditProductForm({
                 type="text"
                 value={customSize}
                 onChange={(e) => setCustomSize(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCustomSize())}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomSize(); } }}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
                 placeholder="Talla personalizada"
               />
               <button
@@ -384,13 +415,13 @@ export default function EditProductForm({
                 {selectedSizes.map((size) => (
                   <span
                     key={size}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-brand-100 text-brand-700 text-xs font-medium rounded"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
                   >
                     {size}
                     <button
                       type="button"
                       onClick={() => removeSize(size)}
-                      className="hover:text-brand-900"
+                      className="hover:text-blue-900"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -416,7 +447,7 @@ export default function EditProductForm({
                   onClick={() => toggleColor(color.name)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition ${
                     selectedColors.includes(color.name)
-                      ? "border-brand-600 bg-brand-50"
+                      ? "border-blue-600 bg-blue-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
@@ -441,7 +472,7 @@ export default function EditProductForm({
             <input
               type="number"
               {...register("low_stock_threshold")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
               placeholder="5"
             />
           </div>
@@ -471,7 +502,7 @@ export default function EditProductForm({
                         [location.id]: parseInt(e.target.value) || 0,
                       })
                     }
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
                   />
                 </div>
               ))}

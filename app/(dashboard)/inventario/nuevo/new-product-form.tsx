@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -218,9 +218,11 @@ export default function NewProductForm({
           category_id: data.category_id || null,
           brand: data.brand || null,
           price: data.price,
-          cost: data.cost,
-          sizes: selectedSizes,
-          colors: selectedColors,
+          cost: data.cost || null,
+          sizes: selectedSizes.length > 0 ? selectedSizes : null,
+          colors: selectedColors.length > 0 ? selectedColors : null,
+          low_stock_threshold: data.low_stock_threshold || 5,
+          is_active: true,
         })
         .select()
         .single();
@@ -437,22 +439,22 @@ export default function NewProductForm({
           {watch("price") > 0 && watch("cost") >= 0 && (
             <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${
               watch("price") - watch("cost") > 0
-                ? "bg-success-50 border-success-200"
-                : "bg-danger-50 border-danger-200"
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
             }`}>
               <div className="flex items-center gap-2">
                 <TrendingUp className={`w-5 h-5 ${
                   watch("price") - watch("cost") > 0
-                    ? "text-success-600"
-                    : "text-danger-600"
+                    ? "text-green-600"
+                    : "text-red-600"
                 }`} />
                 <span className="text-sm font-semibold text-gray-700">Margen de ganancia</span>
               </div>
               <span
                 className={`text-xl font-bold flex items-center gap-2 ${
                   watch("price") - watch("cost") > 0
-                    ? "text-success-600"
-                    : "text-danger-600"
+                    ? "text-green-600"
+                    : "text-red-600"
                 }`}
               >
                 Bs {(watch("price") - watch("cost")).toFixed(2)}
@@ -485,7 +487,7 @@ export default function NewProductForm({
               <button
                 type="button"
                 onClick={clearAllSizes}
-                className="text-xs text-danger-600 hover:text-danger-700 font-semibold underline"
+                className="text-xs text-red-600 hover:text-red-700 font-semibold underline"
               >
                 Eliminar todas
               </button>
@@ -571,7 +573,7 @@ export default function NewProductForm({
               <button
                 type="button"
                 onClick={clearAllColors}
-                className="text-xs text-danger-600 hover:text-danger-700 font-semibold underline"
+                className="text-xs text-red-600 hover:text-red-700 font-semibold underline"
               >
                 Eliminar todos
               </button>
@@ -692,7 +694,7 @@ export default function NewProductForm({
           )}
 
           {/* Uniform stock setter */}
-          <div className="bg-brand-50 border-2 border-brand-200 rounded-lg p-3">
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
             <label className="text-sm font-medium text-gray-700 mb-2 block">
               Aplicar mismo stock a todas las ubicaciones:
             </label>
@@ -709,18 +711,18 @@ export default function NewProductForm({
                   }
                 }}
                 placeholder="Cantidad"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-gray-900"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900"
               />
               <button
                 type="button"
                 onClick={applyUniformStock}
-                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
               >
                 Aplicar a todos
               </button>
             </div>
             <p className="text-xs text-gray-600 mt-2">
-              Ingresa una cantidad y presiona Enter o click en "Aplicar a todos"
+              Ingresa una cantidad y presiona Enter o click en &quot;Aplicar a todos&quot;
             </p>
           </div>
 

@@ -63,15 +63,15 @@ const paymentMethods: {
     value: "cash",
     label: "Efectivo",
     icon: Banknote,
-    color: "text-success-600",
-    bgColor: "bg-success-500",
+    color: "text-green-600",
+    bgColor: "bg-green-500",
   },
   {
     value: "qr",
     label: "QR",
     icon: QrCode,
-    color: "text-brand-600",
-    bgColor: "bg-brand-500",
+    color: "text-blue-600",
+    bgColor: "bg-blue-500",
   },
   {
     value: "card",
@@ -425,16 +425,16 @@ export default function POSClient({
                       </p>
                     )}
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-base font-bold text-brand-600">
+                      <span className="text-base font-bold text-blue-600">
                         Bs {product.price.toFixed(2)}
                       </span>
                       <span
                         className={`text-xs font-bold px-2 py-1 rounded-lg ${
                           available <= 0
-                            ? "bg-danger-100 text-danger-700"
+                            ? "bg-red-100 text-red-700"
                             : available <= 5
-                              ? "bg-warning-100 text-warning-700"
-                              : "bg-success-100 text-success-700"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-green-100 text-green-700"
                         }`}
                       >
                         {available}
@@ -458,7 +458,7 @@ export default function POSClient({
       {/* ═══ RIGHT COLUMN: Cart ═══ */}
       <div className="lg:w-[40%] bg-white rounded-2xl border-2 border-gray-200 flex flex-col overflow-hidden shadow-xl">
         {/* Cart header */}
-        <div className="px-6 py-4 bg-brand-600 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 bg-blue-600 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <ShoppingCart className="w-6 h-6 text-white" />
             <h2 className="font-bold text-white text-lg">Carrito</h2>
@@ -654,7 +654,7 @@ export default function POSClient({
               <button
                 onClick={finalizeSale}
                 disabled={processing || cart.length === 0}
-                className="w-full bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-5 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg shadow-2xl shadow-success-600/50 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-5 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg shadow-2xl transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
               >
                 {processing ? (
                   <>
@@ -714,7 +714,7 @@ export default function POSClient({
               </div>
               <div className="flex items-center justify-between pt-3 border-t-2 border-gray-200">
                 <span className="text-lg font-bold text-gray-900">Total</span>
-                <span className="text-2xl font-bold text-success-600">
+                <span className="text-2xl font-bold text-green-600">
                   {formatCurrency(lastSale.total)}
                 </span>
               </div>
@@ -734,7 +734,7 @@ export default function POSClient({
               </button>
               <button
                 onClick={handleNewSale}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-500/50"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
               >
                 <RotateCcw className="w-5 h-5" />
                 Nueva Venta

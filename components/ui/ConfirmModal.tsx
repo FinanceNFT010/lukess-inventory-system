@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, Trash2, X } from "lucide-react";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -29,16 +29,19 @@ export function ConfirmModal({
 
   const variantStyles = {
     danger: {
-      icon: "bg-danger-100 text-danger-600",
-      button: "bg-danger-600 hover:bg-danger-700",
+      iconBg: "bg-red-100",
+      iconText: "text-red-600",
+      button: "bg-red-600 hover:bg-red-700",
     },
     warning: {
-      icon: "bg-warning-100 text-warning-600",
-      button: "bg-warning-600 hover:bg-warning-700",
+      iconBg: "bg-amber-100",
+      iconText: "text-amber-600",
+      button: "bg-amber-600 hover:bg-amber-700",
     },
     info: {
-      icon: "bg-brand-100 text-brand-600",
-      button: "bg-brand-600 hover:bg-brand-700",
+      iconBg: "bg-blue-100",
+      iconText: "text-blue-600",
+      button: "bg-blue-600 hover:bg-blue-700",
     },
   };
 
@@ -50,7 +53,7 @@ export function ConfirmModal({
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-200">
           <div className="flex items-start gap-4">
-            <div className={`w-12 h-12 ${styles.icon} rounded-xl flex items-center justify-center flex-shrink-0`}>
+            <div className={`w-12 h-12 ${styles.iconBg} ${styles.iconText} rounded-xl flex items-center justify-center flex-shrink-0`}>
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
@@ -72,7 +75,7 @@ export function ConfirmModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 font-bold rounded-xl transition-colors disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:bg-gray-50 font-bold rounded-xl transition-colors disabled:cursor-not-allowed"
           >
             {cancelText}
           </button>
@@ -84,10 +87,13 @@ export function ConfirmModal({
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Procesando...</span>
+                <span>Eliminando...</span>
               </>
             ) : (
-              confirmText
+              <>
+                {variant === "danger" && <Trash2 className="w-4 h-4" />}
+                {confirmText}
+              </>
             )}
           </button>
         </div>

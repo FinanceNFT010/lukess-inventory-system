@@ -11,29 +11,44 @@ interface StatsCardProps {
 
 const colorMap = {
   blue: {
-    bg: "bg-brand-50",
-    icon: "bg-brand-600",
-    text: "text-brand-600",
+    bg: "bg-blue-50",
+    iconBg: "bg-blue-100",
+    text: "text-blue-600",
+    title: "text-blue-800",
+    subtitle: "text-blue-700",
+    border: "border-blue-200",
   },
   green: {
-    bg: "bg-success-50",
-    icon: "bg-success-600",
-    text: "text-success-600",
+    bg: "bg-green-50",
+    iconBg: "bg-green-100",
+    text: "text-green-600",
+    title: "text-green-800",
+    subtitle: "text-green-700",
+    border: "border-green-200",
   },
   orange: {
-    bg: "bg-warning-50",
-    icon: "bg-warning-600",
-    text: "text-warning-600",
+    bg: "bg-amber-50",
+    iconBg: "bg-amber-100",
+    text: "text-amber-600",
+    title: "text-amber-800",
+    subtitle: "text-amber-700",
+    border: "border-amber-200",
   },
   red: {
-    bg: "bg-danger-50",
-    icon: "bg-danger-600",
-    text: "text-danger-600",
+    bg: "bg-red-50",
+    iconBg: "bg-red-100",
+    text: "text-red-600",
+    title: "text-red-800",
+    subtitle: "text-red-700",
+    border: "border-red-200",
   },
   purple: {
     bg: "bg-purple-50",
-    icon: "bg-purple-600",
+    iconBg: "bg-purple-100",
     text: "text-purple-600",
+    title: "text-purple-800",
+    subtitle: "text-purple-700",
+    border: "border-purple-200",
   },
 };
 
@@ -50,29 +65,29 @@ export default function StatsCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border-2 p-6 hover:shadow-lg hover:scale-105 transition-all duration-200 animate-fade-in ${
-        isAlert ? "border-danger-300 animate-pulse" : "border-gray-200"
-      }`}
+      className={`${colors.bg} rounded-xl border-2 ${colors.border} p-6 hover:shadow-lg hover:scale-[1.03] transition-all duration-200 animate-fade-in`}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className={`text-sm font-medium ${isAlert ? "text-danger-800" : "text-gray-500"}`}>
+          <p className={`text-sm font-medium ${isAlert ? "text-red-800" : colors.title}`}>
             {title}
           </p>
-          <p className={`text-4xl font-bold ${isAlert ? "text-danger-600" : "text-gray-900"}`}>
+          <p className={`text-4xl font-bold ${colors.text}`}>
             {value}
           </p>
           {subtitle && (
-            <p className={`text-xs font-semibold ${isAlert ? "text-danger-800" : colors.text}`}>
+            <p className={`text-sm font-medium ${colors.subtitle}`}>
               {subtitle}
             </p>
           )}
         </div>
         <div
-          className={`w-14 h-14 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0 group`}
+          className={`${colors.iconBg} p-3 rounded-full flex items-center justify-center flex-shrink-0 group`}
         >
-          <Icon className={`w-8 h-8 ${colors.text} transition-transform group-hover:rotate-12`} />
+          <Icon
+            className={`w-10 h-10 transition-transform group-hover:rotate-12 ${colors.text}`}
+          />
         </div>
       </div>
     </div>
