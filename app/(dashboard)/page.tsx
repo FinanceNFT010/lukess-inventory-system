@@ -213,7 +213,7 @@ export default async function DashboardPage() {
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Low Stock Table */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingDown className="w-5 h-5 text-red-500" />
@@ -265,7 +265,10 @@ export default async function DashboardPage() {
                     return (
                       <tr
                         key={i}
-                        className="hover:bg-gray-50 transition-colors"
+                        className="hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01]"
+                        style={{
+                          animation: `fadeIn 0.4s ease-out ${i * 0.1}s both`,
+                        }}
                       >
                         <td className="px-6 py-4">
                           <p className="text-sm font-medium text-gray-900">
@@ -295,7 +298,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Recent Sales */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-purple-500" />
             <h2 className="font-semibold text-gray-900">Últimas Ventas</h2>
@@ -332,7 +335,10 @@ export default async function DashboardPage() {
                 return (
                   <div
                     key={sale.id}
-                    className="px-6 py-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-4"
+                    className="px-6 py-4 hover:bg-purple-50 transition-all duration-200 flex items-center justify-between gap-4 hover:scale-[1.01] cursor-pointer"
+                    style={{
+                      animation: `fadeIn 0.4s ease-out ${recentSales.indexOf(sale) * 0.1}s both`,
+                    }}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       {/* Avatar con iniciales */}

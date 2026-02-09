@@ -65,29 +65,38 @@ export default function StatsCard({
 
   return (
     <div
-      className={`${colors.bg} rounded-xl border-2 ${colors.border} p-6 hover:shadow-lg hover:scale-[1.03] transition-all duration-200 animate-fade-in`}
-      style={{ animationDelay: `${delay}ms` }}
+      className={`${colors.bg} rounded-xl border-2 ${colors.border} p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative overflow-hidden`}
+      style={{
+        animation: `slideInUp 0.6s ease-out ${delay}ms both`,
+      }}
     >
-      <div className="flex items-start justify-between">
+      {/* Animated background gradient on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+      <div className="flex items-start justify-between relative z-10">
         <div className="space-y-2">
-          <p className={`text-sm font-medium ${isAlert ? "text-red-800" : colors.title}`}>
+          <p
+            className={`text-sm font-medium ${isAlert ? "text-red-800" : colors.title} transition-colors duration-200`}
+          >
             {title}
           </p>
-          <p className={`text-4xl font-bold ${colors.text}`}>
+          <p
+            className={`text-4xl font-bold ${colors.text} group-hover:scale-110 transition-transform duration-300 origin-left`}
+          >
             {value}
           </p>
           {subtitle && (
-            <p className={`text-sm font-medium ${colors.subtitle}`}>
+            <p
+              className={`text-sm font-medium ${colors.subtitle} transition-colors duration-200`}
+            >
               {subtitle}
             </p>
           )}
         </div>
         <div
-          className={`${colors.iconBg} p-3 rounded-full flex items-center justify-center flex-shrink-0 group`}
+          className={`${colors.iconBg} p-3 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 shadow-md group-hover:shadow-xl`}
         >
-          <Icon
-            className={`w-10 h-10 transition-transform group-hover:rotate-12 ${colors.text}`}
-          />
+          <Icon className={`w-10 h-10 ${colors.text}`} />
         </div>
       </div>
     </div>

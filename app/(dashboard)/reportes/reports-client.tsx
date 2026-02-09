@@ -293,14 +293,23 @@ export default function ReportsClient({
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
+    
+    // Calculate daily average for comparison
+    const currentValue = payload.find((p: any) => p.dataKey === "ventas")?.value || 0;
+    const dailyAvg = totalSalesCount > 0 ? totalRevenue / selectedRange : 0;
+    const comparedToAvg = dailyAvg > 0 ? ((currentValue - dailyAvg) / dailyAvg * 100) : 0;
+    
     return (
-      <div className="bg-white border-2 border-gray-200 rounded-xl shadow-2xl p-4">
-        <p className="text-sm font-bold text-gray-900 mb-2">{label}</p>
+      <div className="bg-white border-2 border-gray-200 rounded-2xl shadow-2xl p-5 min-w-[220px]">
+        <p className="text-sm font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">{label}</p>
         {payload.map((entry: any, i: number) => (
-          <div key={i} className="flex items-center justify-between gap-4">
-            <span className="text-sm font-medium text-gray-600">
-              {entry.name === "ventas" ? "Ingresos" : entry.name}:
-            </span>
+          <div key={i} className="flex items-center justify-between gap-6 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="text-sm font-medium text-gray-600">
+                {entry.name === "ventas" ? "Ingresos" : entry.name === "cantidad" ? "Transacciones" : entry.name}
+              </span>
+            </div>
             <span className="text-sm font-bold" style={{ color: entry.color }}>
               {entry.name === "ventas" || entry.dataKey === "ventas"
                 ? formatCurrency(entry.value)
@@ -308,6 +317,19 @@ export default function ReportsClient({
             </span>
           </div>
         ))}
+        {currentValue > 0 && dailyAvg > 0 && (
+          <div className="mt-3 pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">vs promedio diario</span>
+              <span className={`text-xs font-bold ${comparedToAvg >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {comparedToAvg >= 0 ? '+' : ''}{comparedToAvg.toFixed(1)}%
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Promedio: {formatCurrency(dailyAvg)}/día
+            </p>
+          </div>
+        )}
       </div>
     );
   };
@@ -412,7 +434,7 @@ export default function ReportsClient({
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Revenue card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 0ms both' }}>
           <div className="flex items-start justify-between mb-3">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md">
               <DollarSign className="w-7 h-7 text-white" />
@@ -443,7 +465,7 @@ export default function ReportsClient({
         </div>
 
         {/* Sales count card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 100ms both' }}>
           <div className="flex items-start justify-between mb-3">
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center shadow-md">
               <ShoppingCart className="w-7 h-7 text-white" />
@@ -472,7 +494,7 @@ export default function ReportsClient({
         </div>
 
         {/* Average ticket card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 200ms both' }}>
           <div className="flex items-start justify-between mb-3">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center shadow-md">
               <TrendingUp className="w-7 h-7 text-white" />
@@ -487,7 +509,7 @@ export default function ReportsClient({
         </div>
 
         {/* Items sold card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 300ms both' }}>
           <div className="flex items-start justify-between mb-3">
             <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-md">
               <Package className="w-7 h-7 text-white" />
@@ -503,7 +525,7 @@ export default function ReportsClient({
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales trend - Area chart with gradient */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-xl transition-all duration-300">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">

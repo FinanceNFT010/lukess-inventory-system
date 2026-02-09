@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import Confetti from "react-confetti";
+import { playBeep, playCashRegisterSound } from "@/lib/utils/sounds";
 import {
   Search,
   ShoppingCart,
@@ -187,6 +188,9 @@ export default function POSClient({
       toast.error("No hay suficiente stock disponible");
       return;
     }
+
+    // Play beep sound
+    playBeep();
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -393,6 +397,9 @@ export default function POSClient({
         saleId: sale.id,
         date: new Date().toISOString(),
       });
+      // Play cash register sound
+      playCashRegisterSound();
+      
       setShowSuccessModal(true);
       setShowConfetti(true);
 
@@ -563,13 +570,23 @@ export default function POSClient({
 
   return (
     <>
-      {/* Confetti */}
+      {/* Confetti con colores bolivianos */}
       {showConfetti && (
         <Confetti
           width={window.innerWidth}
           height={window.innerHeight}
           recycle={false}
-          numberOfPieces={500}
+          numberOfPieces={800}
+          colors={[
+            "#DA291C", // Rojo boliviano
+            "#FFD700", // Amarillo/dorado
+            "#007A3D", // Verde boliviano
+            "#FFFFFF", // Blanco
+            "#FF6B6B", // Rojo claro
+            "#4CAF50", // Verde claro
+          ]}
+          gravity={0.3}
+          wind={0.01}
         />
       )}
 
@@ -647,11 +664,14 @@ export default function POSClient({
                     key={product.id}
                     onClick={() => addToCart(product)}
                     disabled={available <= 0}
-                    className={`relative bg-white rounded-2xl border-2 p-4 text-left transition-all group ${
+                    className={`relative bg-white rounded-2xl border-2 p-4 text-left transition-all duration-200 group ${
                       available <= 0
                         ? "border-gray-200 opacity-50 cursor-not-allowed"
-                        : "border-gray-200 hover:border-blue-400 hover:shadow-lg cursor-pointer transform hover:scale-105"
+                        : "border-gray-200 hover:border-blue-400 hover:shadow-2xl cursor-pointer transform hover:scale-105 hover:-translate-y-1 active:scale-95"
                     }`}
+                    style={{
+                      animation: `fadeIn 0.3s ease-out ${(filteredProducts.indexOf(product) % 20) * 30}ms both`,
+                    }}
                   >
                     {/* Image placeholder */}
                     <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl mb-3 flex items-center justify-center overflow-hidden group-hover:from-blue-50 group-hover:to-blue-100 transition-all">
@@ -710,7 +730,7 @@ export default function POSClient({
       </div>
 
       {/* ═══ RIGHT COLUMN: Cart ═══ */}
-      <div className="lg:w-[40%] bg-white rounded-2xl border-2 border-gray-200 flex flex-col overflow-hidden shadow-xl">
+      <div className="hidden lg:flex lg:w-[40%] bg-white rounded-2xl border-2 border-gray-200 flex-col overflow-hidden shadow-xl">
         {/* Cart header */}
         <div className="px-6 py-4 bg-blue-600 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -926,6 +946,27 @@ export default function POSClient({
           </div>
         )}
       </div>
+
+      {/* ═══ MOBILE: Floating Cart Button ═══ */}
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-40">
+          <button
+            onClick={finalizeSale}
+            disabled={processing}
+            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-5 rounded-2xl transition-all flex items-center justify-between px-6 text-lg shadow-2xl transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3">
+              <ShoppingCart className="w-6 h-6" />
+              <span>{totalItems} {totalItems === 1 ? 'item' : 'items'}</span>
+            </div>
+            {processing ? (
+              <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <span>{formatCurrency(total)}</span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
 
       {/* Success Modal */}

@@ -251,10 +251,10 @@ export default function InventoryClient({
   };
 
   const getStockBadgeColor = (quantity: number, minStock: number) => {
-    if (quantity === 0) return "bg-red-100 text-red-800";
-    if (quantity < minStock) return "bg-red-100 text-red-800";
-    if (quantity < minStock * 2) return "bg-yellow-100 text-yellow-800";
-    return "bg-green-100 text-green-800";
+    if (quantity === 0) return "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md border border-red-400";
+    if (quantity < minStock) return "bg-gradient-to-r from-red-400 to-red-500 text-white shadow-md border border-red-300";
+    if (quantity < minStock * 2) return "bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-md border border-yellow-300";
+    return "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md border border-green-400";
   };
 
   const handleSort = (field: typeof sortField) => {
@@ -723,17 +723,27 @@ export default function InventoryClient({
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className={`text-sm font-semibold truncate ${
                                 product.is_active ? 'text-gray-900' : 'text-gray-500'
                               }`}>
                                 {product.name}
                               </p>
                               {!product.is_active && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-300">
                                   Inactivo
                                 </span>
                               )}
+                              {product.is_active && (() => {
+                                const createdDate = new Date(product.created_at);
+                                const now = new Date();
+                                const hoursDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+                                return hoursDiff <= 24 ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md animate-pulse border border-blue-400">
+                                    ✨ NUEVO
+                                  </span>
+                                ) : null;
+                              })()}
                             </div>
                             {product.brand && (
                               <p className="text-xs text-gray-500 mt-0.5">
@@ -768,9 +778,16 @@ export default function InventoryClient({
                             <AlertTriangle className="w-4 h-4 text-amber-500" />
                           )}
                           <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${badgeColor}`}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${badgeColor}`}
                           >
-                            {stock}
+                            {stock === 0 ? (
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                            ) : stock < minStock ? (
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                            ) : (
+                              <Package className="w-3.5 h-3.5" />
+                            )}
+                            {stock} {stock === 1 ? 'unidad' : 'unidades'}
                           </span>
                         </div>
                       </td>
