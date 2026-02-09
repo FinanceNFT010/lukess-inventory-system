@@ -1170,36 +1170,36 @@ export default function POSClient({
 
       {/* QR Payment Modal */}
       {showQRPayment && pendingSale && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-fade-in my-8 max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <QrCode className="w-10 h-10 text-white" />
+            <div className="text-center mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <QrCode className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                 Escanea el QR para Pagar
               </h2>
-              <p className="text-gray-500">
-                Total a pagar: <span className="text-2xl font-bold text-blue-600">{formatCurrency(pendingSale.total)}</span>
+              <p className="text-sm sm:text-base text-gray-500">
+                Total a pagar: <span className="text-xl sm:text-2xl font-bold text-blue-600">{formatCurrency(pendingSale.total)}</span>
               </p>
             </div>
 
             {/* QR Code Image */}
-            <div className="bg-white rounded-2xl p-6 mb-6 border-2 border-blue-200 flex justify-center">
+            <div className="bg-white rounded-2xl p-4 mb-4 border-2 border-blue-200 flex justify-center">
               <img
                 src="/qr/yolo-pago.png"
                 alt="QR Yolo Pago"
-                className="w-full max-w-[300px] h-auto"
+                className="w-full max-w-[250px] sm:max-w-[280px] h-auto"
               />
             </div>
 
             {/* Instructions */}
-            <div className="bg-blue-50 rounded-xl p-4 mb-6">
-              <p className="text-sm text-blue-900 font-medium mb-2">
+            <div className="bg-blue-50 rounded-xl p-3 mb-4">
+              <p className="text-xs sm:text-sm text-blue-900 font-medium mb-2">
                 📱 Instrucciones:
               </p>
-              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+              <ol className="text-xs sm:text-sm text-blue-800 space-y-0.5 list-decimal list-inside">
                 <li>Abre tu app de pagos (Yolo, Tigo Money, etc.)</li>
                 <li>Escanea el código QR</li>
                 <li>Confirma el monto: {formatCurrency(pendingSale.total)}</li>
@@ -1209,7 +1209,7 @@ export default function POSClient({
             </div>
 
             {/* Sale Details */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
+            <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Items:</span>
                 <span className="font-semibold text-gray-900">{pendingSale.items}</span>
@@ -1231,30 +1231,30 @@ export default function POSClient({
             </div>
 
             {/* Actions */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button
                 onClick={() => {
                   setShowQRPayment(false);
                   setPendingSale(null);
                 }}
                 disabled={processing}
-                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors disabled:opacity-50"
+                className="px-3 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-semibold rounded-xl transition-colors disabled:opacity-50 text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={processSale}
                 disabled={processing}
-                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                className="px-3 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 active:scale-95 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-1.5 text-sm"
               >
                 {processing ? (
                   <>
-                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                     <span>Procesando...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5" />
+                    <CheckCircle className="w-4 h-4" />
                     <span>Confirmar Pago</span>
                   </>
                 )}
@@ -1262,8 +1262,8 @@ export default function POSClient({
             </div>
 
             {/* Demo Note */}
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs text-yellow-800 text-center">
+            <div className="mt-3 p-2.5 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-[10px] sm:text-xs text-yellow-800 text-center leading-tight">
                 <strong>Nota de Demo:</strong> En producción, el sistema verificará automáticamente el pago antes de completar la venta.
               </p>
             </div>
