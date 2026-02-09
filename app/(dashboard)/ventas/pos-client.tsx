@@ -264,7 +264,12 @@ export default function POSClient({
       }
 
       // 3. Actualizar inventario - LEER DE DB, NO DE MEMORIA
+      console.log('🔄 Actualizando inventario para', cart.length, 'productos...');
+      console.log('📍 Location ID:', locationId);
+
       for (const item of cart) {
+        console.log(`📦 Procesando: ${item.product.name} (ID: ${item.product.id}) - Cantidad: ${item.quantity}`);
+        
         // Obtener stock actual de la BASE DE DATOS
         const { data: currentInv, error: fetchError } = await supabase
           .from("inventory")
@@ -273,18 +278,23 @@ export default function POSClient({
           .eq("location_id", locationId)
           .single();
 
+        console.log(`📊 Stock actual de ${item.product.name}:`, currentInv?.quantity, '| Error:', fetchError);
+
         if (fetchError) {
-          console.error(`Error obteniendo stock de ${item.product.name}:`, fetchError);
-          throw new Error(`Error al obtener inventario de ${item.product.name}`);
+          console.error('❌ Error fetchError:', fetchError);
+          throw new Error(`Error al obtener inventario de ${item.product.name}: ${fetchError.message}`);
         }
 
         if (!currentInv) {
+          console.error('❌ No se encontró inventario para producto:', item.product.id, 'en ubicación:', locationId);
           throw new Error(`No existe inventario para ${item.product.name} en esta ubicación`);
         }
 
         const newQuantity = currentInv.quantity - item.quantity;
+        console.log(`🧮 Cálculo: ${currentInv.quantity} - ${item.quantity} = ${newQuantity}`);
 
         if (newQuantity < 0) {
+          console.error('❌ Stock insuficiente');
           throw new Error(`Stock insuficiente para ${item.product.name}. Disponible: ${currentInv.quantity}, Solicitado: ${item.quantity}`);
         }
 
@@ -296,13 +306,14 @@ export default function POSClient({
           .eq("location_id", locationId);
 
         if (invError) {
-          console.error(`Error actualizando inventario de ${item.product.name}:`, invError);
-          throw new Error(`Error al actualizar inventario de ${item.product.name}`);
+          console.error('❌ Error invError:', invError);
+          throw new Error(`Error al actualizar inventario de ${item.product.name}: ${invError.message}`);
         }
+        
+        console.log(`✅ Inventario actualizado para ${item.product.name}: ${currentInv.quantity} → ${newQuantity}`);
       }
 
-      // Si llegamos aquí, TODO salió bien
-      console.log('✅ Venta completada e inventario actualizado correctamente');
+      console.log('✅ TODO EL INVENTARIO ACTUALIZADO CORRECTAMENTE');
 
       // Show success modal with confetti
       setLastSale({

@@ -22,6 +22,7 @@ import {
   Ruler,
   MapPin,
   TrendingUp,
+  ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,6 +34,7 @@ const productSchema = z.object({
   description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
   category_id: z.string().optional().nullable().transform(val => val === "" ? null : val),
   brand: z.string().max(50, "Máximo 50 caracteres").optional(),
+  image_url: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
   sizes: z.array(z.string()).optional().default([]),
@@ -115,6 +117,7 @@ export default function NewProductForm({
       description: "",
       category_id: undefined,
       brand: "",
+      image_url: "",
       price: 0,
       cost: 0,
       sizes: [],
@@ -217,6 +220,7 @@ export default function NewProductForm({
           description: data.description || null,
           category_id: data.category_id || null,
           brand: data.brand || null,
+          image_url: data.image_url || null,
           price: data.price,
           cost: data.cost ?? 0,
           sizes: selectedSizes,
@@ -393,6 +397,52 @@ export default function NewProductForm({
               )}
             </div>
           </div>
+        </div>
+
+        {/* ── Imagen del producto ──────────────────────────────────────── */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <ImageIcon className="w-4 h-4 text-indigo-600" />
+            Imagen del producto
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700">
+              URL de imagen (opcional)
+            </label>
+            <input
+              type="url"
+              {...register("image_url")}
+              placeholder="https://ejemplo.com/imagen.jpg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+            />
+            {errors.image_url && (
+              <p className="text-xs text-red-600">{errors.image_url.message}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              Pega una URL de imagen (Unsplash, Pexels, Google Imagenes, etc.)
+            </p>
+          </div>
+
+          {/* Preview */}
+          {watch("image_url") && watch("image_url") !== "" && (
+            <div className="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
+              <img
+                src={watch("image_url")}
+                alt="Preview"
+                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-700">Vista previa</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Si la imagen no se muestra, verifica que la URL sea correcta
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Precios ──────────────────────────────────────────────────── */}

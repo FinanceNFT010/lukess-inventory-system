@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   PackageX,
+  RotateCcw,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ export default function InventoryClient({
   );
   const [showFilters, setShowFilters] = useState(false);
   const [onlyLowStock, setOnlyLowStock] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<"name" | "sku" | "price" | "stock">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -90,6 +92,30 @@ export default function InventoryClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const itemsPerPage = 20;
 
+  // ── Fetch products function ───────────────────────────────────────────────
+
+  const fetchProducts = async (includeInactive: boolean = false) => {
+    const supabase = createClient();
+    let query = supabase
+      .from("products")
+      .select(
+        `
+        *,
+        categories(id, name),
+        inventory(id, quantity, min_stock, location_id, locations(id, name))
+      `
+      )
+      .eq("organization_id", initialProducts[0]?.organization_id || "")
+      .order("name");
+
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
+
+    const { data } = await query;
+    if (data) setProducts(data as ProductWithRelations[]);
+  };
+
   // ── Supabase Realtime ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -100,50 +126,25 @@ export default function InventoryClient({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "inventory" },
-        async () => {
-          // Refetch products when inventory changes
-          const { data } = await supabase
-            .from("products")
-            .select(
-              `
-              *,
-              categories(id, name),
-              inventory(id, quantity, min_stock, location_id, locations(id, name))
-            `
-            )
-            .eq("organization_id", initialProducts[0]?.organization_id || "")
-            .eq("is_active", true)
-            .order("name");
-
-          if (data) setProducts(data as ProductWithRelations[]);
-        }
+        () => fetchProducts(showInactive)
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "products" },
-        async () => {
-          const { data } = await supabase
-            .from("products")
-            .select(
-              `
-              *,
-              categories(id, name),
-              inventory(id, quantity, min_stock, location_id, locations(id, name))
-            `
-            )
-            .eq("organization_id", initialProducts[0]?.organization_id || "")
-            .eq("is_active", true)
-            .order("name");
-
-          if (data) setProducts(data as ProductWithRelations[]);
-        }
+        () => fetchProducts(showInactive)
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [initialProducts]);
+  }, [initialProducts, showInactive]);
+
+  // ── Refetch when showInactive changes ──────────────────────────────────────
+
+  useEffect(() => {
+    fetchProducts(showInactive);
+  }, [showInactive]);
 
   // ── Filtering & Sorting ───────────────────────────────────────────────────
 
@@ -174,7 +175,14 @@ export default function InventoryClient({
       return matchesSearch && matchesCategory && matchesLocation && matchesLowStock;
     });
 
+    // Helper inline para calcular stock total (evita problemas de hoisting)
+    const calcTotalStock = (product: ProductWithRelations) => {
+      return (product.inventory || []).reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+    };
+
     // Sorting
+    console.log('🔄 Ordenando por:', sortField, sortDirection);
+    
     filtered.sort((a, b) => {
       let compareValue = 0;
 
@@ -186,11 +194,12 @@ export default function InventoryClient({
           compareValue = a.sku.localeCompare(b.sku);
           break;
         case "price":
-          compareValue = a.price - b.price;
+          compareValue = (a.price || 0) - (b.price || 0);
           break;
         case "stock":
-          const stockA = getTotalStock(a);
-          const stockB = getTotalStock(b);
+          const stockA = calcTotalStock(a);
+          const stockB = calcTotalStock(b);
+          console.log(`📊 Stock: ${a.name}=${stockA}, ${b.name}=${stockB}`);
           compareValue = stockA - stockB;
           break;
       }
@@ -243,6 +252,32 @@ export default function InventoryClient({
     } else {
       setSortField(field);
       setSortDirection("asc");
+    }
+  };
+
+  const handleReactivate = async (productId: string, productName: string) => {
+    const supabase = createClient();
+    
+    try {
+      console.log('🔄 Reactivando producto:', productId);
+      
+      const { error } = await supabase
+        .from("products")
+        .update({ is_active: true })
+        .eq("id", productId);
+
+      if (error) {
+        console.error('❌ Error reactivando producto:', error);
+        toast.error(`Error al reactivar: ${error.message}`);
+        return;
+      }
+
+      console.log('✅ Producto reactivado correctamente');
+      toast.success(`"${productName}" reactivado correctamente`);
+      fetchProducts(showInactive);
+    } catch (error: any) {
+      console.error('❌ Error inesperado:', error);
+      toast.error('Error inesperado al reactivar el producto');
     }
   };
 
@@ -375,8 +410,23 @@ export default function InventoryClient({
               </label>
             </div>
 
+            {/* Show Inactive Toggle */}
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg hover:bg-gray-50 transition">
+                <input
+                  type="checkbox"
+                  checked={showInactive}
+                  onChange={(e) => setShowInactive(e.target.checked)}
+                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Mostrar inactivos
+                </span>
+              </label>
+            </div>
+
             {/* Clear filters */}
-            {(categoryFilter || locationFilter || onlyLowStock) && (
+            {(categoryFilter || locationFilter || onlyLowStock || showInactive) && (
               <div className="flex items-end">
                 <button
                   onClick={() => {
@@ -387,6 +437,7 @@ export default function InventoryClient({
                         : ""
                     );
                     setOnlyLowStock(false);
+                    setShowInactive(false);
                   }}
                   className="text-sm text-red-600 hover:text-red-700 font-medium px-3 py-2 hover:bg-red-50 rounded-lg transition"
                 >
@@ -535,26 +586,43 @@ export default function InventoryClient({
                   return (
                     <tr
                       key={product.id}
-                      className="hover:bg-gray-50 transition-colors group"
+                      className={`hover:bg-gray-50 transition-colors group ${!product.is_active ? 'bg-orange-50/30' : ''}`}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {/* Imagen del producto */}
-                          <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:from-blue-50 group-hover:to-blue-100 transition-all overflow-hidden">
+                          <div className={`w-12 h-12 bg-gradient-to-br rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden ${
+                            product.is_active 
+                              ? 'from-gray-100 to-gray-200 group-hover:from-blue-50 group-hover:to-blue-100' 
+                              : 'from-orange-100 to-orange-200 opacity-60'
+                          }`}>
                             {product.image_url ? (
                               <img
                                 src={product.image_url}
                                 alt={product.name}
-                                className="w-full h-full object-cover"
+                                className={`w-full h-full object-cover ${!product.is_active ? 'opacity-50 grayscale' : ''}`}
                               />
                             ) : (
-                              <Package className="w-6 h-6 text-gray-400 group-hover:text-blue-500 transition" />
+                              <Package className={`w-6 h-6 transition ${
+                                product.is_active 
+                                  ? 'text-gray-400 group-hover:text-blue-500' 
+                                  : 'text-orange-400'
+                              }`} />
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
-                              {product.name}
-                            </p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm font-semibold truncate ${
+                                product.is_active ? 'text-gray-900' : 'text-gray-500'
+                              }`}>
+                                {product.name}
+                              </p>
+                              {!product.is_active && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                                  Inactivo
+                                </span>
+                              )}
+                            </div>
                             {product.brand && (
                               <p className="text-xs text-gray-500 mt-0.5">
                                 {product.brand}
@@ -596,26 +664,39 @@ export default function InventoryClient({
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => router.push(`/inventario/${product.id}`)}
-                            className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
-                            title="Editar producto"
-                          >
-                            <Pencil className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              setDeleteModal({
-                                isOpen: true,
-                                productId: product.id,
-                                productName: product.name,
-                              })
-                            }
-                            className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-                            title="Eliminar producto"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                          {product.is_active ? (
+                            <>
+                              <button
+                                onClick={() => router.push(`/inventario/${product.id}`)}
+                                className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
+                                title="Editar producto"
+                              >
+                                <Pencil className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setDeleteModal({
+                                    isOpen: true,
+                                    productId: product.id,
+                                    productName: product.name,
+                                  })
+                                }
+                                className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                title="Desactivar producto"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleReactivate(product.id, product.name)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-colors font-medium text-sm"
+                              title="Reactivar producto"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                              Reactivar
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -751,41 +832,22 @@ export default function InventoryClient({
           const supabase = createClient();
           
           try {
-            // 1. Verify no sales exist for this product
-            const { data: salesData } = await supabase
-              .from("sale_items")
-              .select("id")
-              .eq("product_id", deleteModal.productId)
-              .limit(1);
+            console.log('🗑️ Iniciando desactivación de producto:', deleteModal.productId);
 
-            if (salesData && salesData.length > 0) {
-              toast.error("No se puede eliminar: el producto tiene ventas registradas");
-              setIsDeleting(false);
-              return;
-            }
-
-            // 2. Delete related inventory records first
-            await supabase
-              .from("inventory")
-              .delete()
-              .eq("product_id", deleteModal.productId);
-
-            // 3. Delete the product
+            // Soft Delete: Marcar producto como inactivo en lugar de eliminarlo
             const { error: productError } = await supabase
               .from("products")
-              .delete()
+              .update({ is_active: false })
               .eq("id", deleteModal.productId);
 
             if (productError) {
-              if (productError.code === "23503") {
-                toast.error("No se puede eliminar: el producto está siendo usado en otro registro");
-              } else {
-                toast.error(productError.message || "Error al eliminar el producto");
-              }
+              console.error('❌ Error desactivando producto:', productError);
+              toast.error(productError.message || "Error al desactivar el producto");
               throw productError;
             }
 
-            toast.success("Producto eliminado correctamente");
+            console.log('✅ Producto desactivado correctamente');
+            toast.success("Producto desactivado correctamente");
             setDeleteModal({ isOpen: false, productId: null, productName: "" });
             router.refresh();
           } catch (error: any) {
@@ -795,9 +857,9 @@ export default function InventoryClient({
             setIsDeleting(false);
           }
         }}
-        title="¿Eliminar producto?"
-        message={`¿Estás seguro de que deseas eliminar "${deleteModal.productName}"? Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
+        title="¿Desactivar producto?"
+        message={`¿Estás seguro de que deseas desactivar "${deleteModal.productName}"? El producto dejará de aparecer en el inventario y en el punto de venta, pero se mantendrá en el historial de ventas.`}
+        confirmText="Desactivar"
         cancelText="Cancelar"
         variant="danger"
         loading={isDeleting}

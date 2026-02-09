@@ -311,10 +311,10 @@ BEGIN
       NEW.id,
       NEW.product_id,
       NEW.location_id,
-      CASE 
+      (CASE 
         WHEN v_change < 0 THEN 'sale'
         ELSE 'adjustment'
-      END,
+      END)::transaction_type,
       v_change,
       OLD.quantity,
       NEW.quantity,
