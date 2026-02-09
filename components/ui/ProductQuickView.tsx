@@ -1,6 +1,8 @@
 "use client";
 
-import { X, Package, TrendingUp, MapPin, Tag } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Package, TrendingUp, MapPin, Tag, QrCode } from "lucide-react";
+import QRCode from "qrcode";
 import type { Product, Inventory, Category } from "@/lib/types";
 
 interface ProductQuickViewProps {
@@ -21,6 +23,27 @@ export function ProductQuickView({
   onEdit,
   onAddToCart,
 }: ProductQuickViewProps) {
+  const [qrCode, setQrCode] = useState<string>("");
+
+  // Generar código QR
+  useEffect(() => {
+    if (isOpen && product.id) {
+      QRCode.toDataURL(
+        `https://lukess-inventory-system.vercel.app/ventas?product=${product.id}`,
+        {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: "#1e40af", // Azul oscuro
+            light: "#ffffff",
+          },
+        }
+      )
+        .then(setQrCode)
+        .catch((err) => console.error("Error generando QR:", err));
+    }
+  }, [isOpen, product.id]);
+
   if (!isOpen) return null;
 
   // Calcular stock total
@@ -274,6 +297,33 @@ export function ProductQuickView({
                       {color}
                     </span>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Código QR */}
+            {qrCode && (
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border-2 border-blue-200">
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                      <QrCode className="w-5 h-5 text-blue-600" />
+                      Código QR del Producto
+                    </h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Escanea este código para agregar el producto directamente al carrito de ventas
+                    </p>
+                    <div className="bg-white rounded-lg p-3 inline-block border-2 border-blue-300 shadow-lg">
+                      <img 
+                        src={qrCode} 
+                        alt="QR Code" 
+                        className="w-40 h-40"
+                      />
+                    </div>
+                    <p className="text-xs text-blue-600 font-medium mt-2">
+                      📱 Usa cualquier lector QR
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

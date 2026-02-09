@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Location } from "@/lib/types";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { ProductQuickView } from "@/components/ui/ProductQuickView";
 import toast from "react-hot-toast";
 import {
   Search,
@@ -21,6 +22,8 @@ import {
   ChevronRight,
   PackageX,
   RotateCcw,
+  Printer,
+  QrCode,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -96,6 +99,8 @@ export default function InventoryClient({
     productName: "",
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [generatingLabels, setGeneratingLabels] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<ProductWithRelations | null>(null);
   const itemsPerPage = 20;
 
   // ── Fetch products function ───────────────────────────────────────────────
@@ -295,6 +300,86 @@ export default function InventoryClient({
     ? categories.find((c) => c.id === categoryFilter)
     : null;
 
+  // Función para imprimir etiquetas con QR
+  const printLabels = async () => {
+    setGeneratingLabels(true);
+    try {
+      const QRCode = (await import("qrcode")).default;
+      const { jsPDF } = await import("jspdf");
+      
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Layout: 2 etiquetas por página (una arriba, una abajo)
+      const labelWidth = 80;
+      const labelHeight = 100;
+      const marginX = (pageWidth - labelWidth) / 2;
+      
+      let currentPage = 0;
+      let yPosition = 20;
+      
+      for (let i = 0; i < filteredAndSortedProducts.length; i++) {
+        const product = filteredAndSortedProducts[i];
+        
+        // Nueva página cada 2 productos
+        if (i > 0 && i % 2 === 0) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        
+        // Generar QR
+        const qrDataUrl = await QRCode.toDataURL(
+          `https://lukess-inventory-system.vercel.app/ventas?product=${product.id}`,
+          { width: 200, margin: 1 }
+        );
+        
+        // Dibujar etiqueta
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(marginX, yPosition, labelWidth, labelHeight);
+        
+        // Nombre del producto
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        const productName = product.name.substring(0, 40);
+        pdf.text(productName, marginX + labelWidth / 2, yPosition + 10, { align: "center" });
+        
+        // SKU
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(`SKU: ${product.sku}`, marginX + labelWidth / 2, yPosition + 18, { align: "center" });
+        
+        // Precio
+        pdf.setFontSize(16);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`Bs ${product.price.toFixed(2)}`, marginX + labelWidth / 2, yPosition + 28, { align: "center" });
+        
+        // QR Code
+        pdf.addImage(qrDataUrl, "PNG", marginX + 20, yPosition + 35, 40, 40);
+        
+        // Texto "Escanear para vender"
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        pdf.text("Escanear para vender", marginX + labelWidth / 2, yPosition + 82, { align: "center" });
+        
+        // Stock total
+        const stock = getTotalStock(product);
+        pdf.setFontSize(9);
+        pdf.text(`Stock: ${stock} unidades`, marginX + labelWidth / 2, yPosition + 90, { align: "center" });
+        
+        yPosition += labelHeight + 20;
+      }
+      
+      pdf.save(`etiquetas-productos-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success(`${filteredAndSortedProducts.length} etiquetas generadas correctamente`);
+    } catch (error) {
+      console.error("Error generando etiquetas:", error);
+      toast.error("Error al generar las etiquetas");
+    } finally {
+      setGeneratingLabels(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -309,13 +394,33 @@ export default function InventoryClient({
               : " en total"}
           </p>
         </div>
-        <button
-          onClick={() => router.push("/inventario/nuevo")}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Producto
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={printLabels}
+            disabled={generatingLabels || filteredAndSortedProducts.length === 0}
+            className="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            title="Imprimir etiquetas con código QR"
+          >
+            {generatingLabels ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generando...
+              </>
+            ) : (
+              <>
+                <Printer className="w-5 h-5" />
+                Imprimir Etiquetas
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => router.push("/inventario/nuevo")}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Producto
+          </button>
+        </div>
       </div>
 
       {/* Search + Filters */}
@@ -592,7 +697,8 @@ export default function InventoryClient({
                   return (
                     <tr
                       key={product.id}
-                      className={`hover:bg-gray-50 transition-colors group ${!product.is_active ? 'bg-orange-50/30' : ''}`}
+                      className={`hover:bg-gray-50 transition-colors group ${!product.is_active ? 'bg-orange-50/30' : ''} cursor-pointer`}
+                      onClick={() => setQuickViewProduct(product)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -668,25 +774,29 @@ export default function InventoryClient({
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-2">
                           {product.is_active ? (
                             <>
                               <button
-                                onClick={() => router.push(`/inventario/${product.id}`)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/inventario/${product.id}`);
+                                }}
                                 className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
                                 title="Editar producto"
                               >
                                 <Pencil className="w-5 h-5" />
                               </button>
                               <button
-                                onClick={() =>
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setDeleteModal({
                                     isOpen: true,
                                     productId: product.id,
                                     productName: product.name,
-                                  })
-                                }
+                                  });
+                                }}
                                 className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
                                 title="Desactivar producto"
                               >
@@ -695,7 +805,10 @@ export default function InventoryClient({
                             </>
                           ) : (
                             <button
-                              onClick={() => handleReactivate(product.id, product.name)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReactivate(product.id, product.name);
+                              }}
                               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-colors font-medium text-sm"
                               title="Reactivar producto"
                             >
@@ -824,6 +937,18 @@ export default function InventoryClient({
           </div>
         )}
       </div>
+
+      {/* Quick View Modal */}
+      {quickViewProduct && (
+        <ProductQuickView
+          product={quickViewProduct}
+          isOpen={!!quickViewProduct}
+          onClose={() => setQuickViewProduct(null)}
+          onEdit={(product) => {
+            router.push(`/inventario/${product.id}`);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

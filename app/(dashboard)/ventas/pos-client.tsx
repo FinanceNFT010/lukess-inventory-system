@@ -106,6 +106,12 @@ export default function POSClient({
     total: number;
     items: number;
     paymentMethod: PaymentMethod;
+    subtotal: number;
+    discount: number;
+    customerName: string;
+    cartItems: CartItem[];
+    saleId: string;
+    date: string;
   } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -114,6 +120,27 @@ export default function POSClient({
     setProducts(initialProducts);
     setCart([]);
   }, [initialProducts]);
+
+  // Detectar producto desde QR code en URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get("product");
+    
+    if (productId && products.length > 0) {
+      const product = products.find((p) => p.id === productId);
+      if (product) {
+        const stock = getStock(product);
+        if (stock > 0) {
+          addToCart(product);
+          toast.success(`${product.name} agregado al carrito desde QR`);
+          // Limpiar URL
+          window.history.replaceState({}, "", "/ventas");
+        } else {
+          toast.error(`${product.name} no tiene stock disponible`);
+        }
+      }
+    }
+  }, [products]);
 
   // ── Filtered products ──────────────────────────────────────────────────────
 
@@ -359,6 +386,12 @@ export default function POSClient({
         total,
         items: totalItems,
         paymentMethod,
+        subtotal,
+        discount: discountAmount,
+        customerName: customerName || "Cliente General",
+        cartItems: [...cart],
+        saleId: sale.id,
+        date: new Date().toISOString(),
       });
       setShowSuccessModal(true);
       setShowConfetti(true);
@@ -378,6 +411,152 @@ export default function POSClient({
   const handleNewSale = () => {
     setShowSuccessModal(false);
     setLastSale(null);
+  };
+
+  const generateTicket = async () => {
+    if (!lastSale) return;
+
+    try {
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [80, 200], // Formato típico de ticket térmico (80mm ancho)
+      });
+
+      const pageWidth = 80;
+      let yPos = 10;
+
+      // Encabezado
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("LUKESS", pageWidth / 2, yPos, { align: "center" });
+      yPos += 6;
+
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("HOME INVENTORY", pageWidth / 2, yPos, { align: "center" });
+      yPos += 10;
+
+      // Línea separadora
+      pdf.setLineWidth(0.5);
+      pdf.line(5, yPos, pageWidth - 5, yPos);
+      yPos += 6;
+
+      // Información de la venta
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
+      
+      const saleDate = new Date(lastSale.date);
+      const dateStr = saleDate.toLocaleDateString("es-BO", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const timeStr = saleDate.toLocaleTimeString("es-BO", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      pdf.text(`Fecha: ${dateStr}`, 5, yPos);
+      yPos += 4;
+      pdf.text(`Hora: ${timeStr}`, 5, yPos);
+      yPos += 4;
+      pdf.text(`Ticket: ${lastSale.saleId.slice(0, 8).toUpperCase()}`, 5, yPos);
+      yPos += 4;
+      pdf.text(`Cliente: ${lastSale.customerName}`, 5, yPos);
+      yPos += 4;
+      pdf.text(
+        `Pago: ${paymentMethods.find((pm) => pm.value === lastSale.paymentMethod)?.label}`,
+        5,
+        yPos
+      );
+      yPos += 6;
+
+      // Línea separadora
+      pdf.line(5, yPos, pageWidth - 5, yPos);
+      yPos += 6;
+
+      // Productos
+      pdf.setFont("helvetica", "bold");
+      pdf.text("PRODUCTOS", 5, yPos);
+      yPos += 5;
+
+      pdf.setFont("helvetica", "normal");
+      lastSale.cartItems.forEach((item) => {
+        const productName = item.product.name;
+        const qty = item.quantity;
+        const price = item.product.price;
+        const itemTotal = qty * price;
+
+        // Nombre del producto (puede ser largo, lo cortamos si es necesario)
+        const maxNameLength = 30;
+        const displayName =
+          productName.length > maxNameLength
+            ? productName.substring(0, maxNameLength) + "..."
+            : productName;
+
+        pdf.text(displayName, 5, yPos);
+        yPos += 4;
+
+        pdf.text(
+          `${qty} x Bs ${price.toFixed(2)} = Bs ${itemTotal.toFixed(2)}`,
+          5,
+          yPos
+        );
+        yPos += 5;
+      });
+
+      // Línea separadora
+      pdf.line(5, yPos, pageWidth - 5, yPos);
+      yPos += 6;
+
+      // Totales
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Subtotal:", 5, yPos);
+      pdf.text(`Bs ${lastSale.subtotal.toFixed(2)}`, pageWidth - 5, yPos, {
+        align: "right",
+      });
+      yPos += 5;
+
+      if (lastSale.discount > 0) {
+        pdf.text("Descuento:", 5, yPos);
+        pdf.text(`-Bs ${lastSale.discount.toFixed(2)}`, pageWidth - 5, yPos, {
+          align: "right",
+        });
+        yPos += 5;
+      }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("TOTAL:", 5, yPos);
+      pdf.text(`Bs ${lastSale.total.toFixed(2)}`, pageWidth - 5, yPos, {
+        align: "right",
+      });
+      yPos += 8;
+
+      // Línea separadora
+      pdf.setLineWidth(0.5);
+      pdf.line(5, yPos, pageWidth - 5, yPos);
+      yPos += 6;
+
+      // Pie de página
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("¡Gracias por su compra!", pageWidth / 2, yPos, {
+        align: "center",
+      });
+      yPos += 5;
+      pdf.text("Vuelva pronto", pageWidth / 2, yPos, { align: "center" });
+
+      // Guardar PDF
+      const filename = `ticket-${lastSale.saleId.slice(0, 8)}-${dateStr.replace(/\//g, "-")}.pdf`;
+      pdf.save(filename);
+      toast.success("Ticket generado correctamente");
+    } catch (error) {
+      console.error("Error generando ticket:", error);
+      toast.error("Error al generar el ticket");
+    }
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -798,10 +977,7 @@ export default function POSClient({
             {/* Actions */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => {
-                  // TODO: Implement print functionality
-                  toast.success("Función de impresión próximamente");
-                }}
+                onClick={generateTicket}
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
               >
                 <Printer className="w-5 h-5" />
