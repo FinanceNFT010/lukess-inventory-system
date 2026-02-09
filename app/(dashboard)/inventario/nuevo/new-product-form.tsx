@@ -34,7 +34,7 @@ const productSchema = z.object({
   description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
   category_id: z.string().optional().nullable().transform(val => val === "" ? null : val),
   brand: z.string().max(50, "Máximo 50 caracteres").optional(),
-  image_url: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
+  image_url: z.string().optional().or(z.literal("")),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
   sizes: z.array(z.string()).optional().default([]),
@@ -92,6 +92,7 @@ export default function NewProductForm({
   const [recentBrands, setRecentBrands] = useState<string[]>([]);
   const [customColors, setCustomColors] = useState<string[]>([]);
   const [auditNote, setAuditNote] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [stockByLocation, setStockByLocation] = useState<
     Record<string, number>
   >(
@@ -129,6 +130,54 @@ export default function NewProductForm({
   });
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = form;
+
+  // Upload image to Supabase Storage
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Solo se permiten imágenes (JPG, PNG, WebP, GIF)");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede pesar más de 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
+      const fileName = `${organizationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(data.path);
+
+      setValue("image_url", urlData.publicUrl);
+      toast.success("Imagen subida correctamente");
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error(`Error al subir imagen: ${error.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // ── Auto-generate SKU ──────────────────────────────────────────────────────
 
@@ -439,10 +488,69 @@ export default function NewProductForm({
             Imagen del producto
           </div>
 
-          <div className="space-y-1.5">
+          {/* Upload de archivo */}
+          <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
-              URL de imagen (opcional)
+              Subir imagen desde tu dispositivo
             </label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+                className="hidden"
+                id="image-upload"
+              />
+              <label
+                htmlFor="image-upload"
+                className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                  uploadingImage
+                    ? "border-blue-400 bg-blue-50"
+                    : watch("image_url")
+                      ? "border-green-400 bg-green-50"
+                      : "border-gray-300 bg-gray-50 hover:bg-blue-50 hover:border-blue-400"
+                }`}
+              >
+                {uploadingImage ? (
+                  <>
+                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2" />
+                    <p className="text-sm font-medium text-blue-700">Subiendo imagen...</p>
+                  </>
+                ) : watch("image_url") ? (
+                  <>
+                    <img
+                      src={watch("image_url")}
+                      alt="Preview"
+                      className="w-24 h-24 object-contain rounded-lg mb-2"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <p className="text-xs text-green-700 font-medium">
+                      Clic para cambiar imagen
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="w-10 h-10 text-gray-400 mb-2" />
+                    <p className="text-sm font-medium text-gray-600">
+                      Haz clic o arrastra una imagen aquí
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      JPG, PNG, WebP, GIF — Máx. 5MB
+                    </p>
+                  </>
+                )}
+              </label>
+            </div>
+
+            {/* URL alternativa */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 font-medium">o pega una URL</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
             <input
               type="url"
               {...register("image_url")}
@@ -452,30 +560,7 @@ export default function NewProductForm({
             {errors.image_url && (
               <p className="text-xs text-red-600">{errors.image_url.message}</p>
             )}
-            <p className="text-xs text-gray-500">
-              Pega una URL de imagen (Unsplash, Pexels, Google Imagenes, etc.)
-            </p>
           </div>
-
-          {/* Preview */}
-          {watch("image_url") && watch("image_url") !== "" && (
-            <div className="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
-              <img
-                src={watch("image_url")}
-                alt="Preview"
-                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-700">Vista previa</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Si la imagen no se muestra, verifica que la URL sea correcta
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ── Precios ──────────────────────────────────────────────────── */}

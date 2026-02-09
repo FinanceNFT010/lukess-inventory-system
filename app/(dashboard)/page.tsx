@@ -212,17 +212,17 @@ export default async function DashboardPage() {
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Low Stock Table */}
+        {/* Low Stock */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingDown className="w-5 h-5 text-red-500" />
-              <h2 className="font-semibold text-gray-900">
-                Productos con Stock Bajo
+              <h2 className="font-semibold text-gray-900 text-sm sm:text-base">
+                Stock Bajo
               </h2>
             </div>
             <span className="text-xs text-gray-500 font-medium">
-              &lt; {LOW_STOCK_THRESHOLD} unidades
+              &lt; {LOW_STOCK_THRESHOLD} uds.
             </span>
           </div>
 
@@ -237,78 +237,56 @@ export default async function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="table-container">
-              <table className="w-full min-w-[600px]">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-3">
-                      Producto
-                    </th>
-                    <th className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-3">
-                      Ubicación
-                    </th>
-                    <th className="text-right text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-3">
-                      Stock
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {lowStockItems.map((item: any, i: number) => {
-                    const qty = item.quantity;
-                    const badgeColor =
-                      qty <= 3
-                        ? "bg-red-100 text-red-800"
-                        : qty <= 7
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-amber-100 text-amber-700";
+            <div className="divide-y divide-gray-100">
+              {lowStockItems.map((item: any, i: number) => {
+                const qty = item.quantity;
+                const badgeColor =
+                  qty <= 3
+                    ? "bg-red-100 text-red-800"
+                    : qty <= 7
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-amber-100 text-amber-700";
 
-                    return (
-                      <tr
-                        key={i}
-                        className="hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01]"
-                        style={{
-                          animation: `fadeIn 0.4s ease-out ${i * 0.1}s both`,
-                        }}
-                      >
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-medium text-gray-900">
-                            {item.products?.name}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {item.products?.sku}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {(item.locations as any)?.name || "—"}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}`}
-                          >
-                            {qty} {qty === 1 ? "unidad" : "unidades"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                return (
+                  <div
+                    key={i}
+                    className="px-4 sm:px-6 py-3 hover:bg-gray-50 transition-all duration-200 flex items-center justify-between gap-3"
+                    style={{
+                      animation: `fadeIn 0.4s ease-out ${i * 0.1}s both`,
+                    }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {item.products?.name}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {item.products?.sku} · {(item.locations as any)?.name || "—"}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${badgeColor}`}
+                    >
+                      {qty} {qty === 1 ? "ud" : "uds"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Recent Sales */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-purple-500" />
-            <h2 className="font-semibold text-gray-900">Últimas Ventas</h2>
+            <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Últimas Ventas</h2>
           </div>
 
           {recentSales.length === 0 ? (
             <div className="p-12 text-center">
               <ShoppingBag className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-sm font-medium text-gray-900 mb-1">
-                No hay ventas registradas hoy
+                No hay ventas registradas
               </p>
               <p className="text-xs text-gray-500">
                 ¡Empieza a vender!
@@ -316,7 +294,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {recentSales.map((sale: any) => {
+              {recentSales.map((sale: any, idx: number) => {
                 const PayIcon =
                   paymentIcons[sale.payment_method] || CreditCard;
                 const totalItems =
@@ -335,59 +313,52 @@ export default async function DashboardPage() {
                 return (
                   <div
                     key={sale.id}
-                    className="px-6 py-4 hover:bg-purple-50 transition-all duration-200 flex items-center justify-between gap-4 hover:scale-[1.01] cursor-pointer"
+                    className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-purple-50 transition-all duration-200 cursor-pointer"
                     style={{
-                      animation: `fadeIn 0.4s ease-out ${recentSales.indexOf(sale) * 0.1}s both`,
+                      animation: `fadeIn 0.4s ease-out ${idx * 0.1}s both`,
                     }}
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Avatar con iniciales */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-sm">
+                    {/* Mobile: stacked layout / Desktop: horizontal */}
+                    <div className="flex items-start sm:items-center gap-3">
+                      {/* Avatar */}
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-xs sm:text-sm shadow-sm">
                         {initials}
                       </div>
 
+                      {/* Info */}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-semibold text-gray-900 truncate">
                             {sale.customer_name || "Venta directa"}
                           </p>
                           {sale.discount > 0 && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                              {((sale.discount / sale.subtotal) * 100).toFixed(0)}% desc.
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-800">
+                              {((sale.discount / sale.subtotal) * 100).toFixed(0)}%
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <p className="text-xs text-gray-500">
-                            {staffName}
-                          </p>
-                          <span className="text-gray-300">•</span>
-                          <p className="text-xs text-gray-500">
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${paymentColor}`}
+                          >
+                            <PayIcon className="w-3 h-3" />
+                            {paymentLabel}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
                             {(sale.locations as any)?.name}
-                          </p>
-                          <span className="text-gray-300">•</span>
-                          <p className="text-xs text-gray-500">
-                            {totalItems} ítem{totalItems !== 1 ? "s" : ""}
-                          </p>
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            · {totalItems} ítem{totalItems !== 1 ? "s" : ""}
+                          </span>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      {/* Badge de método de pago */}
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${paymentColor}`}
-                      >
-                        <PayIcon className="w-3.5 h-3.5" />
-                        {paymentLabel}
-                      </span>
-
-                      {/* Monto y fecha */}
-                      <div className="text-right">
+                      {/* Amount */}
+                      <div className="text-right flex-shrink-0">
                         <p className="text-sm font-bold text-gray-900">
                           {formatCurrency(sale.total)}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-[10px] text-gray-400 mt-0.5">
                           {formatDistanceToNow(new Date(sale.created_at), {
                             addSuffix: true,
                             locale: es,
