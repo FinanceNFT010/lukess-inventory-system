@@ -17,8 +17,17 @@ export default async function VentasPage() {
   const orgId = profile!.organization_id;
   const locationId = profile!.location_id;
 
-  // Fetch products with inventory for the user's location
-  const { data: products } = await supabase
+  // Fetch all locations for the org
+  const { data: locations } = await supabase
+    .from("locations")
+    .select("id, name")
+    .eq("organization_id", orgId)
+    .eq("is_active", true)
+    .order("name");
+
+  // Fetch products with inventory
+  // If locationId is set, filter by that location; otherwise fetch all inventory
+  let productsQuery = supabase
     .from("products")
     .select(
       `
@@ -29,8 +38,13 @@ export default async function VentasPage() {
     )
     .eq("organization_id", orgId)
     .eq("is_active", true)
-    .eq("inventory.location_id", locationId!)
     .order("name");
+
+  if (locationId) {
+    productsQuery = productsQuery.eq("inventory.location_id", locationId);
+  }
+
+  const { data: products } = await productsQuery;
 
   // Fetch categories for filtering
   const { data: categories } = await supabase
@@ -41,11 +55,13 @@ export default async function VentasPage() {
 
   return (
     <POSClient
+      key={locationId || "all"}
       initialProducts={products || []}
       categories={categories || []}
       profileId={user!.id}
       organizationId={orgId}
-      locationId={locationId!}
+      locationId={locationId}
+      locations={locations || []}
     />
   );
 }

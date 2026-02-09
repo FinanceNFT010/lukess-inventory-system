@@ -73,6 +73,12 @@ export default function InventoryClient({
   const router = useRouter();
   const [products, setProducts] =
     useState<ProductWithRelations[]>(initialProducts);
+
+  // Sincronizar productos cuando cambian desde el servidor (cambio de ubicación)
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState(

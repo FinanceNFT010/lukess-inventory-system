@@ -32,17 +32,6 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Get user's current location
-  let currentLocation: Location | null = null;
-  if (profile.location_id) {
-    const { data: location } = await supabase
-      .from("locations")
-      .select("*")
-      .eq("id", profile.location_id)
-      .single();
-    currentLocation = location;
-  }
-
   // Get all locations for the organization (for admin/manager selector)
   const { data: locations } = await supabase
     .from("locations")
@@ -71,11 +60,7 @@ export default async function DashboardLayout({
         />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <TopBar
-            profile={profile as Profile}
-            currentLocation={currentLocation}
-            locations={(locations as Location[]) || []}
-          />
+          <TopBar profile={profile as Profile} />
 
           <main className="flex-1 p-4 pt-20 lg:pt-6 lg:p-6 overflow-auto">
             {children}

@@ -284,7 +284,20 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
                   </label>
                   <select
                     value={selectedLocationId || ""}
-                    onChange={(e) => setSelectedLocationId(e.target.value || null)}
+                    onChange={async (e) => {
+                      const newLocationId = e.target.value || null;
+                      setSelectedLocationId(newLocationId);
+
+                      // Actualizar location_id en el perfil del usuario en Supabase
+                      const supabase = createClient();
+                      await supabase
+                        .from("profiles")
+                        .update({ location_id: newLocationId })
+                        .eq("id", profile.id);
+
+                      // Refrescar las páginas para que se actualicen los datos (sin recargar el navegador)
+                      router.refresh();
+                    }}
                     className="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
                   >
                     <option value="">Todas las ubicaciones</option>

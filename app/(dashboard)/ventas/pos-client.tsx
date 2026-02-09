@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import Confetti from "react-confetti";
@@ -47,7 +47,8 @@ interface POSClientProps {
   categories: { id: string; name: string }[];
   profileId: string;
   organizationId: string;
-  locationId: string;
+  locationId: string | null;
+  locations: { id: string; name: string }[];
 }
 
 // ── Payment config ───────────────────────────────────────────────────────────
@@ -90,8 +91,9 @@ export default function POSClient({
   profileId,
   organizationId,
   locationId,
+  locations,
 }: POSClientProps) {
-  const [products] = useState<POSProduct[]>(initialProducts);
+  const [products, setProducts] = useState<POSProduct[]>(initialProducts);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -106,6 +108,12 @@ export default function POSClient({
     paymentMethod: PaymentMethod;
   } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Sincronizar productos cuando cambian desde el servidor (cambio de ubicación)
+  useEffect(() => {
+    setProducts(initialProducts);
+    setCart([]);
+  }, [initialProducts]);
 
   // ── Filtered products ──────────────────────────────────────────────────────
 
@@ -127,9 +135,17 @@ export default function POSClient({
 
   // ── Cart operations ────────────────────────────────────────────────────────
 
+  // Obtener la ubicación efectiva para vender (la seleccionada, o la primera disponible)
+  const effectiveLocationId = locationId || (locations.length > 0 ? locations[0].id : null);
+
   const getStock = (product: POSProduct): number => {
-    const inv = product.inventory.find((i) => i.location_id === locationId);
-    return inv?.quantity ?? 0;
+    if (locationId) {
+      // Ubicación específica seleccionada
+      const inv = product.inventory.find((i) => i.location_id === locationId);
+      return inv?.quantity ?? 0;
+    }
+    // "Todas las ubicaciones" - sumar stock de todas
+    return product.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
   };
 
   const getCartQuantity = (productId: string): number => {
@@ -216,6 +232,11 @@ export default function POSClient({
       return;
     }
 
+    if (!effectiveLocationId) {
+      toast.error("Debes seleccionar una ubicación para vender");
+      return;
+    }
+
     setProcessing(true);
 
     try {
@@ -226,7 +247,7 @@ export default function POSClient({
         .from("sales")
         .insert({
           organization_id: organizationId,
-          location_id: locationId,
+          location_id: effectiveLocationId,
           sold_by: profileId,
           customer_name: customerName || null,
           subtotal,
@@ -265,17 +286,35 @@ export default function POSClient({
 
       // 3. Actualizar inventario - LEER DE DB, NO DE MEMORIA
       console.log('🔄 Actualizando inventario para', cart.length, 'productos...');
-      console.log('📍 Location ID:', locationId);
+      console.log('📍 Location ID:', effectiveLocationId);
 
       for (const item of cart) {
         console.log(`📦 Procesando: ${item.product.name} (ID: ${item.product.id}) - Cantidad: ${item.quantity}`);
+        
+        // Determinar de qué ubicación descontar el stock
+        let saleLocationId = effectiveLocationId;
+        
+        // Si estamos en "Todas las ubicaciones", buscar la primera ubicación con stock suficiente
+        if (!locationId) {
+          const { data: invOptions } = await supabase
+            .from("inventory")
+            .select("quantity, location_id")
+            .eq("product_id", item.product.id)
+            .gte("quantity", item.quantity)
+            .order("quantity", { ascending: false })
+            .limit(1);
+          
+          if (invOptions && invOptions.length > 0) {
+            saleLocationId = invOptions[0].location_id;
+          }
+        }
         
         // Obtener stock actual de la BASE DE DATOS
         const { data: currentInv, error: fetchError } = await supabase
           .from("inventory")
           .select("quantity")
           .eq("product_id", item.product.id)
-          .eq("location_id", locationId)
+          .eq("location_id", saleLocationId!)
           .single();
 
         console.log(`📊 Stock actual de ${item.product.name}:`, currentInv?.quantity, '| Error:', fetchError);
@@ -303,7 +342,7 @@ export default function POSClient({
           .from("inventory")
           .update({ quantity: newQuantity })
           .eq("product_id", item.product.id)
-          .eq("location_id", locationId);
+          .eq("location_id", saleLocationId!);
 
         if (invError) {
           console.error('❌ Error invError:', invError);
