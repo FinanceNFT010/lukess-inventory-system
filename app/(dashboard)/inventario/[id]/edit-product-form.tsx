@@ -125,6 +125,28 @@ export default function EditProductForm({
     const supabase = createClient();
 
     try {
+      // Obtener usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("No se pudo obtener el usuario");
+        setSaving(false);
+        return;
+      }
+
+      // Guardar datos originales para auditoría
+      const originalData = {
+        sku: product.sku,
+        name: product.name,
+        description: product.description,
+        category_id: product.category_id,
+        brand: product.brand,
+        image_url: product.image_url,
+        price: product.price,
+        cost: product.cost,
+        sizes: product.sizes,
+        colors: product.colors,
+      };
+
       // Update product
       const { error: productError } = await supabase
         .from("products")
@@ -172,6 +194,29 @@ export default function EditProductForm({
           if (invError) throw invError;
         }
       }
+
+      // Registrar auditoría
+      await supabase.from("audit_log").insert({
+        organization_id: organizationId,
+        user_id: user.id,
+        action: "update",
+        table_name: "products",
+        record_id: product.id,
+        old_data: originalData,
+        new_data: {
+          sku: data.sku,
+          name: data.name,
+          description: data.description,
+          category_id: data.category_id,
+          brand: data.brand,
+          image_url: data.image_url,
+          price: data.price,
+          cost: data.cost,
+          sizes: selectedSizes,
+          colors: selectedColors,
+        },
+        ip_address: null,
+      });
 
       toast.success("Producto actualizado correctamente");
       router.push("/inventario");

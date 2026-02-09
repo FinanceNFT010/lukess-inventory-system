@@ -210,6 +210,14 @@ export default function NewProductForm({
     try {
       const supabase = createClient();
 
+      // Obtener usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("No se pudo obtener el usuario");
+        setSaving(false);
+        return;
+      }
+
       // 1. Create product
       const { data: product, error: productError } = await supabase
         .from("products")
@@ -258,6 +266,29 @@ export default function NewProductForm({
         setSaving(false);
         return;
       }
+
+      // 3. Registrar auditoría
+      await supabase.from("audit_log").insert({
+        organization_id: organizationId,
+        user_id: user.id,
+        action: "create",
+        table_name: "products",
+        record_id: product.id,
+        old_data: null,
+        new_data: {
+          sku: data.sku,
+          name: data.name,
+          description: data.description,
+          category_id: data.category_id,
+          brand: data.brand,
+          price: data.price,
+          cost: data.cost,
+          sizes: selectedSizes,
+          colors: selectedColors,
+          initial_stock: stockByLocation,
+        },
+        ip_address: null,
+      });
 
       toast.success("Producto creado exitosamente");
       router.push("/inventario");

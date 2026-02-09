@@ -33,6 +33,12 @@ const navLinks = [
     href: "/inventario",
     icon: Package,
     color: "green",
+    subLinks: [
+      {
+        label: "Ver Historial",
+        href: "/inventario/historial",
+      },
+    ],
   },
   {
     label: "Ventas",
@@ -216,37 +222,60 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
             const showBadge = link.href === "/inventario" && lowStockCount > 0;
 
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => {
-                  // Close sidebar on mobile after clicking
-                  if (window.innerWidth < 1024) setCollapsed(true);
-                }}
-                className={`
-                  group relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200
-                  ${
-                    active
-                      ? `${colors.bg} ${colors.text} font-semibold border-l-4 ${colors.border} shadow-sm`
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent"
-                  }
-                `}
-                title={collapsed ? link.label : undefined}
-              >
-                <Icon
-                  className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
-                    active ? colors.text : "text-gray-400"
-                  }`}
-                />
-                {!collapsed && (
-                  <span className="flex-1">{link.label}</span>
+              <div key={link.href}>
+                <Link
+                  href={link.href}
+                  onClick={() => {
+                    // Close sidebar on mobile after clicking
+                    if (window.innerWidth < 1024) setCollapsed(true);
+                  }}
+                  className={`
+                    group relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                    ${
+                      active
+                        ? `${colors.bg} ${colors.text} font-semibold border-l-4 ${colors.border} shadow-sm`
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent"
+                    }
+                  `}
+                  title={collapsed ? link.label : undefined}
+                >
+                  <Icon
+                    className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
+                      active ? colors.text : "text-gray-400"
+                    }`}
+                  />
+                  {!collapsed && (
+                    <span className="flex-1">{link.label}</span>
+                  )}
+                  {!collapsed && showBadge && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                      {lowStockCount}
+                    </span>
+                  )}
+                </Link>
+                
+                {/* Sub-links */}
+                {!collapsed && link.subLinks && active && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    {link.subLinks.map((subLink) => (
+                      <Link
+                        key={subLink.href}
+                        href={subLink.href}
+                        className={`
+                          block px-3 py-2 rounded-lg text-xs font-medium transition-colors
+                          ${
+                            pathname === subLink.href
+                              ? "bg-gray-100 text-gray-900"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          }
+                        `}
+                      >
+                        {subLink.label}
+                      </Link>
+                    ))}
+                  </div>
                 )}
-                {!collapsed && showBadge && (
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
-                    {lowStockCount}
-                  </span>
-                )}
-              </Link>
+              </div>
             );
           })}
         </nav>

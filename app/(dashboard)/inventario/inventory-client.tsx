@@ -840,6 +840,14 @@ export default function InventoryClient({
           try {
             console.log('🗑️ Iniciando desactivación de producto:', deleteModal.productId);
 
+            // Obtener usuario actual
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              toast.error("No se pudo obtener el usuario");
+              setIsDeleting(false);
+              return;
+            }
+
             // Soft Delete: Marcar producto como inactivo en lugar de eliminarlo
             const { error: productError } = await supabase
               .from("products")
@@ -851,6 +859,24 @@ export default function InventoryClient({
               toast.error(productError.message || "Error al desactivar el producto");
               throw productError;
             }
+
+            // Registrar auditoría
+            await supabase.from("audit_log").insert({
+              organization_id: initialProducts[0]?.organization_id || "",
+              user_id: user.id,
+              action: "delete",
+              table_name: "products",
+              record_id: deleteModal.productId,
+              old_data: {
+                is_active: true,
+                product_name: deleteModal.productName,
+              },
+              new_data: {
+                is_active: false,
+                product_name: deleteModal.productName,
+              },
+              ip_address: null,
+            });
 
             console.log('✅ Producto desactivado correctamente');
             toast.success("Producto desactivado correctamente");
