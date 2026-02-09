@@ -34,6 +34,8 @@ interface AuditLog {
 interface AuditHistoryClientProps {
   auditLogs: AuditLog[];
   productsMap: Map<string, { id: string; name: string; sku: string }>;
+  categoriesMap: Map<string, string>;
+  locationsMap: Map<string, string>;
 }
 
 const actionLabels: Record<string, { label: string; icon: any; color: string }> = {
@@ -57,6 +59,8 @@ const actionLabels: Record<string, { label: string; icon: any; color: string }> 
 export default function AuditHistoryClient({
   auditLogs,
   productsMap,
+  categoriesMap,
+  locationsMap,
 }: AuditHistoryClientProps) {
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
 
@@ -93,6 +97,518 @@ export default function AuditHistoryClient({
     } else if (log.action === "delete") {
       return { before: log.old_data, after: log.new_data };
     }
+    return null;
+  };
+
+  // Función para calcular porcentaje de cambio
+  const calculatePercentageChange = (oldValue: number, newValue: number) => {
+    if (!oldValue || oldValue === 0) return null;
+    const change = ((newValue - oldValue) / oldValue) * 100;
+    return change;
+  };
+
+  // Función para comparar arrays
+  const arraysEqual = (a: any[], b: any[]) => {
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((val, idx) => val === sortedB[idx]);
+  };
+
+  // Función para renderizar cambios de forma amigable
+  const renderChanges = (log: AuditLog) => {
+    if (log.action === "create") {
+      // Producto creado - mostrar datos principales
+      const data = log.new_data;
+      return (
+        <div className="space-y-4">
+          {/* Imagen del producto */}
+          {data.image_url && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <p className="text-xs font-semibold text-blue-700 mb-2">Imagen del Producto</p>
+              <img
+                src={data.image_url}
+                alt="Producto"
+                className="w-32 h-32 object-cover rounded-lg border-2 border-blue-300 shadow-md"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            {data.name && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-green-700 mb-1">Nombre</p>
+                <p className="text-sm text-green-900">{data.name}</p>
+              </div>
+            )}
+            {data.sku && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-green-700 mb-1">SKU</p>
+                <p className="text-sm text-green-900 font-mono">{data.sku}</p>
+              </div>
+            )}
+            {data.price && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-green-700 mb-1">Precio</p>
+                <p className="text-sm text-green-900 font-bold">Bs {data.price}</p>
+              </div>
+            )}
+            {data.cost && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-green-700 mb-1">Costo</p>
+                <p className="text-sm text-green-900 font-bold">Bs {data.cost}</p>
+              </div>
+            )}
+            {data.brand && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-green-700 mb-1">Marca</p>
+                <p className="text-sm text-green-900">{data.brand}</p>
+              </div>
+            )}
+            {data.category_id && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-green-700 mb-1">Categoría</p>
+                <p className="text-sm text-green-900">{categoriesMap.get(data.category_id) || data.category_id}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Tallas y Colores */}
+          {(data.sizes?.length > 0 || data.colors?.length > 0) && (
+            <div className="grid grid-cols-2 gap-3">
+              {data.sizes?.length > 0 && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-purple-700 mb-2">Tallas</p>
+                  <div className="flex flex-wrap gap-1">
+                    {data.sizes.map((size: string, idx: number) => (
+                      <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                        {size}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {data.colors?.length > 0 && (
+                <div className="bg-pink-50 border border-pink-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-pink-700 mb-2">Colores</p>
+                  <div className="flex flex-wrap gap-1">
+                    {data.colors.map((color: string, idx: number) => (
+                      <span key={idx} className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs font-medium">
+                        {color}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stock inicial */}
+          {data.initial_stock && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-emerald-700 mb-2">Stock Inicial por Ubicación</p>
+              <div className="space-y-1">
+                {Object.entries(data.initial_stock).map(([locId, qty]: [string, any]) => (
+                  <div key={locId} className="flex justify-between text-sm">
+                    <span className="text-emerald-900">{locationsMap.get(locId) || `Ubicación ${locId.slice(0, 8)}...`}</span>
+                    <span className="font-bold text-emerald-900">{qty} unidades</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Nota de auditoría */}
+          {data.audit_note && (
+            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <span className="text-lg">📝</span>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-yellow-800 mb-1">Nota:</p>
+                  <p className="text-sm text-yellow-900 italic">&quot;{data.audit_note}&quot;</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    } else if (log.action === "update") {
+      // Producto modificado - mostrar solo lo que cambió
+      const before = log.old_data || {};
+      const after = log.new_data || {};
+      const changes = [];
+
+      // Detectar cambios importantes
+      if (before.name !== after.name && (before.name || after.name)) {
+        changes.push({ 
+          type: "text",
+          field: "Nombre", 
+          before: before.name, 
+          after: after.name, 
+          important: true 
+        });
+      }
+      
+      if (before.sku !== after.sku && (before.sku || after.sku)) {
+        changes.push({ 
+          type: "text",
+          field: "SKU", 
+          before: before.sku, 
+          after: after.sku, 
+          important: true 
+        });
+      }
+      
+      if (before.price !== after.price && (before.price || after.price)) {
+        const percentChange = calculatePercentageChange(before.price, after.price);
+        changes.push({ 
+          type: "price",
+          field: "Precio", 
+          before: before.price, 
+          after: after.price, 
+          percentChange,
+          important: true, 
+          critical: true 
+        });
+      }
+      
+      if (before.cost !== after.cost && (before.cost || after.cost)) {
+        const percentChange = calculatePercentageChange(before.cost, after.cost);
+        changes.push({ 
+          type: "price",
+          field: "Costo", 
+          before: before.cost, 
+          after: after.cost, 
+          percentChange,
+          important: true, 
+          critical: true 
+        });
+      }
+      
+      if (before.brand !== after.brand && (before.brand || after.brand)) {
+        changes.push({ 
+          type: "text",
+          field: "Marca", 
+          before: before.brand || "Sin marca", 
+          after: after.brand || "Sin marca", 
+          important: true 
+        });
+      }
+      
+      if (before.category_id !== after.category_id && (before.category_id || after.category_id)) {
+        changes.push({ 
+          type: "text",
+          field: "Categoría", 
+          before: categoriesMap.get(before.category_id) || before.category_id || "Sin categoría", 
+          after: categoriesMap.get(after.category_id) || after.category_id || "Sin categoría", 
+          important: true 
+        });
+      }
+      
+      if (before.description !== after.description && (before.description || after.description)) {
+        changes.push({ 
+          type: "text",
+          field: "Descripción", 
+          before: before.description || "Sin descripción", 
+          after: after.description || "Sin descripción", 
+          important: false 
+        });
+      }
+      
+      if (before.image_url !== after.image_url && (before.image_url || after.image_url)) {
+        changes.push({ 
+          type: "image",
+          field: "Imagen", 
+          before: before.image_url, 
+          after: after.image_url, 
+          important: true 
+        });
+      }
+
+      // Cambios en tallas
+      if (!arraysEqual(before.sizes || [], after.sizes || [])) {
+        changes.push({
+          type: "array",
+          field: "Tallas",
+          before: before.sizes || [],
+          after: after.sizes || [],
+          important: true
+        });
+      }
+
+      // Cambios en colores
+      if (!arraysEqual(before.colors || [], after.colors || [])) {
+        changes.push({
+          type: "array",
+          field: "Colores",
+          before: before.colors || [],
+          after: after.colors || [],
+          important: true
+        });
+      }
+
+      // Cambios en stock por ubicación
+      const beforeStock = before.stock_by_location || {};
+      const afterStock = after.stock_by_location || {};
+      const allLocationIds = new Set([...Object.keys(beforeStock), ...Object.keys(afterStock)]);
+      const stockChanges: any[] = [];
+      
+      allLocationIds.forEach((locId) => {
+        const oldQty = beforeStock[locId] || 0;
+        const newQty = afterStock[locId] || 0;
+        if (oldQty !== newQty) {
+          stockChanges.push({
+            location: locationsMap.get(locId) || locId,
+            before: oldQty,
+            after: newQty,
+            diff: newQty - oldQty,
+          });
+        }
+      });
+
+      if (stockChanges.length > 0) {
+        changes.push({
+          type: "stock",
+          field: "Stock por Ubicación",
+          stockChanges,
+          important: true
+        });
+      }
+
+      if (changes.length === 0) {
+        return (
+          <div className="text-sm text-gray-500 italic">
+            No se detectaron cambios significativos
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-3">
+          {/* Nota de auditoría al inicio si existe */}
+          {after.audit_note && (
+            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <span className="text-lg">📝</span>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-yellow-800 mb-1">Nota del cambio:</p>
+                  <p className="text-sm text-yellow-900 italic">&quot;{after.audit_note}&quot;</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {changes.map((change: any, idx) => {
+            // Renderizar según el tipo de cambio
+            if (change.type === "image") {
+              return (
+                <div key={idx} className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-xs font-bold text-blue-700 uppercase">{change.field}</p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                      🖼️ Imagen actualizada
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-blue-600 font-semibold mb-2">Antes:</p>
+                      {change.before ? (
+                        <img
+                          src={change.before}
+                          alt="Antes"
+                          className="w-full h-48 object-contain rounded-lg border-2 border-blue-300 shadow-md bg-white"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">Sin imagen</text></svg>';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-xs">
+                          Sin imagen
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs text-blue-600 font-semibold mb-2">Ahora:</p>
+                      {change.after ? (
+                        <img
+                          src={change.after}
+                          alt="Ahora"
+                          className="w-full h-48 object-contain rounded-lg border-2 border-green-300 shadow-md bg-white"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">Sin imagen</text></svg>';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-xs">
+                          Sin imagen
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            } else if (change.type === "price") {
+              const isIncrease = change.after > change.before;
+              const percentChange = change.percentChange;
+              return (
+                <div key={idx} className="border-2 border-amber-300 rounded-lg p-4 bg-amber-50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-xs font-bold text-amber-800 uppercase">{change.field}</p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                      💰 Cambio de {change.field.toLowerCase()}
+                    </span>
+                    {percentChange !== null && (
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                        isIncrease 
+                          ? 'bg-red-100 text-red-700' 
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {isIncrease ? '📈' : '📉'} {isIncrease ? '+' : ''}{percentChange.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg p-3 border border-amber-200">
+                      <p className="text-xs text-amber-600 font-semibold mb-1">Antes:</p>
+                      <p className="text-lg text-gray-900 font-bold line-through">Bs {change.before}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border-2 border-amber-400">
+                      <p className="text-xs text-amber-600 font-semibold mb-1">Ahora:</p>
+                      <p className="text-lg text-amber-900 font-bold">Bs {change.after}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            } else if (change.type === "array") {
+              const removed = change.before.filter((item: string) => !change.after.includes(item));
+              const added = change.after.filter((item: string) => !change.before.includes(item));
+              const isPurpleField = change.field === "Tallas";
+              const colorClass = isPurpleField ? "purple" : "pink";
+              
+              return (
+                <div key={idx} className={`border-2 border-${colorClass}-300 rounded-lg p-4 bg-${colorClass}-50`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className={`text-xs font-bold text-${colorClass}-700 uppercase`}>{change.field}</p>
+                  </div>
+                  <div className="space-y-3">
+                    {removed.length > 0 && (
+                      <div>
+                        <p className="text-xs text-red-600 font-semibold mb-2">❌ Eliminados:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {removed.map((item: string, i: number) => (
+                            <span key={i} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium line-through">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {added.length > 0 && (
+                      <div>
+                        <p className="text-xs text-green-600 font-semibold mb-2">✅ Agregados:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {added.map((item: string, i: number) => (
+                            <span key={i} className={`px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium`}>
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {removed.length === 0 && added.length === 0 && (
+                      <div>
+                        <p className="text-xs text-gray-600 font-semibold mb-2">Actuales:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {change.after.map((item: string, i: number) => (
+                            <span key={i} className={`px-2 py-1 bg-${colorClass}-100 text-${colorClass}-700 rounded text-xs font-medium`}>
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            } else if (change.type === "stock") {
+              // Cambios de stock por ubicación
+              return (
+                <div key={idx} className="border-2 border-emerald-300 rounded-lg p-4 bg-emerald-50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-xs font-bold text-emerald-700 uppercase">{change.field}</p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+                      📦 Movimiento de stock
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {change.stockChanges.map((stockChange: any, i: number) => (
+                      <div key={i} className="bg-white rounded-lg p-3 border border-emerald-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-emerald-900">{stockChange.location}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-600 line-through">{stockChange.before} unid.</span>
+                            <span className="text-lg">→</span>
+                            <span className="text-sm font-bold text-emerald-900">{stockChange.after} unid.</span>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                              stockChange.diff > 0 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {stockChange.diff > 0 ? '+' : ''}{stockChange.diff}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            } else {
+              // Cambio de texto normal
+              return (
+                <div
+                  key={idx}
+                  className={`border rounded-lg p-3 ${
+                    change.important
+                      ? "bg-blue-50 border-blue-200"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-xs font-bold text-gray-700 uppercase">{change.field}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Antes:</p>
+                      <p className="text-sm text-gray-900 font-medium line-through">{change.before}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Ahora:</p>
+                      <p className="text-sm text-gray-900 font-bold">{change.after}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          })}
+        </div>
+      );
+    } else if (log.action === "delete") {
+      // Producto desactivado
+      const productName = log.new_data?.product_name || "Producto";
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-900">
+            El producto <span className="font-bold">{productName}</span> fue desactivado y ya no aparece en el inventario ni en el punto de venta.
+          </p>
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -223,20 +739,17 @@ export default function AuditHistoryClient({
               const isExpanded = expandedLogs.has(log.id);
               if (!isExpanded) return null;
 
-              const changes = getChangesDisplay(log);
-
               return (
                 <div
                   key={`details-${log.id}`}
-                  className="border-t border-gray-200 bg-gray-50 px-6 py-4"
+                  className="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-5"
                 >
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="w-1 h-4 bg-blue-600 rounded-full"></span>
                     Detalles del cambio:
                   </h4>
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <pre className="text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap break-words">
-                      {JSON.stringify(changes, null, 2)}
-                    </pre>
+                  <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm">
+                    {renderChanges(log)}
                   </div>
                 </div>
               );

@@ -83,7 +83,14 @@ export default function EditProductForm({
   const [selectedSizes, setSelectedSizes] = useState<string[]>(product.sizes || []);
   const [selectedColors, setSelectedColors] = useState<string[]>(product.colors || []);
   const [customSize, setCustomSize] = useState("");
+  const [auditNote, setAuditNote] = useState("");
   const [stockByLocation, setStockByLocation] = useState<Record<string, number>>(
+    product.inventory.reduce(
+      (acc: Record<string, number>, inv: any) => ({ ...acc, [inv.location_id]: inv.quantity }),
+      {} as Record<string, number>
+    )
+  );
+  const [originalStockByLocation] = useState<Record<string, number>>(
     product.inventory.reduce(
       (acc: Record<string, number>, inv: any) => ({ ...acc, [inv.location_id]: inv.quantity }),
       {} as Record<string, number>
@@ -202,7 +209,10 @@ export default function EditProductForm({
         action: "update",
         table_name: "products",
         record_id: product.id,
-        old_data: originalData,
+        old_data: {
+          ...originalData,
+          stock_by_location: originalStockByLocation,
+        },
         new_data: {
           sku: data.sku,
           name: data.name,
@@ -214,6 +224,8 @@ export default function EditProductForm({
           cost: data.cost,
           sizes: selectedSizes,
           colors: selectedColors,
+          stock_by_location: stockByLocation,
+          audit_note: auditNote || null,
         },
         ip_address: null,
       });
@@ -598,6 +610,23 @@ export default function EditProductForm({
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Nota de auditoría */}
+          <div className="bg-yellow-50 rounded-xl border-2 border-yellow-200 p-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-yellow-900">
+              📝 Nota para el historial (opcional)
+            </div>
+            <textarea
+              value={auditNote}
+              onChange={(e) => setAuditNote(e.target.value)}
+              rows={3}
+              placeholder="Ej: Bajé el precio porque es cliente fiel, envío de stock al puesto 2..."
+              className="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition resize-none text-gray-900 placeholder:text-gray-400 bg-white"
+            />
+            <p className="text-xs text-yellow-700">
+              Esta nota aparecerá en el historial de cambios para explicar el motivo de la modificación.
+            </p>
           </div>
 
           {/* Actions */}

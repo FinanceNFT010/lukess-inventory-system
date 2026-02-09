@@ -49,12 +49,27 @@ export default async function AuditHistoryPage() {
     .select("id, name, sku")
     .in("id", productIds);
 
+  // Obtener categorías y ubicaciones
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("id, name")
+    .eq("organization_id", orgId);
+
+  const { data: locations } = await supabase
+    .from("locations")
+    .select("id, name")
+    .eq("organization_id", orgId);
+
   const productsMap = new Map(products?.map((p) => [p.id, p]) || []);
+  const categoriesMap = new Map(categories?.map((c) => [c.id, c.name]) || []);
+  const locationsMap = new Map(locations?.map((l) => [l.id, l.name]) || []);
 
   return (
     <AuditHistoryClient
       auditLogs={auditLogs || []}
       productsMap={productsMap}
+      categoriesMap={categoriesMap}
+      locationsMap={locationsMap}
     />
   );
 }
