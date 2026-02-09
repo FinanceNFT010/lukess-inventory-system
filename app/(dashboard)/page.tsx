@@ -129,6 +129,8 @@ export default async function DashboardPage() {
         `
         id,
         total,
+        subtotal,
+        discount,
         payment_method,
         created_at,
         customer_name,
@@ -339,9 +341,16 @@ export default async function DashboardPage() {
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {sale.customer_name || "Venta directa"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {sale.customer_name || "Venta directa"}
+                          </p>
+                          {sale.discount > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                              {((sale.discount / sale.subtotal) * 100).toFixed(0)}% desc.
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <p className="text-xs text-gray-500">
                             {staffName}

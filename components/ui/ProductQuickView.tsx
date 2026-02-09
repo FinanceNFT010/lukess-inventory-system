@@ -206,7 +206,7 @@ export function ProductQuickView({
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                     >
                       <span className="text-sm text-gray-700">
-                        Ubicación {inv.location_id.slice(0, 8)}...
+                        {(inv as any).locations?.name || `Ubicación ${inv.location_id.slice(0, 8)}...`}
                       </span>
                       <div className="text-right">
                         <span

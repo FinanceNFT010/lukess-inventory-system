@@ -18,6 +18,7 @@ import {
   Store,
   X,
   MapPin,
+  History,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -45,6 +46,12 @@ const navLinks = [
     href: "/ventas",
     icon: ShoppingCart,
     color: "purple",
+    subLinks: [
+      {
+        label: "Ver Historial",
+        href: "/ventas/historial",
+      },
+    ],
   },
   {
     label: "Reportes",
