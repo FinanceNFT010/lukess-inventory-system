@@ -116,6 +116,14 @@ export default function POSClient({
   } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showQRPayment, setShowQRPayment] = useState(false);
+  const [pendingSale, setPendingSale] = useState<{
+    subtotal: number;
+    discount: number;
+    total: number;
+    items: number;
+    cartItems: CartItem[];
+  } | null>(null);
 
   // Sincronizar productos cuando cambian desde el servidor (cambio de ubicación)
   useEffect(() => {
@@ -269,7 +277,33 @@ export default function POSClient({
       return;
     }
 
+    // Si el método de pago es QR, mostrar modal de QR primero
+    if (paymentMethod === "qr") {
+      setPendingSale({
+        subtotal,
+        discount: discountAmount,
+        total,
+        items: totalItems,
+        cartItems: [...cart],
+      });
+      setShowQRPayment(true);
+      setShowMobileCart(false); // Cerrar carrito móvil si está abierto
+      return;
+    }
+
+    // Para otros métodos de pago, procesar directamente
+    await processSale();
+  };
+
+  const handleNewSale = () => {
+    setShowSuccessModal(false);
+    setLastSale(null);
+  };
+
+  // Procesar venta (después de confirmar pago QR o directamente para otros métodos)
+  const processSale = async () => {
     setProcessing(true);
+    setShowQRPayment(false);
 
     try {
       const supabase = createClient();
@@ -316,17 +350,10 @@ export default function POSClient({
         return;
       }
 
-      // 3. Actualizar inventario - LEER DE DB, NO DE MEMORIA
-      console.log('🔄 Actualizando inventario para', cart.length, 'productos...');
-      console.log('📍 Location ID:', effectiveLocationId);
-
+      // 3. Actualizar inventario
       for (const item of cart) {
-        console.log(`📦 Procesando: ${item.product.name} (ID: ${item.product.id}) - Cantidad: ${item.quantity}`);
-        
-        // Determinar de qué ubicación descontar el stock
         let saleLocationId = effectiveLocationId;
         
-        // Si estamos en "Todas las ubicaciones", buscar la primera ubicación con stock suficiente
         if (!locationId) {
           const { data: invOptions } = await supabase
             .from("inventory")
@@ -341,7 +368,6 @@ export default function POSClient({
           }
         }
         
-        // Obtener stock actual de la BASE DE DATOS
         const { data: currentInv, error: fetchError } = await supabase
           .from("inventory")
           .select("quantity")
@@ -349,27 +375,16 @@ export default function POSClient({
           .eq("location_id", saleLocationId!)
           .single();
 
-        console.log(`📊 Stock actual de ${item.product.name}:`, currentInv?.quantity, '| Error:', fetchError);
-
-        if (fetchError) {
-          console.error('❌ Error fetchError:', fetchError);
-          throw new Error(`Error al obtener inventario de ${item.product.name}: ${fetchError.message}`);
-        }
-
-        if (!currentInv) {
-          console.error('❌ No se encontró inventario para producto:', item.product.id, 'en ubicación:', locationId);
-          throw new Error(`No existe inventario para ${item.product.name} en esta ubicación`);
+        if (fetchError || !currentInv) {
+          throw new Error(`Error al obtener inventario de ${item.product.name}`);
         }
 
         const newQuantity = currentInv.quantity - item.quantity;
-        console.log(`🧮 Cálculo: ${currentInv.quantity} - ${item.quantity} = ${newQuantity}`);
 
         if (newQuantity < 0) {
-          console.error('❌ Stock insuficiente');
-          throw new Error(`Stock insuficiente para ${item.product.name}. Disponible: ${currentInv.quantity}, Solicitado: ${item.quantity}`);
+          throw new Error(`Stock insuficiente para ${item.product.name}`);
         }
 
-        // Actualizar con el nuevo stock
         const { error: invError } = await supabase
           .from("inventory")
           .update({ quantity: newQuantity })
@@ -377,16 +392,11 @@ export default function POSClient({
           .eq("location_id", saleLocationId!);
 
         if (invError) {
-          console.error('❌ Error invError:', invError);
-          throw new Error(`Error al actualizar inventario de ${item.product.name}: ${invError.message}`);
+          throw new Error(`Error al actualizar inventario de ${item.product.name}`);
         }
-        
-        console.log(`✅ Inventario actualizado para ${item.product.name}: ${currentInv.quantity} → ${newQuantity}`);
       }
 
-      console.log('✅ TODO EL INVENTARIO ACTUALIZADO CORRECTAMENTE');
-
-      // Show success modal with confetti
+      // Show success modal
       setLastSale({
         total,
         items: totalItems,
@@ -398,27 +408,19 @@ export default function POSClient({
         saleId: sale.id,
         date: new Date().toISOString(),
       });
-      // Play cash register sound
-      playCashRegisterSound();
       
+      playCashRegisterSound();
       setShowSuccessModal(true);
       setShowConfetti(true);
-
-      // Stop confetti after 5 seconds
       setTimeout(() => setShowConfetti(false), 5000);
-
       clearCart();
+      setPendingSale(null);
     } catch (error: any) {
       console.error("Error al procesar venta:", error);
       toast.error(error.message || "Error inesperado al procesar la venta");
     } finally {
       setProcessing(false);
     }
-  };
-
-  const handleNewSale = () => {
-    setShowSuccessModal(false);
-    setLastSale(null);
   };
 
   const generateTicket = async () => {
@@ -654,7 +656,7 @@ export default function POSClient({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 pb-24 lg:pb-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 pb-24 lg:pb-0 pt-3 px-1">
               {filteredProducts.map((product) => {
                 const stock = getStock(product);
                 const inCart = getCartQuantity(product.id);
@@ -1165,6 +1167,109 @@ export default function POSClient({
         </div>
       )}
     </div>
+
+      {/* QR Payment Modal */}
+      {showQRPayment && pendingSale && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <QrCode className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Escanea el QR para Pagar
+              </h2>
+              <p className="text-gray-500">
+                Total a pagar: <span className="text-2xl font-bold text-blue-600">{formatCurrency(pendingSale.total)}</span>
+              </p>
+            </div>
+
+            {/* QR Code Image */}
+            <div className="bg-white rounded-2xl p-6 mb-6 border-2 border-blue-200 flex justify-center">
+              <img
+                src="/qr/yolo-pago.png"
+                alt="QR Yolo Pago"
+                className="w-full max-w-[300px] h-auto"
+              />
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-blue-50 rounded-xl p-4 mb-6">
+              <p className="text-sm text-blue-900 font-medium mb-2">
+                📱 Instrucciones:
+              </p>
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Abre tu app de pagos (Yolo, Tigo Money, etc.)</li>
+                <li>Escanea el código QR</li>
+                <li>Confirma el monto: {formatCurrency(pendingSale.total)}</li>
+                <li>Completa el pago</li>
+                <li>Presiona "Confirmar Pago" abajo</li>
+              </ol>
+            </div>
+
+            {/* Sale Details */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Items:</span>
+                <span className="font-semibold text-gray-900">{pendingSale.items}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal:</span>
+                <span className="font-semibold text-gray-900">{formatCurrency(pendingSale.subtotal)}</span>
+              </div>
+              {pendingSale.discount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Descuento:</span>
+                  <span className="font-semibold text-red-600">-{formatCurrency(pendingSale.discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-2 border-t border-gray-200">
+                <span className="text-gray-900 font-bold">Total:</span>
+                <span className="text-xl font-bold text-blue-600">{formatCurrency(pendingSale.total)}</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setShowQRPayment(false);
+                  setPendingSale(null);
+                }}
+                disabled={processing}
+                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={processSale}
+                disabled={processing}
+                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {processing ? (
+                  <>
+                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Confirmar Pago</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Demo Note */}
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800 text-center">
+                <strong>Nota de Demo:</strong> En producción, el sistema verificará automáticamente el pago antes de completar la venta.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal */}
       {showSuccessModal && lastSale && (
