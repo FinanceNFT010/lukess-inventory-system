@@ -98,7 +98,15 @@ export async function createUserFromRequest(
   temporaryPassword: string
 ) {
   try {
+    console.log("[createUser] Starting for:", email, "role:", role);
+
     const { supabaseAdmin } = await import("@/lib/supabase/admin");
+    console.log("[createUser] Admin client created");
+
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    console.log("[createUser] Service key present:", !!serviceKey);
+    console.log("[createUser] Service key length:", serviceKey?.length);
+    console.log("[createUser] First 20 chars:", serviceKey?.substring(0, 20));
 
     const { data: newUser, error: createError } =
       await supabaseAdmin.auth.admin.createUser({
@@ -108,41 +116,33 @@ export async function createUserFromRequest(
         user_metadata: { full_name: fullName },
       });
 
+    console.log("[createUser] Result:", {
+      userId: newUser?.user?.id,
+      error: createError?.message,
+      errorCode: (createError as { code?: string } | null)?.code,
+    });
+
     if (createError) {
-      console.error("Auth user creation error:", createError);
-      return { error: `Error Supabase: ${createError.message}` };
+      return {
+        error: `Error Supabase: ${createError.message} (${(createError as { code?: string }).code})`,
+      };
     }
 
     if (!newUser.user) {
-      return { error: "Usuario no fue creado — respuesta vacía de Supabase" };
+      return { error: "Usuario no fue creado — respuesta vacía" };
     }
 
-    // Verify identity was created (Supabase should do this automatically via admin.createUser)
-    const { data: identityCheck } = await supabaseAdmin
-      .from("identities")
-      .select("id")
-      .eq("user_id", newUser.user.id)
-      .maybeSingle();
+    console.log("[createUser] User created:", newUser.user.id);
 
-    if (!identityCheck) {
-      console.warn(
-        "Identity not auto-created for",
-        email,
-        "— this may cause login issues"
-      );
-    }
-
-    // Wait briefly for trigger to create profile
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Wait for trigger to create profile
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .update({
-        role,
-        full_name: fullName,
-        is_active: true,
-      })
+      .update({ role, full_name: fullName, is_active: true })
       .eq("id", newUser.user.id);
+
+    console.log("[createUser] Profile update:", profileError?.message ?? "OK");
 
     if (profileError) {
       console.error("Profile update error:", profileError);
@@ -160,8 +160,8 @@ export async function createUserFromRequest(
       message: `Usuario ${email} creado con rol ${role}. Contraseña temporal: ${temporaryPassword}`,
     };
   } catch (error) {
-    console.error("createUserFromRequest error:", error);
     const message = error instanceof Error ? error.message : "Error desconocido";
+    console.error("[createUser] CATCH:", message);
     return { error: `Error interno: ${message}` };
   }
 }
