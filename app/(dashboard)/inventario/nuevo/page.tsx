@@ -1,20 +1,16 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile, getDefaultOrgId } from "@/lib/auth";
 import NewProductForm from "./new-product-form";
 
 export default async function NuevoProductoPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getCurrentUserProfile();
+  if (!profile) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
-
-  const orgId = profile!.organization_id;
+  const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
+  if (!orgId) redirect("/login");
 
   const [categoriesResult, locationsResult, productCountResult] =
     await Promise.all([

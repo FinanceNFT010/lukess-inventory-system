@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUserProfile } from "@/lib/auth";
+import { getCurrentUserProfile, getDefaultOrgId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import UsuariosClient from "./usuarios-client";
 
@@ -10,18 +10,21 @@ export default async function UsuariosPage() {
     redirect("/");
   }
 
+  const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
+  if (!orgId) redirect("/");
+
   const supabase = await createClient();
 
   const { data: profiles } = await supabase
     .from("profiles")
     .select("*")
-    .eq("organization_id", profile.organization_id)
+    .eq("organization_id", orgId)
     .order("full_name");
 
   const { data: accessRequests } = await supabase
     .from("access_requests")
     .select("*")
-    .eq("organization_id", profile.organization_id)
+    .eq("organization_id", orgId)
     .order("created_at", { ascending: false });
 
   return (

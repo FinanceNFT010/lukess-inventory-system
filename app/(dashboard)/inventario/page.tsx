@@ -1,20 +1,16 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile, getDefaultOrgId } from "@/lib/auth";
 import InventoryClient from "./inventory-client";
 
 export default async function InventarioPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getCurrentUserProfile();
+  if (!profile) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
-
-  const orgId = profile!.organization_id;
+  const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
+  if (!orgId) redirect("/login");
 
   // Fetch initial data in parallel
   const [productsResult, categoriesResult, locationsResult] = await Promise.all([
@@ -50,8 +46,8 @@ export default async function InventarioPage() {
       initialProducts={productsResult.data || []}
       categories={categoriesResult.data || []}
       locations={locationsResult.data || []}
-      userRole={profile!.role}
-      userLocationId={profile!.location_id}
+      userRole={profile.role}
+      userLocationId={profile.location_id}
     />
   );
 }

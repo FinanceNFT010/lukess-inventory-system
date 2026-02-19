@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/auth";
 import StatsCard from "@/components/dashboard/StatsCard";
 import {
   Package,
@@ -61,17 +63,37 @@ export default async function DashboardPage() {
   const supabase = await createClient();
 
   // Get current user's profile for organization_id
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getCurrentUserProfile();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
+  if (!profile) {
+    redirect("/login");
+  }
 
-  const orgId = profile!.organization_id;
+  // If profile exists but missing organization_id, use fallback query
+  let orgId = profile.organization_id as string | null;
+  if (!orgId) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+    orgId = org?.id ?? null;
+  }
+
+  // If still no orgId, show error state instead of crashing
+  if (!orgId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center p-8 bg-red-50 rounded-xl border-2 border-red-200">
+          <p className="text-red-800 font-semibold">Error de configuración</p>
+          <p className="text-red-600 text-sm mt-1">
+            Tu cuenta no está asociada a ninguna organización. Contacta al
+            administrador.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Parallel data fetching ────────────────────────────────────────────────
 

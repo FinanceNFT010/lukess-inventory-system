@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile, getDefaultOrgId } from "@/lib/auth";
 import EditProductForm from "./edit-product-form";
 import type { Category, Location } from "@/lib/types";
 
@@ -11,19 +12,11 @@ export default async function EditProductPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // Get user and profile
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("id", user.id)
-    .single();
-
+  const profile = await getCurrentUserProfile();
   if (!profile) redirect("/login");
+
+  const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
+  if (!orgId) redirect("/login");
 
   // Get product with inventory
   const { data: product, error } = await supabase
@@ -44,7 +37,7 @@ export default async function EditProductPage({ params }: PageProps) {
     `
     )
     .eq("id", id)
-    .eq("organization_id", profile.organization_id)
+    .eq("organization_id", orgId)
     .single();
 
   if (error || !product) {
@@ -55,14 +48,14 @@ export default async function EditProductPage({ params }: PageProps) {
   const { data: categories } = await supabase
     .from("categories")
     .select("*")
-    .eq("organization_id", profile.organization_id)
+    .eq("organization_id", orgId)
     .order("name");
 
   // Get locations
   const { data: locations } = await supabase
     .from("locations")
     .select("*")
-    .eq("organization_id", profile.organization_id)
+    .eq("organization_id", orgId)
     .order("name");
 
   return (
@@ -70,7 +63,7 @@ export default async function EditProductPage({ params }: PageProps) {
       product={product}
       categories={(categories as Category[]) || []}
       locations={(locations as Location[]) || []}
-      organizationId={profile.organization_id}
+      organizationId={orgId}
     />
   );
 }

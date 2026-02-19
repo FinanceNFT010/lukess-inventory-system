@@ -1,21 +1,18 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile, getDefaultOrgId } from "@/lib/auth";
 import POSClient from "./pos-client";
 
 export default async function VentasPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getCurrentUserProfile();
+  if (!profile) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
+  const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
+  if (!orgId) redirect("/login");
 
-  const orgId = profile!.organization_id;
-  const locationId = profile!.location_id;
+  const locationId = profile.location_id as string | null;
 
   // Fetch all locations for the org
   const { data: locations } = await supabase
@@ -58,7 +55,7 @@ export default async function VentasPage() {
       key={locationId || "all"}
       initialProducts={products || []}
       categories={categories || []}
-      profileId={user!.id}
+      profileId={profile.id}
       organizationId={orgId}
       locationId={locationId}
       locations={locations || []}

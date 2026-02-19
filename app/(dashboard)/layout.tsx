@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getDefaultOrgId } from "@/lib/auth";
 import Sidebar from "@/components/dashboard/Sidebar";
 import TopBar from "@/components/dashboard/TopBar";
 import { DashboardWrapper } from "@/components/dashboard/DashboardWrapper";
@@ -32,21 +33,23 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
+
   // Get all locations for the organization (for admin/manager selector)
-  const { data: locations } = await supabase
+  const { data: locations } = orgId ? await supabase
     .from("locations")
     .select("*")
-    .eq("organization_id", profile.organization_id)
+    .eq("organization_id", orgId)
     .eq("is_active", true)
-    .order("name");
+    .order("name") : { data: null };
 
   // Get low stock count for badge
   const LOW_STOCK_THRESHOLD = 10;
-  const { data: lowStockItems } = await supabase
+  const { data: lowStockItems } = orgId ? await supabase
     .from("inventory")
     .select("id, products!inner(organization_id)")
-    .eq("products.organization_id", profile.organization_id)
-    .lt("quantity", LOW_STOCK_THRESHOLD);
+    .eq("products.organization_id", orgId)
+    .lt("quantity", LOW_STOCK_THRESHOLD) : { data: null };
 
   const lowStockCount = lowStockItems?.length || 0;
 

@@ -1,26 +1,16 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile, getDefaultOrgId } from "@/lib/auth";
 import AuditHistoryClient from "./audit-history-client";
 
 export default async function AuditHistoryPage() {
   const supabase = await createClient();
 
-  // Verificar autenticación
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  // Obtener perfil del usuario
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*, organizations(id, name)")
-    .eq("id", user.id)
-    .single();
-
+  const profile = await getCurrentUserProfile();
   if (!profile) redirect("/login");
 
-  const orgId = profile.organization_id;
+  const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
+  if (!orgId) redirect("/login");
 
   // Obtener historial de auditoría de productos
   const { data: auditLogs } = await supabase

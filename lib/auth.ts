@@ -38,3 +38,17 @@ export async function requireAuth() {
   if (!profile.is_active) throw new Error('Account disabled')
   return profile
 }
+
+export async function getDefaultOrgId(): Promise<string | null> {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('organizations')
+      .select('id')
+      .limit(1)
+      .maybeSingle()
+    return data?.id ?? null
+  } catch {
+    return null
+  }
+}
