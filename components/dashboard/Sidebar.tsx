@@ -19,6 +19,7 @@ import {
   X,
   MapPin,
   History,
+  Users,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -285,6 +286,35 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
               </div>
             );
           })}
+
+          {/* Admin-only: Usuarios link */}
+          {profile.role === "admin" && (() => {
+            const active = isActive("/configuracion/usuarios");
+            return (
+              <Link
+                href="/configuracion/usuarios"
+                onClick={() => {
+                  if (window.innerWidth < 1024) setCollapsed(true);
+                }}
+                className={`
+                  group relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                  ${
+                    active
+                      ? "bg-blue-50 text-blue-600 font-semibold border-l-4 border-blue-600 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent"
+                  }
+                `}
+                title={collapsed ? "Usuarios" : undefined}
+              >
+                <Users
+                  className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
+                    active ? "text-blue-600" : "text-gray-400"
+                  }`}
+                />
+                {!collapsed && <span className="flex-1">Usuarios</span>}
+              </Link>
+            );
+          })()}
         </nav>
 
         {/* User section */}
