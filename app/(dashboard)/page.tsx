@@ -69,6 +69,11 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  // Staff should not access the dashboard — redirect to ventas
+  if (profile.role === 'staff') {
+    redirect('/ventas')
+  }
+
   // If profile exists but missing organization_id, use fallback query
   let orgId = profile.organization_id as string | null;
   if (!orgId) {

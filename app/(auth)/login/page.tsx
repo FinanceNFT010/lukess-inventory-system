@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import {
@@ -16,7 +16,24 @@ import {
   MessageSquare,
   CheckCircle,
   Send,
+  AlertTriangle,
 } from "lucide-react";
+
+function AccountDisabledAlert() {
+  const searchParams = useSearchParams();
+  const reason = searchParams.get("reason");
+
+  if (reason !== "account_disabled") return null;
+
+  return (
+    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+      <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+      <p className="text-red-700 text-sm">
+        Tu cuenta ha sido desactivada. Contacta al administrador.
+      </p>
+    </div>
+  );
+}
 
 type Tab = "login" | "request";
 
@@ -168,6 +185,10 @@ export default function LoginPage() {
       {/* TAB 1 — Login */}
       {activeTab === "login" && (
         <>
+          <Suspense fallback={null}>
+            <AccountDisabledAlert />
+          </Suspense>
+
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Email */}
             <div className="space-y-1.5">

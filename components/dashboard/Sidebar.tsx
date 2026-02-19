@@ -11,14 +11,12 @@ import {
   Package,
   ShoppingCart,
   BarChart3,
-  Settings,
   LogOut,
   ChevronLeft,
   Menu,
   Store,
   X,
   MapPin,
-  History,
   Users,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -29,12 +27,14 @@ const navLinks = [
     href: "/",
     icon: Home,
     color: "blue",
+    roles: ["admin", "manager"],
   },
   {
     label: "Inventario",
     href: "/inventario",
     icon: Package,
     color: "green",
+    roles: ["admin", "manager"],
     subLinks: [
       {
         label: "Ver Historial",
@@ -47,6 +47,7 @@ const navLinks = [
     href: "/ventas",
     icon: ShoppingCart,
     color: "purple",
+    roles: ["admin", "manager", "staff"],
     subLinks: [
       {
         label: "Ver Historial",
@@ -59,12 +60,14 @@ const navLinks = [
     href: "/reportes",
     icon: BarChart3,
     color: "orange",
+    roles: ["admin", "manager"],
   },
   {
-    label: "Configuración",
-    href: "/configuracion",
-    icon: Settings,
-    color: "gray",
+    label: "Usuarios",
+    href: "/configuracion/usuarios",
+    icon: Users,
+    color: "blue",
+    roles: ["admin"],
   },
 ];
 
@@ -108,7 +111,6 @@ interface SidebarProps {
   locations: Location[];
 }
 
-// Helper para obtener iniciales del nombre
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -156,6 +158,11 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
   };
 
   const initials = getInitials(profile.full_name);
+
+  // Filter links by role
+  const visibleLinks = navLinks.filter(link =>
+    link.roles.includes(profile.role)
+  );
 
   return (
     <>
@@ -223,7 +230,7 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navLinks.map((link) => {
+          {visibleLinks.map((link) => {
             const Icon = link.icon;
             const active = isActive(link.href);
             const colors = colorMap[link.color];
@@ -234,7 +241,6 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
                 <Link
                   href={link.href}
                   onClick={() => {
-                    // Close sidebar on mobile after clicking
                     if (window.innerWidth < 1024) setCollapsed(true);
                   }}
                   className={`
@@ -261,7 +267,7 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
                     </span>
                   )}
                 </Link>
-                
+
                 {/* Sub-links */}
                 {!collapsed && link.subLinks && active && (
                   <div className="ml-8 mt-1 space-y-1">
@@ -286,42 +292,12 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
               </div>
             );
           })}
-
-          {/* Admin-only: Usuarios link */}
-          {profile?.role === "admin" && (() => {
-            const active = isActive("/configuracion/usuarios");
-            return (
-              <Link
-                href="/configuracion/usuarios"
-                onClick={() => {
-                  if (window.innerWidth < 1024) setCollapsed(true);
-                }}
-                className={`
-                  group relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200
-                  ${
-                    active
-                      ? "bg-blue-50 text-blue-600 font-semibold border-l-4 border-blue-600 shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent"
-                  }
-                `}
-                title={collapsed ? "Usuarios" : undefined}
-              >
-                <Users
-                  className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
-                    active ? "text-blue-600" : "text-gray-400"
-                  }`}
-                />
-                {!collapsed && <span className="flex-1">Usuarios</span>}
-              </Link>
-            );
-          })()}
         </nav>
 
         {/* User section */}
         <div className="p-4 border-t border-gray-100 space-y-3">
           {!collapsed ? (
             <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200">
-              {/* Avatar con iniciales */}
               <div className="w-11 h-11 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-lg">
                 {initials}
               </div>
@@ -354,14 +330,12 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
                       const newLocationId = e.target.value || null;
                       setSelectedLocationId(newLocationId);
 
-                      // Actualizar location_id en el perfil del usuario en Supabase
                       const supabase = createClient();
                       await supabase
                         .from("profiles")
                         .update({ location_id: newLocationId })
                         .eq("id", profile.id);
 
-                      // Refrescar las páginas para que se actualicen los datos (sin recargar el navegador)
                       router.refresh();
                     }}
                     className="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
@@ -385,7 +359,7 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
               )}
             </div>
           )}
-          
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 w-full group border-2 border-transparent hover:border-red-200 mt-3"
