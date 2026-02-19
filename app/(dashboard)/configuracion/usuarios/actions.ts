@@ -40,38 +40,94 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
   revalidatePath("/configuracion/usuarios");
 }
 
-export async function approveAccessRequest(requestId: string) {
-  const profile = await getCurrentUserProfile();
-  if (!profile || profile.role !== "admin") throw new Error("Sin autorización");
+export async function approveAccessRequest(
+  requestId: string,
+  assignedRole: "manager" | "staff"
+) {
+  try {
+    const supabase = await createClient();
 
-  const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
 
-  const { data: request, error: fetchError } = await supabase
-    .from("access_requests")
-    .select("*")
-    .eq("id", requestId)
-    .single();
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("role, organization_id")
+      .eq("id", user.id)
+      .single();
 
-  if (fetchError || !request) throw new Error("Solicitud no encontrada");
+    if (adminProfile?.role !== "admin") return { error: "Sin permisos" };
 
-  const { error } = await supabase
-    .from("access_requests")
-    .update({
-      status: "approved",
-      reviewed_by: profile.id,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", requestId);
+    const { data: request, error: reqError } = await supabase
+      .from("access_requests")
+      .select("*")
+      .eq("id", requestId)
+      .single();
 
-  if (error) throw new Error(error.message);
+    if (reqError || !request) return { error: "Solicitud no encontrada" };
+    if (request.status !== "pending")
+      return { error: "Esta solicitud ya fue procesada" };
 
-  const adminClient = createAdminClient();
-  const { error: inviteError } =
-    await adminClient.auth.admin.inviteUserByEmail(request.email);
+    const { error: updateError } = await supabase
+      .from("access_requests")
+      .update({
+        status: "approved",
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", requestId);
 
-  if (inviteError) throw new Error(inviteError.message);
+    if (updateError) return { error: "Error al actualizar solicitud" };
 
-  revalidatePath("/configuracion/usuarios");
+    return {
+      success: true,
+      approvedEmail: request.email as string,
+      approvedName: request.full_name as string,
+    };
+  } catch (error) {
+    console.error("Error approving request:", error);
+    return { error: "Error interno al aprobar solicitud" };
+  }
+}
+
+export async function createUserFromRequest(
+  email: string,
+  fullName: string,
+  role: "manager" | "staff",
+  temporaryPassword: string
+) {
+  try {
+    const adminClient = createAdminClient();
+
+    const { data: newUser, error: createError } =
+      await adminClient.auth.admin.createUser({
+        email,
+        password: temporaryPassword,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
+
+    if (createError || !newUser.user) {
+      return { error: createError?.message ?? "Error al crear usuario" };
+    }
+
+    await adminClient
+      .from("profiles")
+      .update({ role, full_name: fullName })
+      .eq("id", newUser.user.id);
+
+    revalidatePath("/configuracion/usuarios");
+
+    return {
+      success: true,
+      userId: newUser.user.id,
+    };
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return { error: "Error al crear usuario" };
+  }
 }
 
 export async function rejectAccessRequest(requestId: string, reason: string) {

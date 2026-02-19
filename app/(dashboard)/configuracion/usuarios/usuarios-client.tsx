@@ -10,12 +10,15 @@ import {
   UserCheck,
   X,
   Check,
+  KeyRound,
+  Shuffle,
 } from "lucide-react";
 import type { Profile, AccessRequest } from "@/lib/types";
 import {
   updateUserRole,
   toggleUserActive,
   approveAccessRequest,
+  createUserFromRequest,
   rejectAccessRequest,
 } from "./actions";
 
@@ -68,6 +71,20 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function generateTempPassword(): string {
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `Lukess${num}`;
+}
+
+interface ApprovalState {
+  requestId: string;
+  email: string;
+  fullName: string;
+  role: "manager" | "staff";
+  password: string;
+  createdAsRole?: string;
+}
+
 export default function UsuariosClient({
   profiles,
   accessRequests,
@@ -86,8 +103,17 @@ export default function UsuariosClient({
   const [isPending, startTransition] = useTransition();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
+  // Approval inline-form state keyed by requestId
+  const [approvalForms, setApprovalForms] = useState<
+    Record<string, ApprovalState>
+  >({});
+  // Track which requests have been processed in this session
+  const [processedRequests, setProcessedRequests] = useState<
+    Record<string, { status: "approved" | "rejected"; role?: string }>
+  >({});
+
   const pendingCount = accessRequests.filter(
-    (r) => r.status === "pending"
+    (r) => r.status === "pending" && !processedRequests[r.id]
   ).length;
   const activeCount = profiles.filter((p) => p.is_active).length;
 
@@ -97,12 +123,79 @@ export default function UsuariosClient({
       p.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  function handleOpenRoleDropdown(userId: string, currentRole: string) {
-    setOpenRoleDropdown(userId);
-    setPendingRole((prev) => ({
+  function openApprovalForm(req: AccessRequest) {
+    setApprovalForms((prev) => ({
       ...prev,
-      [userId]: currentRole as "admin" | "manager" | "staff",
+      [req.id]: {
+        requestId: req.id,
+        email: req.email,
+        fullName: req.full_name,
+        role: "staff",
+        password: generateTempPassword(),
+      },
     }));
+    setRejectingId(null);
+  }
+
+  function closeApprovalForm(requestId: string) {
+    setApprovalForms((prev) => {
+      const next = { ...prev };
+      delete next[requestId];
+      return next;
+    });
+  }
+
+  function handleConfirmCreate(requestId: string) {
+    const form = approvalForms[requestId];
+    if (!form) return;
+
+    setLoadingAction(`approve-${requestId}`);
+    startTransition(async () => {
+      try {
+        // Step 1: mark request as approved
+        const approveResult = await approveAccessRequest(requestId, form.role);
+        if ("error" in approveResult && approveResult.error) {
+          toast.error(approveResult.error);
+          return;
+        }
+
+        // Step 2: create the auth user with temp password
+        const createResult = await createUserFromRequest(
+          form.email,
+          form.fullName,
+          form.role,
+          form.password
+        );
+
+        if ("error" in createResult && createResult.error) {
+          toast.error(createResult.error);
+          return;
+        }
+
+        // Show long-lived toast with credentials
+        const credentials = `Email: ${form.email} | Contraseña: ${form.password} | Rol: ${roleLabels[form.role]}`;
+        toast.success(`✅ Usuario creado. ${credentials}`, { duration: 8000 });
+
+        // Copy to clipboard
+        try {
+          await navigator.clipboard.writeText(credentials);
+        } catch {
+          // clipboard may be blocked in some browsers — non-fatal
+        }
+
+        setProcessedRequests((prev) => ({
+          ...prev,
+          [requestId]: { status: "approved", role: form.role },
+        }));
+        closeApprovalForm(requestId);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Error al crear usuario."
+        );
+      } finally {
+        setLoadingAction(null);
+      }
+    });
   }
 
   function handleRoleChange(userId: string) {
@@ -143,28 +236,16 @@ export default function UsuariosClient({
     });
   }
 
-  function handleApprove(requestId: string) {
-    setLoadingAction(`approve-${requestId}`);
-    startTransition(async () => {
-      try {
-        await approveAccessRequest(requestId);
-        toast.success("Solicitud aprobada. Se envió invitación al email.");
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Error al aprobar solicitud."
-        );
-      } finally {
-        setLoadingAction(null);
-      }
-    });
-  }
-
   function handleReject(requestId: string) {
     setLoadingAction(`reject-${requestId}`);
     startTransition(async () => {
       try {
         await rejectAccessRequest(requestId, rejectionReason);
         toast.success("Solicitud rechazada.");
+        setProcessedRequests((prev) => ({
+          ...prev,
+          [requestId]: { status: "rejected" },
+        }));
         setRejectingId(null);
         setRejectionReason("");
       } catch (err) {
@@ -229,7 +310,6 @@ export default function UsuariosClient({
           {/* ══════ TAB 1: USUARIOS ══════ */}
           {activeTab === "usuarios" && (
             <div className="space-y-4">
-              {/* Table header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg font-bold text-gray-900">
@@ -253,7 +333,6 @@ export default function UsuariosClient({
                 </div>
               </div>
 
-              {/* Table */}
               <div className="overflow-x-auto rounded-xl border-2 border-gray-200">
                 <table className="w-full text-sm">
                   <thead>
@@ -291,7 +370,6 @@ export default function UsuariosClient({
                           key={user.id}
                           className="hover:bg-gray-50 transition-colors"
                         >
-                          {/* Avatar + Nombre */}
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
@@ -302,11 +380,9 @@ export default function UsuariosClient({
                               </span>
                             </div>
                           </td>
-                          {/* Email */}
                           <td className="px-4 py-3 text-gray-600">
                             {user.email}
                           </td>
-                          {/* Rol */}
                           <td className="px-4 py-3">
                             <span
                               className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${roleBadgeClass[user.role]}`}
@@ -314,7 +390,6 @@ export default function UsuariosClient({
                               {roleLabels[user.role]}
                             </span>
                           </td>
-                          {/* Estado */}
                           <td className="px-4 py-3">
                             <span
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
@@ -329,19 +404,23 @@ export default function UsuariosClient({
                               {user.is_active ? "Activo" : "Inactivo"}
                             </span>
                           </td>
-                          {/* Acciones */}
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
-                              {/* Role change button + dropdown */}
                               <div className="relative">
                                 <button
                                   onClick={() =>
                                     openRoleDropdown === user.id
                                       ? setOpenRoleDropdown(null)
-                                      : handleOpenRoleDropdown(
-                                          user.id,
-                                          user.role
-                                        )
+                                      : (() => {
+                                          setOpenRoleDropdown(user.id);
+                                          setPendingRole((prev) => ({
+                                            ...prev,
+                                            [user.id]: user.role as
+                                              | "admin"
+                                              | "manager"
+                                              | "staff",
+                                          }));
+                                        })()
                                   }
                                   disabled={
                                     loadingAction === `role-${user.id}` ||
@@ -402,7 +481,6 @@ export default function UsuariosClient({
                                 )}
                               </div>
 
-                              {/* Toggle active/inactive */}
                               {user.id === currentUserId ? (
                                 <div
                                   title="No puedes desactivarte a ti mismo"
@@ -500,117 +578,243 @@ export default function UsuariosClient({
                         </td>
                       </tr>
                     ) : (
-                      accessRequests.map((req) => (
-                        <tr
-                          key={req.id}
-                          className="hover:bg-gray-50 transition-colors align-top"
-                        >
-                          <td className="px-4 py-3 font-medium text-gray-900">
-                            {req.full_name}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">
-                            {req.email}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">
-                            {req.phone || "—"}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600 max-w-[200px]">
-                            {req.message ? (
+                      accessRequests.map((req) => {
+                        const processed = processedRequests[req.id];
+                        const effectiveStatus = processed
+                          ? processed.status
+                          : req.status;
+                        const approvalForm = approvalForms[req.id];
+
+                        return (
+                          <tr
+                            key={req.id}
+                            className="hover:bg-gray-50 transition-colors align-top"
+                          >
+                            <td className="px-4 py-3 font-medium text-gray-900">
+                              {req.full_name}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {req.email}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {req.phone || "—"}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600 max-w-[200px]">
+                              {req.message ? (
+                                <span
+                                  title={req.message}
+                                  className="cursor-help"
+                                >
+                                  {req.message.length > 60
+                                    ? `${req.message.slice(0, 60)}…`
+                                    : req.message}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                              {formatDate(req.created_at)}
+                            </td>
+                            <td className="px-4 py-3">
                               <span
-                                title={req.message}
-                                className="cursor-help"
+                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${statusBadgeClass[effectiveStatus]}`}
                               >
-                                {req.message.length > 60
-                                  ? `${req.message.slice(0, 60)}…`
-                                  : req.message}
+                                {statusLabel[effectiveStatus]}
                               </span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                            {formatDate(req.created_at)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${statusBadgeClass[req.status]}`}
-                            >
-                              {statusLabel[req.status]}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            {req.status === "pending" ? (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-1">
-                                  {/* Approve */}
-                                  <button
-                                    onClick={() => handleApprove(req.id)}
-                                    disabled={
-                                      loadingAction === `approve-${req.id}` ||
-                                      isPending
-                                    }
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                  >
-                                    <UserCheck className="w-3.5 h-3.5" />
-                                    Aprobar
-                                  </button>
-                                  {/* Reject */}
-                                  {rejectingId === req.id ? (
-                                    <button
-                                      onClick={() => handleReject(req.id)}
-                                      disabled={
-                                        loadingAction ===
-                                          `reject-${req.id}` || isPending
-                                      }
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                      <Check className="w-3.5 h-3.5" />
-                                      Confirmar
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => {
-                                        setRejectingId(req.id);
-                                        setRejectionReason("");
-                                      }}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                      Rechazar
-                                    </button>
+                            </td>
+                            <td className="px-4 py-3 min-w-[200px]">
+                              {effectiveStatus === "pending" ? (
+                                <div className="space-y-2">
+                                  {/* Approve / Reject buttons */}
+                                  {!approvalForm && (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => openApprovalForm(req)}
+                                        disabled={isPending}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      >
+                                        <UserCheck className="w-3.5 h-3.5" />
+                                        Aprobar
+                                      </button>
+                                      {rejectingId === req.id ? (
+                                        <button
+                                          onClick={() => handleReject(req.id)}
+                                          disabled={
+                                            loadingAction ===
+                                              `reject-${req.id}` || isPending
+                                          }
+                                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                          Confirmar
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            setRejectingId(req.id);
+                                            setRejectionReason("");
+                                          }}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                          Rechazar
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Reject reason textarea */}
+                                  {rejectingId === req.id && !approvalForm && (
+                                    <div className="space-y-1">
+                                      <textarea
+                                        value={rejectionReason}
+                                        onChange={(e) =>
+                                          setRejectionReason(e.target.value)
+                                        }
+                                        placeholder="Motivo de rechazo (opcional)..."
+                                        rows={2}
+                                        className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs resize-none focus:border-red-400 focus:ring-1 focus:ring-red-200 outline-none transition-all"
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          setRejectingId(null);
+                                          setRejectionReason("");
+                                        }}
+                                        className="text-xs text-gray-500 hover:text-gray-700 underline"
+                                      >
+                                        Cancelar
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* Approval inline form */}
+                                  {approvalForm && (
+                                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-3 space-y-2.5">
+                                      <p className="text-xs font-semibold text-green-800 flex items-center gap-1.5">
+                                        <UserCheck className="w-3.5 h-3.5" />
+                                        Crear usuario — {req.full_name}
+                                      </p>
+
+                                      {/* Role selector */}
+                                      <div>
+                                        <label className="text-xs text-gray-600 font-medium block mb-1">
+                                          Asignar rol
+                                        </label>
+                                        <select
+                                          value={approvalForm.role}
+                                          onChange={(e) =>
+                                            setApprovalForms((prev) => ({
+                                              ...prev,
+                                              [req.id]: {
+                                                ...prev[req.id],
+                                                role: e.target.value as
+                                                  | "manager"
+                                                  | "staff",
+                                              },
+                                            }))
+                                          }
+                                          className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs focus:border-green-500 focus:ring-1 focus:ring-green-200 outline-none transition-all bg-white"
+                                        >
+                                          <option value="staff">
+                                            Vendedor (staff)
+                                          </option>
+                                          <option value="manager">
+                                            Gerente (manager)
+                                          </option>
+                                        </select>
+                                      </div>
+
+                                      {/* Temp password */}
+                                      <div>
+                                        <label className="text-xs text-gray-600 font-medium block mb-1">
+                                          Contraseña temporal
+                                        </label>
+                                        <div className="flex gap-1">
+                                          <input
+                                            type="text"
+                                            value={approvalForm.password}
+                                            onChange={(e) =>
+                                              setApprovalForms((prev) => ({
+                                                ...prev,
+                                                [req.id]: {
+                                                  ...prev[req.id],
+                                                  password: e.target.value,
+                                                },
+                                              }))
+                                            }
+                                            placeholder="Contraseña temporal..."
+                                            className="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs font-mono focus:border-green-500 focus:ring-1 focus:ring-green-200 outline-none transition-all"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setApprovalForms((prev) => ({
+                                                ...prev,
+                                                [req.id]: {
+                                                  ...prev[req.id],
+                                                  password:
+                                                    generateTempPassword(),
+                                                },
+                                              }))
+                                            }
+                                            title="Generar contraseña"
+                                            className="px-2 py-1.5 bg-gray-100 border-2 border-gray-200 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                                          >
+                                            <Shuffle className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {/* Action buttons */}
+                                      <div className="flex gap-1.5 pt-0.5">
+                                        <button
+                                          onClick={() =>
+                                            handleConfirmCreate(req.id)
+                                          }
+                                          disabled={
+                                            loadingAction ===
+                                              `approve-${req.id}` ||
+                                            isPending ||
+                                            !approvalForm.password.trim()
+                                          }
+                                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                          <KeyRound className="w-3.5 h-3.5" />
+                                          {loadingAction ===
+                                          `approve-${req.id}`
+                                            ? "Creando..."
+                                            : "Confirmar y Crear Usuario"}
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            closeApprovalForm(req.id)
+                                          }
+                                          disabled={
+                                            loadingAction ===
+                                            `approve-${req.id}`
+                                          }
+                                          className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                        >
+                                          Cancelar
+                                        </button>
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
-                                {rejectingId === req.id && (
-                                  <div className="space-y-1">
-                                    <textarea
-                                      value={rejectionReason}
-                                      onChange={(e) =>
-                                        setRejectionReason(e.target.value)
-                                      }
-                                      placeholder="Motivo de rechazo (opcional)..."
-                                      rows={2}
-                                      className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs resize-none focus:border-red-400 focus:ring-1 focus:ring-red-200 outline-none transition-all"
-                                    />
-                                    <button
-                                      onClick={() => {
-                                        setRejectingId(null);
-                                        setRejectionReason("");
-                                      }}
-                                      className="text-xs text-gray-500 hover:text-gray-700 underline"
-                                    >
-                                      Cancelar
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-gray-400 italic">
-                                Sin acciones
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
+                              ) : processed?.status === "approved" ? (
+                                <span className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                                  Creado como {roleLabels[processed.role ?? "staff"]}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400 italic">
+                                  Sin acciones
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
