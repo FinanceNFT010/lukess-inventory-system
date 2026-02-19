@@ -441,7 +441,15 @@ export default function InventoryClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
+            {userRole === "staff" && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-full">
+                <EyeOff className="w-3 h-3" />
+                Solo lectura
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             {filteredAndSortedProducts.length} producto
             {filteredAndSortedProducts.length !== 1 ? "s" : ""}
@@ -450,33 +458,35 @@ export default function InventoryClient({
               : " en total"}
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={printLabels}
-            disabled={generatingLabels || filteredAndSortedProducts.length === 0}
-            className="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            title="Imprimir etiquetas con código QR"
-          >
-            {generatingLabels ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Generando...
-              </>
-            ) : (
-              <>
-                <Printer className="w-5 h-5" />
-                Imprimir Etiquetas
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => router.push("/inventario/nuevo")}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            <Plus className="w-5 h-5" />
-            Nuevo Producto
-          </button>
-        </div>
+        {(userRole === "admin" || userRole === "manager") && (
+          <div className="flex gap-3">
+            <button
+              onClick={printLabels}
+              disabled={generatingLabels || filteredAndSortedProducts.length === 0}
+              className="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              title="Imprimir etiquetas con código QR"
+            >
+              {generatingLabels ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Printer className="w-5 h-5" />
+                  Imprimir Etiquetas
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => router.push("/inventario/nuevo")}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <Plus className="w-5 h-5" />
+              Nuevo Producto
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Search + Filters */}
@@ -862,63 +872,69 @@ export default function InventoryClient({
                         </td>
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
-                            {product.is_active ? (
-                              <>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/inventario/${product.id}`);
-                                  }}
-                                  className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
-                                  title="Editar producto"
-                                >
-                                  <Pencil className="w-5 h-5" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeleteModal({
-                                      isOpen: true,
-                                      productId: product.id,
-                                      productName: product.name,
-                                      isActive: true,
-                                    });
-                                  }}
-                                  className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-                                  title="Desactivar producto"
-                                >
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
-                              </>
+                            {(userRole === "admin" || userRole === "manager") ? (
+                              product.is_active ? (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      router.push(`/inventario/${product.id}`);
+                                    }}
+                                    className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
+                                    title="Editar producto"
+                                  >
+                                    <Pencil className="w-5 h-5" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteModal({
+                                        isOpen: true,
+                                        productId: product.id,
+                                        productName: product.name,
+                                        isActive: true,
+                                      });
+                                    }}
+                                    className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                    title="Desactivar producto"
+                                  >
+                                    <Trash2 className="w-5 h-5" />
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleReactivate(product.id, product.name);
+                                    }}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-colors font-medium text-sm"
+                                    title="Reactivar producto"
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                    Reactivar
+                                  </button>
+                                  {userRole === "admin" && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeleteModal({
+                                          isOpen: true,
+                                          productId: product.id,
+                                          productName: product.name,
+                                          isActive: false,
+                                        });
+                                      }}
+                                      className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                      title="Eliminar permanentemente"
+                                    >
+                                      <Trash2 className="w-5 h-5" />
+                                    </button>
+                                  )}
+                                </div>
+                              )
                             ) : (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReactivate(product.id, product.name);
-                                  }}
-                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-colors font-medium text-sm"
-                                  title="Reactivar producto"
-                                >
-                                  <RotateCcw className="w-4 h-4" />
-                                  Reactivar
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeleteModal({
-                                      isOpen: true,
-                                      productId: product.id,
-                                      productName: product.name,
-                                      isActive: false,
-                                    });
-                                  }}
-                                  className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-                                  title="Eliminar permanentemente"
-                                >
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
-                              </div>
+                              <span className="text-xs text-gray-400 italic">Vista</span>
                             )}
                           </div>
                         </td>

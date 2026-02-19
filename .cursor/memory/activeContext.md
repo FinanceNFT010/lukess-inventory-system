@@ -44,3 +44,57 @@
 - MCP Vercel: activar SOLO si hay error de deploy
 - Modelo: Claude Sonnet 4.6, Max Mode OFF por defecto
 - Nuevo chat en Cursor por cada bloque — NUNCA acumular bloques
+
+
+
+
+# Lukess Inventory System — Active Context
+**Última actualización:** 19/02/2026 — 6:20 PM
+
+## Bloque actual
+**Bloque 1e** — Fix bugs editar producto + ventas + filtro inactivos
+
+## Bloques completados ✅
+- Bloque 0 — Setup .cursor/rules/, memory bank, commands, .cursorignore
+- Bloque 1a — Tablas profiles + access_requests, trigger handle_new_user, RLS
+- Bloque 1b — Login 2 tabs: Iniciar Sesión + Solicitar Acceso
+- Bloque 1c — Panel gestión usuarios + aprobación con contraseña temporal
+- Bloque 1d-I — Middleware protección rutas + sidebar dinámico por rol
+- Bloque 1d-II — Permisos granulares UI + campo puesto en staff (location_id)
+
+## Estado RBAC actual
+- admin@lukesshome.com → admin → acceso total
+- financenft01@gmail.com → manager → Dashboard, Inventario, Ventas, Reportes
+- wildforestadriver01@gmail.com → staff → solo Ventas
+
+## Bugs pendientes (Bloque 1e)
+1. duplicate key al editar producto con variantes
+2. Error pantalla completa al clickear producto en Ventas
+3. Filtro productos inactivos necesita mejora
+
+## Bloques pendientes
+1d-II → ✅ COMPLETADO
+1e    → Fix bugs editar producto + ventas + filtro inactivos
+2a    → Pedidos: Schema BD
+2b    → Pedidos: Página lista
+2c    → Pedidos: Modal detalle + estados
+2d    → Pedidos: Realtime
+3a    → Landing Auth: Schema + modal
+3b    → Landing Auth: Wishlist Supabase
+4a    → Checkout con auth
+4b    → Mis Pedidos
+5     → Toggle published_to_landing
+6a    → Resend: email cliente
+6b    → Resend: email admin
+7     → WhatsApp Business API
+8     → Reportes online vs físico
+9     → GA4 + SEO + pulido landing
+
+## Notas importantes
+- Un solo Supabase para ambos proyectos
+- MCP Supabase: activar SOLO en bloques con SQL
+- MCP Vercel: activar SOLO si hay error de deploy
+- Modelo: Claude Sonnet 4.6, Max Mode OFF por defecto
+- Nuevo chat en Cursor por cada bloque
+- Productos con ventas: solo desactivar, nunca eliminar
+- Productos desactivados → desaparecen de landing page

@@ -10,6 +10,7 @@ export async function updateUserRole(
 ) {
   const profile = await getCurrentUserProfile();
   if (!profile || profile.role !== "admin") throw new Error("Sin autorización");
+  if (userId === profile.id) throw new Error("No puedes cambiar tu propio rol");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -91,11 +92,46 @@ export async function approveAccessRequest(
   }
 }
 
+export async function updateUserLocation(
+  userId: string,
+  locationId: string | null
+) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("role, organization_id")
+      .eq("id", user.id)
+      .single();
+
+    if (adminProfile?.role !== "admin") return { error: "Sin permisos" };
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ location_id: locationId })
+      .eq("id", userId)
+      .eq("organization_id", adminProfile.organization_id);
+
+    if (error) return { error: error.message };
+    revalidatePath("/configuracion/usuarios");
+    return { success: true };
+  } catch (error) {
+    console.error("updateUserLocation error:", error);
+    return { error: "Error interno" };
+  }
+}
+
 export async function createUserFromRequest(
   email: string,
   fullName: string,
   role: "manager" | "staff",
-  temporaryPassword: string
+  temporaryPassword: string,
+  locationId?: string | null
 ) {
   try {
     console.log("[createUser] Starting for:", email, "role:", role);
@@ -139,7 +175,12 @@ export async function createUserFromRequest(
 
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .update({ role, full_name: fullName, is_active: true })
+      .update({
+        role,
+        full_name: fullName,
+        is_active: true,
+        location_id: locationId ?? null,
+      })
       .eq("id", newUser.user.id);
 
     console.log("[createUser] Profile update:", profileError?.message ?? "OK");

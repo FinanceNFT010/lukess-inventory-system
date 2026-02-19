@@ -12,19 +12,22 @@ import {
   Check,
   KeyRound,
   Shuffle,
+  MapPin,
 } from "lucide-react";
-import type { Profile, AccessRequest } from "@/lib/types";
+import type { Profile, AccessRequest, Location } from "@/lib/types";
 import {
   updateUserRole,
   toggleUserActive,
   approveAccessRequest,
   createUserFromRequest,
   rejectAccessRequest,
+  updateUserLocation,
 } from "./actions";
 
 interface UsuariosClientProps {
-  profiles: Profile[];
-  accessRequests: AccessRequest[];
+  initialProfiles: Profile[];
+  initialRequests: AccessRequest[];
+  locations: Location[];
   currentUserId: string;
 }
 
@@ -82,12 +85,14 @@ interface ApprovalState {
   fullName: string;
   role: "manager" | "staff";
   password: string;
+  locationId: string;
   createdAsRole?: string;
 }
 
 export default function UsuariosClient({
-  profiles,
-  accessRequests,
+  initialProfiles: profiles,
+  initialRequests: accessRequests,
+  locations,
   currentUserId,
 }: UsuariosClientProps) {
   const [activeTab, setActiveTab] = useState<"usuarios" | "solicitudes">(
@@ -132,6 +137,7 @@ export default function UsuariosClient({
         fullName: req.full_name,
         role: "staff",
         password: generateTempPassword(),
+        locationId: "",
       },
     }));
     setRejectingId(null);
@@ -149,6 +155,11 @@ export default function UsuariosClient({
     const form = approvalForms[requestId];
     if (!form) return;
 
+    if (form.role === "staff" && !form.locationId) {
+      toast.error("Debes asignar un puesto para el vendedor");
+      return;
+    }
+
     setLoadingAction(`approve-${requestId}`);
     startTransition(async () => {
       try {
@@ -164,7 +175,8 @@ export default function UsuariosClient({
           form.email,
           form.fullName,
           form.role,
-          form.password
+          form.password,
+          form.locationId || null
         );
 
         if ("error" in createResult && createResult.error) {
@@ -199,6 +211,11 @@ export default function UsuariosClient({
   }
 
   function handleRoleChange(userId: string) {
+    if (userId === currentUserId) {
+      toast.error("No puedes cambiar tu propio rol");
+      setOpenRoleDropdown(null);
+      return;
+    }
     const newRole = pendingRole[userId];
     if (!newRole) return;
     setLoadingAction(`role-${userId}`);
@@ -210,6 +227,26 @@ export default function UsuariosClient({
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Error al actualizar el rol."
+        );
+      } finally {
+        setLoadingAction(null);
+      }
+    });
+  }
+
+  function handleLocationChange(userId: string, locationId: string) {
+    setLoadingAction(`location-${userId}`);
+    startTransition(async () => {
+      try {
+        const result = await updateUserLocation(userId, locationId || null);
+        if ("error" in result && result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success("Puesto actualizado correctamente.");
+        }
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Error al actualizar puesto."
         );
       } finally {
         setLoadingAction(null);
@@ -347,6 +384,9 @@ export default function UsuariosClient({
                         Rol
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Puesto
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                         Estado
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -358,7 +398,7 @@ export default function UsuariosClient({
                     {filteredProfiles.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="px-4 py-8 text-center text-gray-400 text-sm"
                         >
                           No se encontraron usuarios.
@@ -390,6 +430,41 @@ export default function UsuariosClient({
                               {roleLabels[user.role]}
                             </span>
                           </td>
+                          <td className="px-4 py-3 min-w-[180px]">
+                            {user.role === "staff" ? (
+                              <div className="relative">
+                                <select
+                                  value={user.location_id ?? ""}
+                                  onChange={(e) =>
+                                    handleLocationChange(
+                                      user.id,
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={
+                                    loadingAction === `location-${user.id}` ||
+                                    isPending
+                                  }
+                                  className="w-full appearance-none pl-7 pr-3 py-1.5 border-2 border-gray-200 rounded-lg text-xs bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none transition-all disabled:opacity-50"
+                                >
+                                  <option value="">Sin puesto asignado</option>
+                                  {locations.map((loc) => (
+                                    <option key={loc.id} value={loc.id}>
+                                      {loc.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <MapPin className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                                {!user.location_id && (
+                                  <span className="mt-1 inline-flex items-center px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium rounded-full">
+                                    Sin asignar
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">—</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <span
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
@@ -408,7 +483,13 @@ export default function UsuariosClient({
                             <div className="flex items-center gap-1">
                               <div className="relative">
                                 <button
-                                  onClick={() =>
+                                  onClick={() => {
+                                    if (user.id === currentUserId) {
+                                      toast.error(
+                                        "No puedes cambiar tu propio rol"
+                                      );
+                                      return;
+                                    }
                                     openRoleDropdown === user.id
                                       ? setOpenRoleDropdown(null)
                                       : (() => {
@@ -420,14 +501,22 @@ export default function UsuariosClient({
                                               | "manager"
                                               | "staff",
                                           }));
-                                        })()
-                                  }
+                                        })();
+                                  }}
                                   disabled={
                                     loadingAction === `role-${user.id}` ||
                                     isPending
                                   }
-                                  title="Cambiar rol"
-                                  className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title={
+                                    user.id === currentUserId
+                                      ? "No puedes modificar tu propio rol"
+                                      : "Cambiar rol"
+                                  }
+                                  className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    user.id === currentUserId
+                                      ? "text-gray-300 cursor-not-allowed"
+                                      : "text-blue-600 hover:bg-blue-50"
+                                  }`}
                                 >
                                   <RefreshCw
                                     className={`w-4 h-4 ${loadingAction === `role-${user.id}` ? "animate-spin" : ""}`}
@@ -711,6 +800,7 @@ export default function UsuariosClient({
                                                 role: e.target.value as
                                                   | "manager"
                                                   | "staff",
+                                                locationId: "",
                                               },
                                             }))
                                           }
@@ -723,6 +813,54 @@ export default function UsuariosClient({
                                             Gerente (manager)
                                           </option>
                                         </select>
+                                      </div>
+
+                                      {/* Location selector — required for staff */}
+                                      <div>
+                                        <label className="text-xs text-gray-600 font-medium block mb-1">
+                                          Puesto{" "}
+                                          {approvalForm.role === "staff" && (
+                                            <span className="text-red-500">
+                                              *
+                                            </span>
+                                          )}
+                                        </label>
+                                        <select
+                                          value={approvalForm.locationId}
+                                          onChange={(e) =>
+                                            setApprovalForms((prev) => ({
+                                              ...prev,
+                                              [req.id]: {
+                                                ...prev[req.id],
+                                                locationId: e.target.value,
+                                              },
+                                            }))
+                                          }
+                                          className={`w-full px-2 py-1.5 border-2 rounded-lg text-xs focus:ring-1 outline-none transition-all bg-white ${
+                                            approvalForm.role === "staff" &&
+                                            !approvalForm.locationId
+                                              ? "border-amber-300 focus:border-amber-500 focus:ring-amber-200"
+                                              : "border-gray-200 focus:border-green-500 focus:ring-green-200"
+                                          }`}
+                                        >
+                                          <option value="">
+                                            {approvalForm.role === "staff"
+                                              ? "— Seleccionar puesto (requerido) —"
+                                              : "Sin puesto asignado (opcional)"}
+                                          </option>
+                                          {locations.map((loc) => (
+                                            <option key={loc.id} value={loc.id}>
+                                              {loc.name}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        {approvalForm.role === "staff" &&
+                                          !approvalForm.locationId && (
+                                            <p className="text-xs text-amber-600 mt-1">
+                                              El vendedor debe tener un puesto
+                                              asignado
+                                            </p>
+                                          )}
                                       </div>
 
                                       {/* Temp password */}
@@ -776,7 +914,9 @@ export default function UsuariosClient({
                                             loadingAction ===
                                               `approve-${req.id}` ||
                                             isPending ||
-                                            !approvalForm.password.trim()
+                                            !approvalForm.password.trim() ||
+                                            (approvalForm.role === "staff" &&
+                                              !approvalForm.locationId)
                                           }
                                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                         >

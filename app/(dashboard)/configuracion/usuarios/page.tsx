@@ -15,22 +15,29 @@ export default async function UsuariosPage() {
 
   const supabase = await createClient();
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("organization_id", orgId)
-    .order("full_name");
-
-  const { data: accessRequests } = await supabase
-    .from("access_requests")
-    .select("*")
-    .eq("organization_id", orgId)
-    .order("created_at", { ascending: false });
+  const [profilesResult, requestsResult, locationsResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("organization_id", orgId)
+      .order("full_name"),
+    supabase
+      .from("access_requests")
+      .select("*")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("locations")
+      .select("*")
+      .eq("organization_id", orgId)
+      .eq("is_active", true),
+  ]);
 
   return (
     <UsuariosClient
-      profiles={profiles || []}
-      accessRequests={accessRequests || []}
+      initialProfiles={profilesResult.data ?? []}
+      initialRequests={requestsResult.data ?? []}
+      locations={locationsResult.data ?? []}
       currentUserId={profile.id}
     />
   );
