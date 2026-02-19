@@ -288,7 +288,7 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
           })}
 
           {/* Admin-only: Usuarios link */}
-          {profile.role === "admin" && (() => {
+          {profile?.role === "admin" && (() => {
             const active = isActive("/configuracion/usuarios");
             return (
               <Link

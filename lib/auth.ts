@@ -13,18 +13,23 @@ export function canAccess(role: UserRole, section: string): boolean {
 }
 
 export async function getCurrentUserProfile() {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
-  return profile
+    if (profileError || !profile) return null
+    return profile
+  } catch {
+    return null
+  }
 }
 
 export async function requireAuth() {

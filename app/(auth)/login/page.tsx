@@ -87,15 +87,13 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
 
-      const { data: orgData, error: orgError } = await supabase
+      const { data: orgData } = await supabase
         .from("organizations")
         .select("id")
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (orgError || !orgData) {
-        throw new Error("No se pudo obtener la organización.");
-      }
+      const orgId = orgData?.id ?? null;
 
       const { error: insertError } = await supabase
         .from("access_requests")
@@ -105,7 +103,7 @@ export default function LoginPage() {
           phone: reqPhone.trim() || null,
           message: reqMessage.trim() || null,
           status: "pending",
-          organization_id: orgData.id,
+          organization_id: orgId,
         });
 
       if (insertError) throw insertError;

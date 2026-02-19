@@ -21,14 +21,14 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Get user profile
-  const { data: profile } = await supabase
+  // Get user profile — never redirect for query errors, only for missing auth
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  if (!profile) {
+  if (profileError || !profile) {
     redirect("/login");
   }
 
