@@ -1,0 +1,33 @@
+---
+description: Core rules for Lukess Inventory System
+alwaysApply: true
+---
+
+# Lukess Inventory System — Core Rules
+
+## Stack
+- Next.js 15 (App Router), TypeScript strict, Supabase, Tailwind CSS v3
+- Deployment: Vercel | DB: PostgreSQL via Supabase
+
+## Architecture (CRITICAL)
+- Route groups: `(auth)/` = login | `(dashboard)/` = main app
+- Route groups DO NOT appear in URLs
+- Server Components by default — add `'use client'` only when strictly necessary
+- Never create `app/page.tsx` — root is `app/(dashboard)/page.tsx`
+
+## Code Rules
+- Always use TypeScript strict — never use `any`
+- Error handling: try/catch with `toast.error()` + `console.error()`
+- Loading states: `const [isLoading, setIsLoading] = useState(false)`
+- Always filter by `org_id` in every Supabase query (RLS)
+- Helper: `get_user_org_id()` available for all org queries
+
+## Design System
+- Colors: blue=metrics | green=inventory/success | purple=financial | red=alerts/delete
+- Buttons: gradient `from-blue-600 to-purple-600 text-white` for primary actions
+- Cards: `bg-{color}-50 border-2 border-{color}-200 rounded-xl p-6`
+- Icons: lucide-react only
+- NEVER: text-white on bg-white | colored text on same color bg
+
+## Commits
+- After each completed feature: `git add . && git commit -m "feat: description" && git push origin main`

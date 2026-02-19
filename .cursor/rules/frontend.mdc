@@ -1,0 +1,29 @@
+---
+description: Frontend component and UI rules
+globs: ["**/*.tsx", "**/*.jsx", "**/components/**"]
+alwaysApply: false
+---
+
+# Frontend Rules
+
+## Component Structure
+- Client components: `'use client'` at top + useState/useEffect allowed
+- Server components: no directive needed, no hooks, async functions ok
+- Name files: PascalCase for components, kebab-case for pages
+
+## Tailwind Patterns
+- Profit margin display: bg-green-50 border-2 border-green-200 rounded-lg p-4
+- Stock badge: green=in stock | amber=low stock | red=out of stock
+- Modal backdrop: `fixed inset-0 bg-black bg-opacity-50 z-50`
+- Sidebar active item: `bg-blue-50 text-blue-600 border-r-2 border-blue-600`
+
+## Profit Margin (Always show in product forms)
+Show when both price and cost are filled:
+- Calculate: ((price - cost) / cost * 100).toFixed(1)%
+- Display in bg-green-50 card with TrendingUp icon
+
+## Toast Notifications
+- Success: `toast.success('Mensaje')`
+- Error: `toast.error('Mensaje')`  
+- Position: bottom-right
+- After success: `router.refresh()`

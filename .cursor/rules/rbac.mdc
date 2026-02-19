@@ -1,0 +1,30 @@
+---
+description: RBAC system — apply when working on authentication, authorization, roles or permissions
+alwaysApply: false
+---
+
+# RBAC Architecture
+
+## Role Hierarchy
+- admin: full access (all sections + user management)
+- manager: inventory + sales + reports (no user management)
+- staff: POS only (sales only)
+
+## Permissions Map
+- /configuracion/usuarios → admin only
+- /inventario → admin + manager
+- /reportes → admin + manager  
+- /ventas → all roles
+- /dashboard → all roles (read-only for staff)
+
+## Access Control
+- Middleware checks: authenticated → is_active → role permissions
+- Inactive users → redirect /login with message
+- Hide UI elements per role (don't just block routes)
+- Admin cannot deactivate themselves
+
+## Profiles Table
+- id = auth.users.id (same UUID)
+- role: 'admin' | 'manager' | 'staff'
+- is_active: boolean (false = blocked immediately)
+- organization_id: required for all queries

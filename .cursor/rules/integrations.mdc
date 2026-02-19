@@ -1,0 +1,23 @@
+---
+description: External integrations — Resend email, WhatsApp Business API, Google Analytics 4
+alwaysApply: false
+---
+
+# Integrations
+
+## Resend (Emails)
+- SDK: `resend` npm package
+- API key: `RESEND_API_KEY` env variable
+- From: `noreply@lukesshome.com` (configure in Resend dashboard)
+- Triggers: new order → customer email + admin email | status change → customer email
+
+## WhatsApp Business API
+- Provider: Meta Business API
+- Phone number ID: `WHATSAPP_PHONE_ID` env variable
+- Token: `WHATSAPP_TOKEN` env variable
+- Test number: developer's personal WhatsApp during dev phase
+
+## Google Analytics 4
+- Measurement ID: `NEXT_PUBLIC_GA_ID` env variable
+- Track: page views, add to cart, checkout start, purchase complete
+- Use: `gtag()` function via Script component in layout.tsx

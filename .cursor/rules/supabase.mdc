@@ -1,0 +1,30 @@
+---
+description: Supabase patterns and database rules
+globs: ["**/*.sql", "**/supabase/**", "**/lib/supabase/**", "**/migrations/**"]
+alwaysApply: false
+---
+
+# Supabase Rules
+
+## Schema Summary
+Tables: organizations → profiles, categories, locations, products → inventory, sales → sale_items, orders → order_items
+
+## Foreign Key Delete Order
+1. Check sale_items (if exists → block delete with toast.error)
+2. DELETE inventory
+3. DELETE products
+
+## Key Patterns
+- Client: `createClient()` from `@supabase/ssr` for server, `@supabase/supabase-js` for client
+- Always include `org_id` in INSERT/UPDATE
+- Use `select('*, relation(*)')` for joins
+- RLS is enabled on ALL tables — never bypass
+
+## SQL Conventions
+- UUID primary keys: `DEFAULT uuid_generate_v4()`
+- Timestamps: `TIMESTAMPTZ DEFAULT NOW()`
+- Always use `ADD COLUMN IF NOT EXISTS` in migrations
+- Always use `CREATE TABLE IF NOT EXISTS`
+
+## Full Schema
+See @supabase/schema.sql for complete table definitions
