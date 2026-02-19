@@ -30,6 +30,7 @@ import Link from "next/link";
 
 const productSchema = z.object({
   sku: z.string().min(1, "SKU es requerido").max(50, "Máximo 50 caracteres"),
+  sku_group: z.string().max(50, "Máximo 50 caracteres").optional().nullable(),
   name: z.string().min(1, "Nombre es requerido").max(200, "Máximo 200 caracteres"),
   description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
   category_id: z.string().optional().nullable().transform(val => val === "" ? null : val),
@@ -37,8 +38,8 @@ const productSchema = z.object({
   image_url: z.string().optional().or(z.literal("")),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
+  color: z.string().max(50, "Máximo 50 caracteres").optional().nullable(),
   sizes: z.array(z.string()).optional().default([]),
-  colors: z.array(z.string()).optional().default([]),
   low_stock_threshold: z.coerce.number().int().min(1, "Mínimo 1").default(5),
   initial_stock: z.record(z.string(), z.coerce.number().int().min(0)).optional(),
 });
@@ -56,22 +57,21 @@ interface NewProductFormProps {
 
 // ── Predefined options ───────────────────────────────────────────────────────
 
-const COMMON_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "40", "42"];
+// Solo 8 tallas permitidas
+const ALLOWED_SIZES = ["S", "M", "L", "XL", "38", "40", "42", "44"];
+
 const COMMON_COLORS = [
-  { name: "Negro", hex: "#000000" },
-  { name: "Blanco", hex: "#FFFFFF" },
-  { name: "Gris", hex: "#9CA3AF" },
-  { name: "Rojo", hex: "#EF4444" },
-  { name: "Azul", hex: "#3B82F6" },
-  { name: "Verde", hex: "#22C55E" },
-  { name: "Amarillo", hex: "#EAB308" },
-  { name: "Rosa", hex: "#EC4899" },
-  { name: "Morado", hex: "#A855F7" },
-  { name: "Naranja", hex: "#F97316" },
-  { name: "Beige", hex: "#D4A574" },
-  { name: "Café", hex: "#92400E" },
-  { name: "Celeste", hex: "#7DD3FC" },
-  { name: "Marino", hex: "#1E3A5F" },
+  "Negro",
+  "Blanco", 
+  "Gris",
+  "Azul",
+  "Azul marino",
+  "Verde",
+  "Verde militar",
+  "Rojo",
+  "Beige",
+  "Café",
+  "Celeste",
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -85,29 +85,18 @@ export default function NewProductForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [customSize, setCustomSize] = useState("");
-  const [customColor, setCustomColor] = useState("");
-  const [uniformStock, setUniformStock] = useState("");
   const [recentBrands, setRecentBrands] = useState<string[]>([]);
-  const [customColors, setCustomColors] = useState<string[]>([]);
   const [auditNote, setAuditNote] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [stockByLocation, setStockByLocation] = useState<
-    Record<string, number>
-  >(
-    locations.reduce(
-      (acc, loc) => ({ ...acc, [loc.id]: 0 }),
-      {} as Record<string, number>
-    )
-  );
+  const [selectedColor, setSelectedColor] = useState<string>("");
+  const [customColorInput, setCustomColorInput] = useState<string>("");
+  // Stock por ubicación y talla: { locationId: { size: quantity } }
+  const [stockByLocationAndSize, setStockByLocationAndSize] = useState<Record<string, Record<string, number>>>({});
 
   // Load saved data from localStorage
   useEffect(() => {
     const savedBrands = localStorage.getItem("recentBrands");
-    const savedColors = localStorage.getItem("customColors");
     if (savedBrands) setRecentBrands(JSON.parse(savedBrands));
-    if (savedColors) setCustomColors(JSON.parse(savedColors));
   }, []);
 
   const form = useForm({
@@ -115,6 +104,7 @@ export default function NewProductForm({
     resolver: zodResolver(productSchema) as any,
     defaultValues: {
       sku: "",
+      sku_group: "",
       name: "",
       description: "",
       category_id: undefined,
@@ -122,8 +112,8 @@ export default function NewProductForm({
       image_url: "",
       price: 0,
       cost: 0,
+      color: "",
       sizes: [],
-      colors: [],
       low_stock_threshold: 5,
       initial_stock: {},
     },
@@ -196,54 +186,8 @@ export default function NewProductForm({
     );
   };
 
-  const addCustomSize = () => {
-    const trimmed = customSize.trim().toUpperCase();
-    if (trimmed && !selectedSizes.includes(trimmed)) {
-      setSelectedSizes((prev) => [...prev, trimmed]);
-      setCustomSize("");
-    }
-  };
-
-  // ── Colors ─────────────────────────────────────────────────────────────────
-
-  const toggleColor = (colorName: string) => {
-    setSelectedColors((prev) =>
-      prev.includes(colorName)
-        ? prev.filter((c) => c !== colorName)
-        : [...prev, colorName]
-    );
-  };
-
-  const addCustomColor = () => {
-    const trimmed = customColor.trim();
-    if (trimmed && !selectedColors.includes(trimmed)) {
-      setSelectedColors((prev) => [...prev, trimmed]);
-      // Save to localStorage
-      const updated = [...customColors, trimmed].slice(-10); // Keep last 10
-      setCustomColors(updated);
-      localStorage.setItem("customColors", JSON.stringify(updated));
-      setCustomColor("");
-    }
-  };
-
   const clearAllSizes = () => {
     setSelectedSizes([]);
-  };
-
-  const clearAllColors = () => {
-    setSelectedColors([]);
-  };
-
-  const applyUniformStock = () => {
-    const value = parseInt(uniformStock);
-    if (!isNaN(value) && value >= 0) {
-      const newStock: Record<string, number> = {};
-      locations.forEach((loc) => {
-        newStock[loc.id] = value;
-      });
-      setStockByLocation(newStock);
-      setUniformStock("");
-    }
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -274,6 +218,7 @@ export default function NewProductForm({
         .insert({
           organization_id: organizationId,
           sku: data.sku,
+          sku_group: data.sku_group || null,
           name: data.name,
           description: data.description || null,
           category_id: data.category_id || null,
@@ -281,9 +226,8 @@ export default function NewProductForm({
           image_url: data.image_url || null,
           price: data.price,
           cost: data.cost ?? 0,
+          color: selectedColor || null,
           sizes: selectedSizes,
-          colors: selectedColors,
-          // low_stock_threshold: data.low_stock_threshold || 5,  // Columna puede no existir aún
           is_active: true,
         })
         .select()
@@ -299,13 +243,23 @@ export default function NewProductForm({
         return;
       }
 
-      // 2. Create inventory for each location
-      const inventoryInserts = locations.map((loc) => ({
-        product_id: product.id,
-        location_id: loc.id,
-        quantity: stockByLocation[loc.id] || 0,
-        min_stock: data.low_stock_threshold,
-      }));
+      // 2. Create inventory for each location and size
+      const inventoryInserts: any[] = [];
+      const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ['Única'];
+      
+      locations.forEach((loc) => {
+        sizesToUse.forEach((size) => {
+          const quantity = stockByLocationAndSize[loc.id]?.[size] || 0;
+          inventoryInserts.push({
+            product_id: product.id,
+            location_id: loc.id,
+            size: size,
+            color: selectedColor || null,
+            quantity: quantity,
+            min_stock: data.low_stock_threshold,
+          });
+        });
+      });
 
       const { error: inventoryError } = await supabase
         .from("inventory")
@@ -327,15 +281,16 @@ export default function NewProductForm({
         old_data: null,
         new_data: {
           sku: data.sku,
+          sku_group: data.sku_group,
           name: data.name,
           description: data.description,
           category_id: data.category_id,
           brand: data.brand,
           price: data.price,
           cost: data.cost,
+          color: selectedColor,
           sizes: selectedSizes,
-          colors: selectedColors,
-          initial_stock: stockByLocation,
+          stock_by_location_and_size: stockByLocationAndSize,
           audit_note: auditNote || null,
         },
         ip_address: null,
@@ -382,13 +337,13 @@ export default function NewProductForm({
           {/* SKU */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">
-              SKU <span className="text-red-500">*</span>
+              SKU (Código único) <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
               <input
                 {...register("sku")}
-                placeholder="LH-0001"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400 font-mono"
+                placeholder="JEAN-LEV-501-AZUL"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400 font-mono uppercase"
               />
               <button
                 type="button"
@@ -403,6 +358,19 @@ export default function NewProductForm({
             {errors.sku && (
               <p className="text-xs text-red-600">{errors.sku.message}</p>
             )}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-blue-900">📚 Guía para crear SKUs correctos:</p>
+              <div className="space-y-1 text-xs text-blue-800">
+                <p><strong>Formato:</strong> TIPO-MARCA-MODELO-COLOR</p>
+                <p><strong>Ejemplos:</strong></p>
+                <ul className="list-disc list-inside pl-2 space-y-0.5">
+                  <li><code className="bg-blue-100 px-1 rounded">CAM-COL-001-AZUL</code> → Camisa Columbia modelo 001 azul</li>
+                  <li><code className="bg-blue-100 px-1 rounded">JEAN-LEV-501-NEGRO</code> → Jean Levi's 501 negro</li>
+                  <li><code className="bg-blue-100 px-1 rounded">POL-LAC-CLA-BLANCO</code> → Polo Lacoste clásico blanco</li>
+                </ul>
+                <p className="text-blue-700 mt-1"><strong>Importante:</strong> Usa MAYÚSCULAS y guiones (-) para separar</p>
+              </div>
+            </div>
           </div>
 
           {/* Name */}
@@ -663,46 +631,31 @@ export default function NewProductForm({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {COMMON_SIZES.map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => toggleSize(size)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
-                  selectedSizes.includes(size)
-                    ? "bg-purple-50 border-purple-300 text-purple-700"
-                    : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                {size}
-              </button>
-            ))}
+          <div className="space-y-3">
+            <p className="text-xs text-gray-600">
+              Selecciona las tallas disponibles para este producto:
+            </p>
+            <div className="grid grid-cols-4 gap-3">
+              {ALLOWED_SIZES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => toggleSize(size)}
+                  className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${
+                    selectedSizes.includes(size)
+                      ? "bg-purple-600 border-purple-600 text-white shadow-md transform scale-105"
+                      : "bg-white border-gray-300 text-gray-700 hover:border-purple-300 hover:bg-purple-50"
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">
+              S, M, L, XL → para ropa superior | 38, 40, 42, 44 → para pantalones y calzado
+            </p>
           </div>
 
-          {/* Custom size input */}
-          <div className="flex gap-2">
-            <input
-              value={customSize}
-              onChange={(e) => setCustomSize(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCustomSize();
-                }
-              }}
-              placeholder="Talla personalizada..."
-              className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-900 placeholder:text-gray-400"
-            />
-            <button
-              type="button"
-              onClick={addCustomSize}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 rounded-lg text-sm font-medium text-purple-700 transition"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Agregar
-            </button>
-          </div>
 
           {/* Selected sizes display */}
           {selectedSizes.length > 0 && (
@@ -726,125 +679,148 @@ export default function NewProductForm({
           )}
         </div>
 
-        {/* ── Colores ──────────────────────────────────────────────────── */}
+        {/* ── Color del Producto ──────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-              <Palette className="w-4 h-4 text-pink-600" />
-              Colores
-              {selectedColors.length > 0 && (
-                <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">
-                  {selectedColors.length}
-                </span>
-              )}
-            </div>
-            {selectedColors.length > 0 && (
-              <button
-                type="button"
-                onClick={clearAllColors}
-                className="text-xs text-red-600 hover:text-red-700 font-semibold underline"
-              >
-                Eliminar todos
-              </button>
-            )}
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <Palette className="w-4 h-4 text-pink-600" />
+            Color de este producto <span className="text-red-500">*</span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {COMMON_COLORS.map((color) => (
-              <button
-                key={color.name}
-                type="button"
-                onClick={() => toggleColor(color.name)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
-                  selectedColors.includes(color.name)
-                    ? "bg-pink-50 border-pink-300 text-pink-700"
-                    : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                <span
-                  className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
-                  style={{ backgroundColor: color.hex }}
-                />
-                {color.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom color input */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">
-              Color personalizado:
+              Selecciona el color (solo uno):
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={customColor}
-                onChange={(e) => setCustomColor(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addCustomColor();
-                  }
-                }}
-                list="customColorsList"
-                placeholder="Ej: Texturizado, A rayas, Verde oliva"
-                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition text-gray-900 placeholder:text-gray-400"
-              />
-              <datalist id="customColorsList">
-                {customColors.map((color) => (
-                  <option key={color} value={color} />
-                ))}
-              </datalist>
-              <button
-                type="button"
-                onClick={addCustomColor}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-pink-50 hover:bg-pink-100 rounded-lg text-sm font-medium text-pink-700 transition"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Agregar
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              {COMMON_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${
+                    selectedColor === color
+                      ? "border-pink-600 bg-pink-50 shadow-md transform scale-105"
+                      : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
+                  }`}
+                >
+                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" style={{
+                    backgroundColor: color === 'Negro' ? '#000' : 
+                                   color === 'Blanco' ? '#FFF' :
+                                   color === 'Gris' ? '#9CA3AF' :
+                                   color === 'Azul' ? '#3B82F6' :
+                                   color === 'Azul marino' ? '#1E3A8A' :
+                                   color === 'Verde' ? '#22C55E' :
+                                   color === 'Verde militar' ? '#4D7C0F' :
+                                   color === 'Rojo' ? '#EF4444' :
+                                   color === 'Beige' ? '#D4A574' :
+                                   color === 'Café' ? '#92400E' :
+                                   color === 'Celeste' ? '#7DD3FC' : '#CCC'
+                  }} />
+                  <span className="text-sm font-medium text-gray-700">{color}</span>
+                </button>
+              ))}
             </div>
+
+            {/* Color personalizado */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">
+                ¿No encuentras el color? Escríbelo aquí:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customColorInput}
+                  onChange={(e) => setCustomColorInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (customColorInput.trim()) {
+                        setSelectedColor(customColorInput.trim());
+                        setCustomColorInput("");
+                      }
+                    }
+                  }}
+                  placeholder="Ej: Gris Oxford, Verde esmeralda..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customColorInput.trim()) {
+                      setSelectedColor(customColorInput.trim());
+                      setCustomColorInput("");
+                    }
+                  }}
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg text-sm transition"
+                >
+                  Usar
+                </button>
+              </div>
+            </div>
+
+            {/* Color seleccionado */}
+            {selectedColor && (
+              <div className="bg-pink-50 border-2 border-pink-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-pink-900">Color seleccionado:</span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-bold bg-pink-100 text-pink-700 border border-pink-300">
+                    {selectedColor}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedColor("")}
+                  className="text-pink-600 hover:text-pink-800 font-semibold text-sm"
+                >
+                  Cambiar
+                </button>
+              </div>
+            )}
+
             <p className="text-xs text-gray-500">
-              Presiona Enter para agregar
+              💡 Tip: Si vendes el mismo modelo en varios colores, crea un producto separado para cada color y usa el mismo SKU Group
             </p>
           </div>
-
-          {selectedColors.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {selectedColors.map((color) => {
-                const colorObj = COMMON_COLORS.find((c) => c.name === color);
-                return (
-                  <span
-                    key={color}
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-pink-100 text-pink-700"
-                  >
-                    {colorObj && (
-                      <span
-                        className="w-3 h-3 rounded-full border border-pink-200"
-                        style={{ backgroundColor: colorObj.hex }}
-                      />
-                    )}
-                    {color}
-                    <button
-                      type="button"
-                      onClick={() => toggleColor(color)}
-                      className="hover:text-pink-900"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                );
-              })}
-            </div>
-          )}
         </div>
 
-        {/* ── Stock por ubicación ───────────────────────────────────────── */}
+        {/* ── SKU Group (Grupo de variantes) ──────────────────────────── */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <Tag className="w-4 h-4 text-indigo-600" />
+            Grupo de variantes (Opcional)
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700">
+              SKU Base para agrupar variantes de color:
+            </label>
+            <input
+              type="text"
+              {...register("sku_group")}
+              placeholder="JEAN-LEV-501"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-gray-900 placeholder:text-gray-400 font-mono uppercase"
+            />
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-indigo-900">💡 ¿Cuándo usar SKU Group?</p>
+              <div className="text-xs text-indigo-800 space-y-1">
+                <p><strong>Ejemplo:</strong> Vendes "Jean Levi's 501" en 3 colores:</p>
+                <ul className="list-disc list-inside pl-2 space-y-0.5">
+                  <li>Jean Levi's 501 - Azul → SKU: <code className="bg-indigo-100 px-1 rounded">JEAN-LEV-501-AZUL</code></li>
+                  <li>Jean Levi's 501 - Negro → SKU: <code className="bg-indigo-100 px-1 rounded">JEAN-LEV-501-NEGRO</code></li>
+                  <li>Jean Levi's 501 - Gris → SKU: <code className="bg-indigo-100 px-1 rounded">JEAN-LEV-501-GRIS</code></li>
+                </ul>
+                <p className="text-indigo-700 mt-2"><strong>SKU Group:</strong> <code className="bg-indigo-100 px-1 rounded">JEAN-LEV-501</code> (sin el color)</p>
+                <p className="mt-1">Esto permite mostrarlos juntos en la web como variantes del mismo modelo.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Stock Inicial por Talla y Ubicación ───────────────────────────── */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
               <MapPin className="w-4 h-4 text-emerald-600" />
-              Stock inicial por ubicación
+              Stock inicial por talla y ubicación
             </div>
             <div className="flex items-center gap-2">
               <Tag className="w-3.5 h-3.5 text-gray-400" />
@@ -862,103 +838,62 @@ export default function NewProductForm({
             <p className="text-xs text-red-600">{errors.low_stock_threshold.message}</p>
           )}
 
-          {/* Uniform stock setter */}
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Aplicar mismo stock a todas las ubicaciones:
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                min="0"
-                value={uniformStock}
-                onChange={(e) => setUniformStock(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    applyUniformStock();
-                  }
-                }}
-                placeholder="Cantidad"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900"
-              />
-              <button
-                type="button"
-                onClick={applyUniformStock}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
-              >
-                Aplicar a todos
-              </button>
+          {selectedSizes.length === 0 ? (
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 text-center">
+              <p className="text-sm text-yellow-800 font-medium">
+                ⚠️ Primero selecciona las tallas disponibles arriba
+              </p>
             </div>
-            <p className="text-xs text-gray-600 mt-2">
-              Ingresa una cantidad y presiona Enter o click en &quot;Aplicar a todos&quot;
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {locations.map((loc) => (
-              <div
-                key={loc.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {loc.name}
-                  </p>
-                  {loc.address && (
-                    <p className="text-xs text-gray-400">{loc.address}</p>
-                  )}
+          ) : (
+            <div className="space-y-4">
+              {selectedSizes.map((size) => (
+                <div key={size} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50/30">
+                  <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
+                    <Ruler className="w-4 h-4" />
+                    Talla {size}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {locations.map((loc) => (
+                      <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
+                          {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={stockByLocationAndSize[loc.id]?.[size] || 0}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              setStockByLocationAndSize(prev => ({
+                                ...prev,
+                                [loc.id]: {
+                                  ...prev[loc.id],
+                                  [size]: value
+                                }
+                              }));
+                            }}
+                            className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
+                          />
+                          <span className="text-xs text-gray-600">uds</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setStockByLocation((prev) => ({
-                        ...prev,
-                        [loc.id]: Math.max(0, (prev[loc.id] || 0) - 1),
-                      }))
-                    }
-                    className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={stockByLocation[loc.id] || 0}
-                    onChange={(e) =>
-                      setStockByLocation((prev) => ({
-                        ...prev,
-                        [loc.id]: Math.max(0, parseInt(e.target.value) || 0),
-                      }))
-                    }
-                    className="w-16 px-2 py-1.5 border border-gray-300 rounded-md text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setStockByLocation((prev) => ({
-                        ...prev,
-                        [loc.id]: (prev[loc.id] || 0) + 1,
-                      }))
-                    }
-                    className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {/* Stock total preview */}
-          <div className="bg-emerald-50 rounded-lg px-4 py-2.5 flex items-center justify-between">
+          <div className="bg-emerald-50 rounded-lg px-4 py-2.5 flex items-center justify-between border-2 border-emerald-200">
             <span className="text-sm text-emerald-700 font-medium">
               Stock total inicial
             </span>
-            <span className="text-sm font-bold text-emerald-700">
-              {Object.values(stockByLocation).reduce((sum, q) => sum + q, 0)}{" "}
-              unidades
+            <span className="text-lg font-bold text-emerald-700">
+              {Object.values(stockByLocationAndSize).reduce((total, sizeStock) => 
+                total + Object.values(sizeStock).reduce((sum, qty) => sum + qty, 0), 0
+              )} unidades
             </span>
           </div>
         </div>

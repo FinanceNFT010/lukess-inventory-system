@@ -29,6 +29,7 @@ import Link from "next/link";
 
 const productSchema = z.object({
   sku: z.string().min(1, "SKU es requerido").max(50, "Máximo 50 caracteres"),
+  sku_group: z.string().max(50, "Máximo 50 caracteres").optional().nullable(),
   name: z.string().min(1, "Nombre es requerido").max(200, "Máximo 200 caracteres"),
   description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
   category_id: z.string().optional().nullable().transform(val => val === "" ? null : val),
@@ -36,8 +37,8 @@ const productSchema = z.object({
   image_url: z.string().optional().or(z.literal("")),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   cost: z.coerce.number().positive("El costo debe ser mayor a 0").optional(),
-  sizes: z.array(z.string()).min(1, "Selecciona al menos una talla"),
-  colors: z.array(z.string()).min(1, "Selecciona al menos un color"),
+  color: z.string().max(50, "Máximo 50 caracteres").optional().nullable(),
+  sizes: z.array(z.string()).optional().default([]),
   low_stock_threshold: z.coerce.number().int().min(1, "Mínimo 1").default(5),
 });
 
@@ -52,22 +53,19 @@ interface EditProductFormProps {
 
 // ── Predefined options ───────────────────────────────────────────────────────
 
-const COMMON_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "40", "42"];
+const ALLOWED_SIZES = ["S", "M", "L", "XL", "38", "40", "42", "44"];
 const COMMON_COLORS = [
-  { name: "Negro", hex: "#000000" },
-  { name: "Blanco", hex: "#FFFFFF" },
-  { name: "Gris", hex: "#9CA3AF" },
-  { name: "Rojo", hex: "#EF4444" },
-  { name: "Azul", hex: "#3B82F6" },
-  { name: "Verde", hex: "#22C55E" },
-  { name: "Amarillo", hex: "#EAB308" },
-  { name: "Rosa", hex: "#EC4899" },
-  { name: "Morado", hex: "#A855F7" },
-  { name: "Naranja", hex: "#F97316" },
-  { name: "Beige", hex: "#D4A574" },
-  { name: "Café", hex: "#92400E" },
-  { name: "Celeste", hex: "#7DD3FC" },
-  { name: "Marino", hex: "#1E3A5F" },
+  "Negro",
+  "Blanco",
+  "Gris",
+  "Azul",
+  "Azul marino",
+  "Verde",
+  "Verde militar",
+  "Rojo",
+  "Beige",
+  "Café",
+  "Celeste",
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -81,27 +79,41 @@ export default function EditProductForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>(product.sizes || []);
-  const [selectedColors, setSelectedColors] = useState<string[]>(product.colors || []);
-  const [customSize, setCustomSize] = useState("");
   const [auditNote, setAuditNote] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [stockByLocation, setStockByLocation] = useState<Record<string, number>>(
-    product.inventory.reduce(
-      (acc: Record<string, number>, inv: any) => ({ ...acc, [inv.location_id]: inv.quantity }),
-      {} as Record<string, number>
-    )
-  );
-  const [originalStockByLocation] = useState<Record<string, number>>(
-    product.inventory.reduce(
-      (acc: Record<string, number>, inv: any) => ({ ...acc, [inv.location_id]: inv.quantity }),
-      {} as Record<string, number>
-    )
-  );
+  const [customSize, setCustomSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState<string>(product.color || "");
+  const [customColorInput, setCustomColorInput] = useState<string>("");
+  
+  // Stock por ubicación y talla: { locationId: { size: quantity } }
+  const [stockByLocationAndSize, setStockByLocationAndSize] = useState<Record<string, Record<string, number>>>(() => {
+    const initial: Record<string, Record<string, number>> = {};
+    
+    console.log('📦 Inventory recibido:', product.inventory);
+    
+    // Cargar stock real desde inventory
+    if (product.inventory && Array.isArray(product.inventory)) {
+      product.inventory.forEach((inv: any) => {
+        console.log('  - Procesando inv:', inv);
+        if (!initial[inv.location_id]) {
+          initial[inv.location_id] = {};
+        }
+        const size = inv.size || 'Única';
+        const currentQty = initial[inv.location_id][size] || 0;
+        initial[inv.location_id][size] = currentQty + (inv.quantity || 0);
+      });
+    }
+    
+    console.log('📦 Stock final cargado:', initial);
+    return initial;
+  });
+  
 
   const form = useForm({
     resolver: zodResolver(productSchema) as any,
     defaultValues: {
       sku: product.sku || "",
+      sku_group: product.sku_group || "",
       name: product.name || "",
       description: product.description || "",
       category_id: product.category_id || "",
@@ -109,13 +121,14 @@ export default function EditProductForm({
       image_url: product.image_url || "",
       price: product.price || 0,
       cost: product.cost || 0,
+      color: product.color || "",
       sizes: product.sizes || [],
-      colors: product.colors || [],
       low_stock_threshold: product.low_stock_threshold || 5,
     },
   });
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = form;
+
 
   // Upload image to Supabase Storage
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,14 +172,10 @@ export default function EditProductForm({
     }
   };
 
-  // Update form when sizes/colors change
+  // Update form when sizes change
   useEffect(() => {
     setValue("sizes", selectedSizes);
   }, [selectedSizes, setValue]);
-
-  useEffect(() => {
-    setValue("colors", selectedColors);
-  }, [selectedColors, setValue]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -186,6 +195,7 @@ export default function EditProductForm({
       // Guardar datos originales para auditoría
       const originalData = {
         sku: product.sku,
+        sku_group: product.sku_group,
         name: product.name,
         description: product.description,
         category_id: product.category_id,
@@ -193,8 +203,8 @@ export default function EditProductForm({
         image_url: product.image_url,
         price: product.price,
         cost: product.cost,
+        color: product.color,
         sizes: product.sizes,
-        colors: product.colors,
       };
 
       // Update product
@@ -202,6 +212,7 @@ export default function EditProductForm({
         .from("products")
         .update({
           sku: data.sku,
+          sku_group: data.sku_group || null,
           name: data.name,
           description: data.description || null,
           category_id: data.category_id || null,
@@ -209,41 +220,40 @@ export default function EditProductForm({
           image_url: data.image_url || null,
           price: data.price,
           cost: data.cost,
+          color: selectedColor || null,
           sizes: selectedSizes,
-          colors: selectedColors,
-          // low_stock_threshold: data.low_stock_threshold,  // Columna puede no existir aún
         })
         .eq("id", product.id)
         .eq("organization_id", organizationId);
 
       if (productError) throw productError;
 
-      // Update inventory quantities
-      for (const [locationId, quantity] of Object.entries(stockByLocation)) {
-        const existingInv = product.inventory.find((inv: any) => inv.location_id === locationId);
-        
-        if (existingInv) {
-          // Update existing
-          const { error: invError } = await supabase
-            .from("inventory")
-            .update({ quantity })
-            .eq("id", existingInv.id);
-          
-          if (invError) throw invError;
-        } else if (quantity > 0) {
-          // Create new
-          const { error: invError } = await supabase
-            .from("inventory")
-            .insert({
-              product_id: product.id,
-              location_id: locationId,
-              quantity,
-              min_stock: data.low_stock_threshold,
-            });
-          
-          if (invError) throw invError;
-        }
-      }
+      // Update inventory: eliminar todo y recrear
+      await supabase.from("inventory").delete().eq("product_id", product.id);
+
+      // Crear inventory para cada location y size
+      const inventoryInserts: any[] = [];
+      const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ['Única'];
+      
+      locations.forEach((loc) => {
+        sizesToUse.forEach((size) => {
+          const quantity = stockByLocationAndSize[loc.id]?.[size] || 0;
+          inventoryInserts.push({
+            product_id: product.id,
+            location_id: loc.id,
+            size: size,
+            color: selectedColor || null,
+            quantity: quantity,
+            min_stock: data.low_stock_threshold,
+          });
+        });
+      });
+
+      const { error: inventoryError } = await supabase
+        .from("inventory")
+        .insert(inventoryInserts);
+
+      if (inventoryError) throw inventoryError;
 
       // Registrar auditoría
       await supabase.from("audit_log").insert({
@@ -252,12 +262,10 @@ export default function EditProductForm({
         action: "update",
         table_name: "products",
         record_id: product.id,
-        old_data: {
-          ...originalData,
-          stock_by_location: originalStockByLocation,
-        },
+        old_data: originalData,
         new_data: {
           sku: data.sku,
+          sku_group: data.sku_group,
           name: data.name,
           description: data.description,
           category_id: data.category_id,
@@ -265,9 +273,9 @@ export default function EditProductForm({
           image_url: data.image_url,
           price: data.price,
           cost: data.cost,
+          color: selectedColor,
           sizes: selectedSizes,
-          colors: selectedColors,
-          stock_by_location: stockByLocation,
+          stock_by_location_and_size: stockByLocationAndSize,
           audit_note: auditNote || null,
         },
         ip_address: null,
@@ -301,16 +309,6 @@ export default function EditProductForm({
 
   const removeSize = (size: string) => {
     setSelectedSizes(selectedSizes.filter((s) => s !== size));
-  };
-
-  // ── Color handlers ───────────────────────────────────────────────────────────
-
-  const toggleColor = (colorName: string) => {
-    setSelectedColors((prev) =>
-      prev.includes(colorName)
-        ? prev.filter((c) => c !== colorName)
-        : [...prev, colorName]
-    );
   };
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -558,24 +556,30 @@ export default function EditProductForm({
           {/* Sizes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tallas <span className="text-red-500">*</span>
+              Tallas disponibles
             </label>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {COMMON_SIZES.map((size) => (
+            <p className="text-xs text-gray-600 mb-3">
+              Selecciona las tallas disponibles para este producto:
+            </p>
+            <div className="grid grid-cols-4 gap-3 mb-3">
+              {ALLOWED_SIZES.map((size) => (
                 <button
                   key={size}
                   type="button"
                   onClick={() => toggleSize(size)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${
+                  className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${
                     selectedSizes.includes(size)
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-purple-600 border-purple-600 text-white shadow-md transform scale-105"
+                      : "bg-white border-gray-300 text-gray-700 hover:border-purple-300 hover:bg-purple-50"
                   }`}
                 >
                   {size}
                 </button>
               ))}
             </div>
+            <p className="text-xs text-gray-500">
+              S, M, L, XL → para ropa superior | 38, 40, 42, 44 → para pantalones y calzado
+            </p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -617,34 +621,109 @@ export default function EditProductForm({
             )}
           </div>
 
-          {/* Colors */}
+          {/* Color */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Colores <span className="text-red-500">*</span>
+              Color de este producto <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-3">
               {COMMON_COLORS.map((color) => (
                 <button
-                  key={color.name}
+                  key={color}
                   type="button"
-                  onClick={() => toggleColor(color.name)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition ${
-                    selectedColors.includes(color.name)
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
+                  onClick={() => setSelectedColor(color)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${
+                    selectedColor === color
+                      ? "border-pink-600 bg-pink-50 shadow-md transform scale-105"
+                      : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
                   }`}
                 >
-                  <div
-                    className="w-5 h-5 rounded-full border border-gray-300"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <span className="text-sm font-medium text-gray-700">{color.name}</span>
+                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" style={{
+                    backgroundColor: color === 'Negro' ? '#000' : 
+                                   color === 'Blanco' ? '#FFF' :
+                                   color === 'Gris' ? '#9CA3AF' :
+                                   color === 'Azul' ? '#3B82F6' :
+                                   color === 'Azul marino' ? '#1E3A8A' :
+                                   color === 'Verde' ? '#22C55E' :
+                                   color === 'Verde militar' ? '#4D7C0F' :
+                                   color === 'Rojo' ? '#EF4444' :
+                                   color === 'Beige' ? '#D4A574' :
+                                   color === 'Café' ? '#92400E' :
+                                   color === 'Celeste' ? '#7DD3FC' : '#CCC'
+                  }} />
+                  <span className="text-sm font-medium text-gray-700">{color}</span>
                 </button>
               ))}
             </div>
-            {errors.colors && (
-              <p className="text-xs text-red-600 mt-1">{errors.colors.message as string}</p>
+
+            {/* Color personalizado */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">
+                ¿No encuentras el color? Escríbelo aquí:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customColorInput}
+                  onChange={(e) => setCustomColorInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (customColorInput.trim()) {
+                        setSelectedColor(customColorInput.trim());
+                        setCustomColorInput("");
+                      }
+                    }
+                  }}
+                  placeholder="Ej: Gris Oxford, Verde esmeralda..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customColorInput.trim()) {
+                      setSelectedColor(customColorInput.trim());
+                      setCustomColorInput("");
+                    }
+                  }}
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg text-sm transition"
+                >
+                  Usar
+                </button>
+              </div>
+            </div>
+
+            {/* Color seleccionado */}
+            {selectedColor && (
+              <div className="bg-pink-50 border-2 border-pink-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-pink-900">Color actual:</span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-bold bg-pink-100 text-pink-700 border border-pink-300">
+                    {selectedColor}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedColor("")}
+                  className="text-pink-600 hover:text-pink-800 font-semibold text-sm"
+                >
+                  Cambiar
+                </button>
+              </div>
             )}
+          </div>
+
+          {/* SKU Group */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Grupo de variantes (Opcional)
+            </label>
+            <input
+              type="text"
+              {...register("sku_group")}
+              placeholder="Ej: JEAN-LEV-501"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-gray-900 placeholder:text-gray-400 font-mono uppercase"
+            />
           </div>
 
           {/* Low Stock Threshold */}
@@ -660,35 +739,69 @@ export default function EditProductForm({
             />
           </div>
 
-          {/* Stock by Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Stock por Ubicación
+          {/* Stock por Talla y Ubicación */}
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Stock por Talla y Ubicación
             </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {locations.map((location) => (
-                <div
-                  key={location.id}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
-                >
-                  <MapPin className="w-5 h-5 text-gray-400" />
-                  <span className="flex-1 text-sm font-medium text-gray-700">
-                    {location.name}
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={stockByLocation[location.id] || 0}
-                    onChange={(e) =>
-                      setStockByLocation({
-                        ...stockByLocation,
-                        [location.id]: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
-                  />
-                </div>
-              ))}
+            
+            {selectedSizes.length === 0 ? (
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 text-center">
+                <p className="text-sm text-yellow-800 font-medium">
+                  ⚠️ Primero selecciona las tallas disponibles arriba
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {selectedSizes.map((size) => (
+                  <div key={size} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50/30">
+                    <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
+                      <Ruler className="w-4 h-4" />
+                      Talla {size}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {locations.map((loc) => (
+                        <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
+                            {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={stockByLocationAndSize[loc.id]?.[size] || 0}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value) || 0;
+                                setStockByLocationAndSize(prev => ({
+                                  ...prev,
+                                  [loc.id]: {
+                                    ...prev[loc.id],
+                                    [size]: value
+                                  }
+                                }));
+                              }}
+                              className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
+                            />
+                            <span className="text-xs text-gray-600">uds</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-emerald-50 rounded-lg px-4 py-2.5 flex items-center justify-between border-2 border-emerald-200">
+              <span className="text-sm text-emerald-700 font-medium">
+                Stock total
+              </span>
+              <span className="text-lg font-bold text-emerald-700">
+                {Object.values(stockByLocationAndSize).reduce((total, sizeStock) => 
+                  total + Object.values(sizeStock).reduce((sum, qty) => sum + qty, 0), 0
+                )} unidades
+              </span>
             </div>
           </div>
 

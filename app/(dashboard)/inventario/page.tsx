@@ -24,7 +24,7 @@ export default async function InventarioPage() {
         `
         *,
         categories(id, name),
-        inventory(id, quantity, min_stock, location_id, locations(id, name))
+        inventory(id, quantity, min_stock, location_id, size, color, locations(id, name))
       `
       )
       .eq("organization_id", orgId)

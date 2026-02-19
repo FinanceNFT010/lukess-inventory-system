@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -62,6 +62,7 @@ export default function AuditHistoryClient({
   categoriesMap,
   locationsMap,
 }: AuditHistoryClientProps) {
+  // Todos colapsados por defecto
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
 
   const toggleExpand = (logId: string) => {
@@ -177,47 +178,68 @@ export default function AuditHistoryClient({
             )}
           </div>
 
-          {/* Tallas y Colores */}
-          {(data.sizes?.length > 0 || data.colors?.length > 0) && (
-            <div className="grid grid-cols-2 gap-3">
-              {data.sizes?.length > 0 && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                  <p className="text-xs font-semibold text-purple-700 mb-2">Tallas</p>
-                  <div className="flex flex-wrap gap-1">
-                    {data.sizes.map((size: string, idx: number) => (
-                      <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                        {size}
-                      </span>
-                    ))}
-                  </div>
+          {/* Tallas y Color */}
+          <div className="grid grid-cols-2 gap-3">
+            {data.sizes?.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-purple-700 mb-2">Tallas</p>
+                <div className="flex flex-wrap gap-1">
+                  {data.sizes.map((size: string, idx: number) => (
+                    <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                      {size}
+                    </span>
+                  ))}
                 </div>
-              )}
-              {data.colors?.length > 0 && (
-                <div className="bg-pink-50 border border-pink-200 rounded-lg p-3">
-                  <p className="text-xs font-semibold text-pink-700 mb-2">Colores</p>
-                  <div className="flex flex-wrap gap-1">
-                    {data.colors.map((color: string, idx: number) => (
-                      <span key={idx} className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs font-medium">
-                        {color}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+            {data.color && (
+              <div className="bg-pink-50 border border-pink-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-pink-700 mb-2">Color</p>
+                <span className="inline-flex items-center px-3 py-1 bg-pink-100 text-pink-700 rounded-lg text-sm font-bold border border-pink-300">
+                  {data.color}
+                </span>
+              </div>
+            )}
+            {data.sku_group && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-indigo-700 mb-2">Grupo SKU</p>
+                <span className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-mono font-bold">
+                  {data.sku_group}
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Stock inicial */}
-          {data.initial_stock && (
+          {(data.stock_by_location_and_size || data.initial_stock) && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-              <p className="text-xs font-semibold text-emerald-700 mb-2">Stock Inicial por Ubicación</p>
-              <div className="space-y-1">
-                {Object.entries(data.initial_stock).map(([locId, qty]: [string, any]) => (
-                  <div key={locId} className="flex justify-between text-sm">
-                    <span className="text-emerald-900">{locationsMap.get(locId) || `Ubicación ${locId.slice(0, 8)}...`}</span>
-                    <span className="font-bold text-emerald-900">{qty} unidades</span>
-                  </div>
-                ))}
+              <p className="text-xs font-semibold text-emerald-700 mb-2">Stock Inicial</p>
+              <div className="space-y-2">
+                {data.stock_by_location_and_size ? (
+                  // Stock por ubicación y talla
+                  Object.entries(data.stock_by_location_and_size).map(([locId, sizeStock]: [string, any]) => (
+                    <div key={locId} className="bg-white rounded-lg p-2 border border-emerald-200">
+                      <p className="text-xs font-bold text-emerald-900 mb-1">
+                        {locationsMap.get(locId) || `Ubicación ${locId.slice(0, 8)}...`}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(sizeStock).map(([size, qty]: [string, any]) => (
+                          <span key={size} className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">
+                            {size}: {qty}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // Stock simple por ubicación (legacy)
+                  Object.entries(data.initial_stock).map(([locId, qty]: [string, any]) => (
+                    <div key={locId} className="flex justify-between text-sm">
+                      <span className="text-emerald-900">{locationsMap.get(locId) || `Ubicación ${locId.slice(0, 8)}...`}</span>
+                      <span className="font-bold text-emerald-900">{qty} unidades</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -340,35 +362,71 @@ export default function AuditHistoryClient({
         });
       }
 
-      // Cambios en colores
-      if (!arraysEqual(before.colors || [], after.colors || [])) {
+      // Cambios en color único
+      if (before.color !== after.color && (before.color || after.color)) {
         changes.push({
-          type: "array",
-          field: "Colores",
-          before: before.colors || [],
-          after: after.colors || [],
+          type: "text",
+          field: "Color",
+          before: before.color || "Sin color",
+          after: after.color || "Sin color",
           important: true
         });
       }
 
-      // Cambios en stock por ubicación
-      const beforeStock = before.stock_by_location || {};
-      const afterStock = after.stock_by_location || {};
-      const allLocationIds = new Set([...Object.keys(beforeStock), ...Object.keys(afterStock)]);
+      // Cambios en SKU Group
+      if (before.sku_group !== after.sku_group && (before.sku_group || after.sku_group)) {
+        changes.push({
+          type: "text",
+          field: "Grupo SKU",
+          before: before.sku_group || "Sin grupo",
+          after: after.sku_group || "Sin grupo",
+          important: false
+        });
+      }
+
+      // Cambios en stock por ubicación y talla
+      const beforeStock = before.stock_by_location_and_size || before.stock_by_location || {};
+      const afterStock = after.stock_by_location_and_size || after.stock_by_location || {};
       const stockChanges: any[] = [];
       
-      allLocationIds.forEach((locId) => {
-        const oldQty = beforeStock[locId] || 0;
-        const newQty = afterStock[locId] || 0;
-        if (oldQty !== newQty) {
-          stockChanges.push({
-            location: locationsMap.get(locId) || locId,
-            before: oldQty,
-            after: newQty,
-            diff: newQty - oldQty,
+      // Si es stock por ubicación y talla
+      if (after.stock_by_location_and_size) {
+        const allLocationIds = new Set([...Object.keys(beforeStock), ...Object.keys(afterStock)]);
+        allLocationIds.forEach((locId) => {
+          const beforeSizes = beforeStock[locId] || {};
+          const afterSizes = afterStock[locId] || {};
+          const allSizes = new Set([...Object.keys(beforeSizes), ...Object.keys(afterSizes)]);
+          
+          allSizes.forEach((size) => {
+            const oldQty = beforeSizes[size] || 0;
+            const newQty = afterSizes[size] || 0;
+            if (oldQty !== newQty) {
+              stockChanges.push({
+                location: locationsMap.get(locId) || locId,
+                size: size,
+                before: oldQty,
+                after: newQty,
+                diff: newQty - oldQty,
+              });
+            }
           });
-        }
-      });
+        });
+      } else {
+        // Stock simple por ubicación (legacy)
+        const allLocationIds = new Set([...Object.keys(beforeStock), ...Object.keys(afterStock)]);
+        allLocationIds.forEach((locId) => {
+          const oldQty = beforeStock[locId] || 0;
+          const newQty = afterStock[locId] || 0;
+          if (oldQty !== newQty) {
+            stockChanges.push({
+              location: locationsMap.get(locId) || locId,
+              before: oldQty,
+              after: newQty,
+              diff: newQty - oldQty,
+            });
+          }
+        });
+      }
 
       if (stockChanges.length > 0) {
         changes.push({
@@ -535,7 +593,7 @@ export default function AuditHistoryClient({
                 </div>
               );
             } else if (change.type === "stock") {
-              // Cambios de stock por ubicación
+              // Cambios de stock por ubicación (y talla si aplica)
               return (
                 <div key={idx} className="border-2 border-emerald-300 rounded-lg p-4 bg-emerald-50">
                   <div className="flex items-center gap-2 mb-3">
@@ -547,8 +605,15 @@ export default function AuditHistoryClient({
                   <div className="space-y-2">
                     {change.stockChanges.map((stockChange: any, i: number) => (
                       <div key={i} className="bg-white rounded-lg p-3 border border-emerald-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-emerald-900">{stockChange.location}</span>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-emerald-900">{stockChange.location}</span>
+                            {stockChange.size && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 border border-purple-300">
+                                Talla {stockChange.size}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600 line-through">{stockChange.before} unid.</span>
                             <span className="text-lg">→</span>
@@ -671,89 +736,81 @@ export default function AuditHistoryClient({
                   const isExpanded = expandedLogs.has(log.id);
 
                   return (
-                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          {formatDate(log.created_at)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-4 h-4 text-blue-600" />
+                    <React.Fragment key={log.id}>
+                      <tr 
+                        className={`hover:bg-blue-50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-100/50 border-l-4 border-blue-600' : ''}`}
+                        onClick={() => toggleExpand(log.id)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            {formatDate(log.created_at)}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {log.profiles?.full_name || "Usuario desconocido"}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {log.profiles?.email || "—"}
-                            </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <User className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {log.profiles?.full_name || "Usuario desconocido"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {log.profiles?.email || "—"}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${actionInfo?.color || "text-gray-600 bg-gray-50 border-gray-200"
-                            }`}
-                        >
-                          <ActionIcon className="w-3.5 h-3.5" />
-                          {actionInfo?.label || log.action}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm font-medium text-gray-900">
-                            {getProductName(log.record_id)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${actionInfo?.color || "text-gray-600 bg-gray-50 border-gray-200"
+                              }`}
+                          >
+                            <ActionIcon className="w-3.5 h-3.5" />
+                            {actionInfo?.label || log.action}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => toggleExpand(log.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-                        >
-                          {isExpanded ? (
-                            <>
-                              <ChevronUp className="w-4 h-4" />
-                              Ocultar
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="w-4 h-4" />
-                              Ver cambios
-                            </>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Package className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {getProductName(log.record_id)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
+                            {isExpanded ? (
+                              <>
+                                <ChevronUp className="w-4 h-4 text-blue-600" />
+                                <span className="text-blue-600">Ocultar</span>
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="w-4 h-4" />
+                                <span>Ver cambios</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Detalles expandibles inmediatamente debajo */}
+                      {isExpanded && (
+                        <tr key={`${log.id}-details`} className="bg-gradient-to-r from-gray-50 to-blue-50 border-l-4 border-blue-600">
+                          <td colSpan={5} className="px-8 py-5">
+                            <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm">
+                              {renderChanges(log)}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
             </table>
-
-            {/* Expanded Details */}
-            {auditLogs.map((log) => {
-              const isExpanded = expandedLogs.has(log.id);
-              if (!isExpanded) return null;
-
-              return (
-                <div
-                  key={`details-${log.id}`}
-                  className="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-5"
-                >
-                  <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-4 bg-blue-600 rounded-full"></span>
-                    Detalles del cambio:
-                  </h4>
-                  <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm">
-                    {renderChanges(log)}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
       </div>

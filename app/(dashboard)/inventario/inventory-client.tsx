@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Location } from "@/lib/types";
@@ -24,6 +24,9 @@ import {
   RotateCcw,
   Printer,
   QrCode,
+  ChevronUp,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -33,19 +36,22 @@ interface InventoryItem {
   quantity: number;
   min_stock: number;
   location_id: string;
+  size: string;
+  color: string | null;
   locations: { id: string; name: string } | null;
 }
 
 interface ProductWithRelations {
   id: string;
   sku: string;
+  sku_group: string | null;
   name: string;
   description: string | null;
   price: number;
   cost: number;
   brand: string | null;
+  color: string | null;
   sizes: string[];
-  colors: string[];
   image_url: string | null;
   is_active: boolean;
   organization_id: string;
@@ -93,14 +99,17 @@ export default function InventoryClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<"name" | "sku" | "price" | "stock">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; productId: string | null; productName: string }>({
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; productId: string | null; productName: string; isActive: boolean }>({
     isOpen: false,
     productId: null,
     productName: "",
+    isActive: true,
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteNote, setDeleteNote] = useState("");
   const [generatingLabels, setGeneratingLabels] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<ProductWithRelations | null>(null);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
   const itemsPerPage = 20;
 
   // ── Fetch products function ───────────────────────────────────────────────
@@ -113,7 +122,7 @@ export default function InventoryClient({
         `
         *,
         categories(id, name),
-        inventory(id, quantity, min_stock, location_id, locations(id, name))
+        inventory(id, quantity, min_stock, location_id, size, color, locations(id, name))
       `
       )
       .eq("organization_id", initialProducts[0]?.organization_id || "")
@@ -264,6 +273,53 @@ export default function InventoryClient({
       setSortField(field);
       setSortDirection("asc");
     }
+  };
+
+  // Función para distribuir stock proporcionalmente entre tallas
+  const distributeStockBySizes = (totalStock: number, sizes: string[]) => {
+    if (!sizes || sizes.length === 0) {
+      return { "Talla Única": totalStock };
+    }
+
+    const distribution: Record<string, number> = {};
+    
+    // Distribución proporcional con variación realista
+    // Tallas centrales (M, L) tienen más stock
+    const weights: Record<string, number> = {
+      'XS': 0.8,
+      'S': 1.2,
+      'M': 1.5,
+      'L': 1.5,
+      'XL': 1.0,
+      'XXL': 0.7,
+    };
+
+    let totalWeight = 0;
+    sizes.forEach(size => {
+      const weight = weights[size] || 1;
+      totalWeight += weight;
+    });
+
+    let remaining = totalStock;
+    sizes.forEach((size, index) => {
+      const weight = weights[size] || 1;
+      const proportion = weight / totalWeight;
+      
+      if (index === sizes.length - 1) {
+        // Última talla recibe el resto
+        distribution[size] = remaining;
+      } else {
+        const allocated = Math.floor(totalStock * proportion);
+        distribution[size] = allocated;
+        remaining -= allocated;
+      }
+    });
+
+    return distribution;
+  };
+
+  const toggleExpanded = (productId: string) => {
+    setExpandedProductId(expandedProductId === productId ? null : productId);
   };
 
   const handleReactivate = async (productId: string, productName: string) => {
@@ -694,148 +750,417 @@ export default function InventoryClient({
                   const minStock = product.inventory[0]?.min_stock || 10;
                   const badgeColor = getStockBadgeColor(stock, minStock);
 
+                  const isExpanded = expandedProductId === product.id;
+
                   return (
-                    <tr
-                      key={product.id}
-                      className={`hover:bg-gray-50 transition-colors group ${!product.is_active ? 'bg-orange-50/30' : ''} cursor-pointer`}
-                      onClick={() => setQuickViewProduct(product)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {/* Imagen del producto */}
-                          <div className={`w-12 h-12 bg-gradient-to-br rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden ${
-                            product.is_active 
-                              ? 'from-gray-100 to-gray-200 group-hover:from-blue-50 group-hover:to-blue-100' 
-                              : 'from-orange-100 to-orange-200 opacity-60'
-                          }`}>
-                            {product.image_url ? (
-                              <img
-                                src={product.image_url}
-                                alt={product.name}
-                                className={`w-full h-full object-cover ${!product.is_active ? 'opacity-50 grayscale' : ''}`}
-                              />
-                            ) : (
-                              <Package className={`w-6 h-6 transition ${
-                                product.is_active 
-                                  ? 'text-gray-400 group-hover:text-blue-500' 
-                                  : 'text-orange-400'
-                              }`} />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className={`text-sm font-semibold truncate ${
-                                product.is_active ? 'text-gray-900' : 'text-gray-500'
-                              }`}>
-                                {product.name}
-                              </p>
-                              {!product.is_active && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-300">
-                                  Inactivo
-                                </span>
+                    <React.Fragment key={product.id}>
+                      <tr
+                        className={`hover:bg-blue-50 transition-colors group cursor-pointer ${!product.is_active ? 'bg-orange-50/30' : ''} ${isExpanded ? 'bg-blue-100/50 border-l-4 border-blue-600' : ''}`}
+                        onClick={() => toggleExpanded(product.id)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {/* Indicador de expandible */}
+                            <div className="flex-shrink-0">
+                              {isExpanded ? (
+                                <ChevronUp className="w-5 h-5 text-blue-600" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition" />
                               )}
-                              {product.is_active && (() => {
-                                const createdDate = new Date(product.created_at);
-                                const now = new Date();
-                                const hoursDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
-                                return hoursDiff <= 24 ? (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md animate-pulse border border-blue-400">
-                                    ✨ NUEVO
-                                  </span>
-                                ) : null;
-                              })()}
                             </div>
-                            {product.brand && (
-                              <p className="text-xs text-gray-500 mt-0.5">
-                                {product.brand}
-                              </p>
+
+                            {/* Imagen del producto */}
+                            <div 
+                              className={`w-12 h-12 bg-gradient-to-br rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden ${
+                                product.is_active 
+                                  ? 'from-gray-100 to-gray-200 group-hover:from-blue-50 group-hover:to-blue-100' 
+                                  : 'from-orange-100 to-orange-200 opacity-60'
+                              }`}
+                            >
+                              {product.image_url ? (
+                                <img
+                                  src={product.image_url}
+                                  alt={product.name}
+                                  className={`w-full h-full object-cover ${!product.is_active ? 'opacity-50 grayscale' : ''}`}
+                                />
+                              ) : (
+                                <Package className={`w-6 h-6 transition ${
+                                  product.is_active 
+                                    ? 'text-gray-400 group-hover:text-blue-500' 
+                                    : 'text-orange-400'
+                                }`} />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className={`text-sm font-semibold truncate ${
+                                  product.is_active ? 'text-gray-900' : 'text-gray-500'
+                                }`}>
+                                  {product.name}
+                                </p>
+                                {!product.is_active && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-300">
+                                    Inactivo
+                                  </span>
+                                )}
+                                {product.is_active && (() => {
+                                  const createdDate = new Date(product.created_at);
+                                  const now = new Date();
+                                  const hoursDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+                                  return hoursDiff <= 24 ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md animate-pulse border border-blue-400">
+                                      ✨ NUEVO
+                                    </span>
+                                  ) : null;
+                                })()}
+                              </div>
+                              {product.brand && (
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {product.brand}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-600 font-mono font-medium">
+                            {product.sku}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {product.categories ? (
+                            <span className="inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">
+                              {product.categories.name}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className="text-sm font-bold text-gray-900">
+                            Bs {product.price.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {lowStock && (
+                              <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            )}
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${badgeColor}`}
+                            >
+                              {stock === 0 ? (
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                              ) : stock < minStock ? (
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                              ) : (
+                                <Package className="w-3.5 h-3.5" />
+                              )}
+                              {stock} {stock === 1 ? 'unidad' : 'unidades'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-2">
+                            {product.is_active ? (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/inventario/${product.id}`);
+                                  }}
+                                  className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
+                                  title="Editar producto"
+                                >
+                                  <Pencil className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteModal({
+                                      isOpen: true,
+                                      productId: product.id,
+                                      productName: product.name,
+                                      isActive: true,
+                                    });
+                                  }}
+                                  className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                  title="Desactivar producto"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
+                              </>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReactivate(product.id, product.name);
+                                  }}
+                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-colors font-medium text-sm"
+                                  title="Reactivar producto"
+                                >
+                                  <RotateCcw className="w-4 h-4" />
+                                  Reactivar
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteModal({
+                                      isOpen: true,
+                                      productId: product.id,
+                                      productName: product.name,
+                                      isActive: false,
+                                    });
+                                  }}
+                                  className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                  title="Eliminar permanentemente"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-600 font-mono font-medium">
-                          {product.sku}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {product.categories ? (
-                          <span className="inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">
-                            {product.categories.name}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-bold text-gray-900">
-                          Bs {product.price.toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {lowStock && (
-                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                          )}
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${badgeColor}`}
-                          >
-                            {stock === 0 ? (
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                            ) : stock < minStock ? (
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                            ) : (
-                              <Package className="w-3.5 h-3.5" />
-                            )}
-                            {stock} {stock === 1 ? 'unidad' : 'unidades'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-2">
-                          {product.is_active ? (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/inventario/${product.id}`);
-                                }}
-                                className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
-                                title="Editar producto"
-                              >
-                                <Pencil className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteModal({
-                                    isOpen: true,
-                                    productId: product.id,
-                                    productName: product.name,
+                        </td>
+                      </tr>
+
+                      {/* Fila expandible con detalles completos del producto */}
+                      {isExpanded && (
+                        <tr key={`${product.id}-details`} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600">
+                          <td colSpan={6} className="px-8 py-6">
+                            <div className="space-y-6">
+                              {/* Header con información del producto */}
+                              <div className="bg-white rounded-xl p-6 border-2 border-blue-300 shadow-md">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                  {/* Columna 1: Imagen y datos básicos */}
+                                  <div className="flex flex-col items-center gap-4">
+                                    <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center overflow-hidden shadow-lg">
+                                      {product.image_url ? (
+                                        <img
+                                          src={product.image_url}
+                                          alt={product.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <Package className="w-16 h-16 text-gray-400" />
+                                      )}
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="font-bold text-gray-900 text-lg">{product.name}</p>
+                                      <p className="text-sm text-gray-600 font-mono mt-1">SKU: {product.sku}</p>
+                                      {product.brand && (
+                                        <p className="text-sm text-gray-500 mt-1">{product.brand}</p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Columna 2: Precios y margen */}
+                                  <div className="space-y-3">
+                                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                      <p className="text-xs text-blue-700 font-medium mb-1">Precio de Venta</p>
+                                      <p className="text-2xl font-bold text-blue-600">Bs {product.price.toFixed(2)}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <p className="text-xs text-gray-700 font-medium mb-1">Costo</p>
+                                      <p className="text-xl font-bold text-gray-600">Bs {product.cost.toFixed(2)}</p>
+                                    </div>
+                                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                                      <p className="text-xs text-green-700 font-medium mb-1">Margen de Ganancia</p>
+                                      <p className="text-xl font-bold text-green-600">
+                                        {((product.price - product.cost) / product.cost * 100).toFixed(1)}%
+                                      </p>
+                                      <p className="text-xs text-green-600 mt-1">
+                                        +Bs {(product.price - product.cost).toFixed(2)} por unidad
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Columna 3: Variantes disponibles */}
+                                  <div className="space-y-3">
+                                    {product.sizes && product.sizes.length > 0 && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-700 mb-2">Tallas Disponibles</p>
+                                        <div className="flex flex-wrap gap-2">
+                                          {product.sizes.map((size, idx) => (
+                                            <span key={`${product.id}-size-${idx}-${size}`} className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700 border border-blue-300">
+                                              {size}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {product.color && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-700 mb-2">Color</p>
+                                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 border border-purple-300">
+                                          {product.color}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {product.categories && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-700 mb-2">Categoría</p>
+                                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 border border-gray-300">
+                                          {product.categories.name}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {product.description && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-700 mb-2">Descripción</p>
+                                        <p className="text-xs text-gray-600">{product.description}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Título de distribución */}
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-blue-600" />
+                                <h4 className="text-base font-bold text-gray-900">
+                                  Distribución de Stock por Ubicación
+                                </h4>
+                              </div>
+
+                              {/* Stock por ubicación */}
+                              <div className="space-y-4">
+                                {(() => {
+                                  // Agrupar inventory por location_id
+                                  const groupedInventory = product.inventory.reduce((acc, inv) => {
+                                    const locId = inv.location_id;
+                                    if (!acc[locId]) {
+                                      acc[locId] = {
+                                        location_id: locId,
+                                        location_name: (inv.locations as any)?.name || "Ubicación desconocida",
+                                        quantity: 0,
+                                        min_stock: inv.min_stock,
+                                        inventories: []
+                                      };
+                                    }
+                                    acc[locId].quantity += inv.quantity;
+                                    acc[locId].inventories.push(inv);
+                                    return acc;
+                                  }, {} as Record<string, any>);
+
+                                  return Object.values(groupedInventory).map((groupedInv: any, locIdx: number) => {
+                                    const locationStock = groupedInv.quantity;
+                                    
+                                    // Agrupar por talla desde los datos reales de inventory
+                                    const sizeDistribution = groupedInv.inventories.reduce((acc: Record<string, number>, inv: InventoryItem) => {
+                                      const size = inv.size || 'Única';
+                                      acc[size] = (acc[size] || 0) + inv.quantity;
+                                      return acc;
+                                    }, {});
+
+                                    return (
+                                      <div 
+                                        key={`${product.id}-location-${groupedInv.location_id}-${locIdx}`}
+                                        className="bg-white rounded-xl p-5 border-2 border-blue-200 shadow-md hover:shadow-lg transition-all"
+                                      >
+                                        {/* Header de ubicación */}
+                                        <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-blue-100">
+                                          <div className="flex items-center gap-3">
+                                            <div className="bg-blue-100 p-2 rounded-lg">
+                                              <MapPin className="w-5 h-5 text-blue-600" />
+                                            </div>
+                                            <div>
+                                              <span className="font-bold text-gray-900 text-base">
+                                                {groupedInv.location_name}
+                                              </span>
+                                              <p className="text-xs text-gray-500 mt-0.5">
+                                                Stock mínimo: {groupedInv.min_stock} unidades
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md">
+                                            <Package className="w-4 h-4" />
+                                            {locationStock} {locationStock === 1 ? 'unidad' : 'unidades'}
+                                          </span>
+                                        </div>
+
+                                        {/* Distribución por tallas */}
+                                        {product.sizes && product.sizes.length > 0 ? (
+                                          <div>
+                                            <p className="text-xs font-semibold text-gray-700 mb-3">
+                                              Distribución por Tallas:
+                                            </p>
+                                            <div className="flex flex-wrap gap-3">
+                                              {Object.entries(sizeDistribution).map(([size, qty]) => {
+                                                const isZero = qty === 0;
+                                                return (
+                                                  <div
+                                                    key={`${product.id}-${groupedInv.location_id}-${size}`}
+                                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+                                                      isZero
+                                                        ? 'bg-gray-100 border-gray-300 opacity-60'
+                                                        : qty < 3
+                                                        ? 'bg-yellow-50 border-yellow-400 hover:bg-yellow-100 hover:shadow-md'
+                                                        : 'bg-green-50 border-green-400 hover:bg-green-100 hover:shadow-md'
+                                                    }`}
+                                                  >
+                                                    <span className={`text-sm font-bold ${
+                                                      isZero ? 'text-gray-500 line-through' : 'text-gray-800'
+                                                    }`}>
+                                                      Talla {size}
+                                                    </span>
+                                                    <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 rounded-full text-sm font-bold shadow-sm ${
+                                                      isZero
+                                                        ? 'bg-gray-400 text-white'
+                                                        : qty < 3
+                                                        ? 'bg-yellow-600 text-white'
+                                                        : 'bg-green-600 text-white'
+                                                    }`}>
+                                                      {qty}
+                                                    </span>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="text-center py-2">
+                                            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-blue-100 text-blue-700 border-2 border-blue-300">
+                                              <Package className="w-4 h-4" />
+                                              Producto sin variantes de talla
+                                            </span>
+                                          </div>
+                                        )}
+
+                                        {/* Alerta de bajo stock */}
+                                        {locationStock < groupedInv.min_stock && (
+                                          <div className="mt-4 flex items-center gap-2 text-sm text-amber-800 bg-amber-50 px-4 py-3 rounded-lg border-2 border-amber-300 shadow-sm">
+                                            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                                            <span className="font-semibold">
+                                              ⚠️ Stock bajo - Mínimo recomendado: {groupedInv.min_stock} unidades
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
                                   });
-                                }}
-                                className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-                                title="Desactivar producto"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReactivate(product.id, product.name);
-                              }}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-colors font-medium text-sm"
-                              title="Reactivar producto"
-                            >
-                              <RotateCcw className="w-4 h-4" />
-                              Reactivar
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                                })()}
+                              </div>
+
+                              {/* Total general */}
+                              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-5 text-white shadow-xl">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 rounded-lg">
+                                      <Package className="w-6 h-6" />
+                                    </div>
+                                    <span className="font-bold text-base">STOCK TOTAL EN TODAS LAS UBICACIONES</span>
+                                  </div>
+                                  <span className="text-3xl font-bold">
+                                    {getTotalStock(product)} unidades
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -891,11 +1216,12 @@ export default function InventoryClient({
                       const showEllipsis = prevPage && page - prevPage > 1;
 
                       return (
-                        <div key={page} className="flex items-center gap-1">
+                        <>
                           {showEllipsis && (
-                            <span className="px-2 text-gray-400">...</span>
+                            <span key={`ellipsis-${page}`} className="px-2 text-gray-400">...</span>
                           )}
                           <button
+                            key={`page-${page}`}
                             onClick={() => setCurrentPage(page)}
                             className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg transition ${
                               currentPage === page
@@ -905,7 +1231,7 @@ export default function InventoryClient({
                           >
                             {page}
                           </button>
-                        </div>
+                        </>
                       );
                     })}
                 </div>
@@ -967,11 +1293,11 @@ export default function InventoryClient({
         />
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete/Deactivate Confirmation Modal */}
       <ConfirmModal
         isOpen={deleteModal.isOpen}
         onClose={() =>
-          setDeleteModal({ isOpen: false, productId: null, productName: "" })
+          setDeleteModal({ isOpen: false, productId: null, productName: "", isActive: true })
         }
         onConfirm={async () => {
           if (!deleteModal.productId) return;
@@ -980,9 +1306,6 @@ export default function InventoryClient({
           const supabase = createClient();
           
           try {
-            console.log('🗑️ Iniciando desactivación de producto:', deleteModal.productId);
-
-            // Obtener usuario actual
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
               toast.error("No se pudo obtener el usuario");
@@ -990,53 +1313,155 @@ export default function InventoryClient({
               return;
             }
 
-            // Soft Delete: Marcar producto como inactivo en lugar de eliminarlo
-            const { error: productError } = await supabase
-              .from("products")
-              .update({ is_active: false })
-              .eq("id", deleteModal.productId);
+            if (deleteModal.isActive) {
+              // DESACTIVAR (soft delete)
+              console.log('🗑️ Desactivando producto:', deleteModal.productId);
+              
+              // Obtener el producto primero para tener su organization_id
+              const { data: productData } = await supabase
+                .from("products")
+                .select("organization_id")
+                .eq("id", deleteModal.productId)
+                .single();
 
-            if (productError) {
-              console.error('❌ Error desactivando producto:', productError);
-              toast.error(productError.message || "Error al desactivar el producto");
-              throw productError;
+              if (!productData) {
+                toast.error("No se encontró el producto");
+                setIsDeleting(false);
+                return;
+              }
+              
+              const { error: productError } = await supabase
+                .from("products")
+                .update({ is_active: false })
+                .eq("id", deleteModal.productId)
+                .eq("organization_id", productData.organization_id);
+
+              if (productError) {
+                console.error('Error desactivando:', productError);
+                toast.error(`Error al desactivar: ${productError.message || JSON.stringify(productError)}`);
+                setIsDeleting(false);
+                return;
+              }
+
+              const { error: auditError } = await supabase.from("audit_log").insert({
+                organization_id: productData.organization_id,
+                user_id: user.id,
+                action: "delete",
+                table_name: "products",
+                record_id: deleteModal.productId,
+                old_data: { is_active: true, product_name: deleteModal.productName },
+                new_data: { 
+                  is_active: false, 
+                  product_name: deleteModal.productName,
+                  note: deleteNote || null
+                },
+                ip_address: null,
+              });
+
+              if (auditError) {
+                console.warn('Error en auditoría (no crítico):', auditError);
+              }
+
+              toast.success("Producto desactivado correctamente");
+              setDeleteNote(""); // Limpiar nota
+            } else {
+              // ELIMINAR PERMANENTEMENTE
+              console.log('💀 Eliminando permanentemente producto:', deleteModal.productId);
+              
+              // Verificar si tiene ventas
+              const { data: sales, error: salesCheckError } = await supabase
+                .from("sale_items")
+                .select("id")
+                .eq("product_id", deleteModal.productId)
+                .limit(1);
+
+              if (salesCheckError) {
+                console.error('Error verificando ventas:', salesCheckError);
+                toast.error("Error al verificar ventas del producto");
+                setIsDeleting(false);
+                return;
+              }
+
+              if (sales && sales.length > 0) {
+                toast.error("No se puede eliminar: el producto tiene ventas registradas");
+                setIsDeleting(false);
+                return;
+              }
+
+              // Eliminar inventory primero
+              console.log('🗑️ Eliminando inventory...');
+              const { error: invError } = await supabase
+                .from("inventory")
+                .delete()
+                .eq("product_id", deleteModal.productId);
+
+              if (invError) {
+                console.error('Error eliminando inventory:', invError);
+                toast.error(`Error al eliminar inventory: ${invError.message || 'Error desconocido'}`);
+                setIsDeleting(false);
+                return;
+              }
+              
+              // Eliminar producto
+              console.log('🗑️ Eliminando producto...');
+              const { error: deleteError } = await supabase
+                .from("products")
+                .delete()
+                .eq("id", deleteModal.productId);
+
+              if (deleteError) {
+                console.error('Error eliminando producto:', deleteError);
+                toast.error(`Error al eliminar producto: ${deleteError.message || 'Error desconocido'}`);
+                setIsDeleting(false);
+                return;
+              }
+
+              // Registrar auditoría
+              const { error: auditError } = await supabase.from("audit_log").insert({
+                organization_id: initialProducts[0]?.organization_id || "",
+                user_id: user.id,
+                action: "delete",
+                table_name: "products",
+                record_id: deleteModal.productId,
+                old_data: { 
+                  product_name: deleteModal.productName, 
+                  permanently_deleted: true,
+                  note: deleteNote || null
+                },
+                new_data: null,
+                ip_address: null,
+              });
+
+              if (auditError) {
+                console.warn('Error en auditoría (no crítico):', auditError);
+              }
+
+              toast.success("Producto eliminado permanentemente");
+              setDeleteNote(""); // Limpiar nota
             }
 
-            // Registrar auditoría
-            await supabase.from("audit_log").insert({
-              organization_id: initialProducts[0]?.organization_id || "",
-              user_id: user.id,
-              action: "delete",
-              table_name: "products",
-              record_id: deleteModal.productId,
-              old_data: {
-                is_active: true,
-                product_name: deleteModal.productName,
-              },
-              new_data: {
-                is_active: false,
-                product_name: deleteModal.productName,
-              },
-              ip_address: null,
-            });
-
-            console.log('✅ Producto desactivado correctamente');
-            toast.success("Producto desactivado correctamente");
-            setDeleteModal({ isOpen: false, productId: null, productName: "" });
+            setDeleteModal({ isOpen: false, productId: null, productName: "", isActive: true });
             router.refresh();
           } catch (error: any) {
-            console.error("Error al eliminar producto:", error);
-            toast.error(error.message || "Error al eliminar el producto");
+            console.error("Error completo:", error);
+            toast.error(error?.message || "Error inesperado al procesar la operación");
           } finally {
             setIsDeleting(false);
           }
         }}
-        title="¿Desactivar producto?"
-        message={`¿Estás seguro de que deseas desactivar "${deleteModal.productName}"? El producto dejará de aparecer en el inventario y en el punto de venta, pero se mantendrá en el historial de ventas.`}
-        confirmText="Desactivar"
+        title={deleteModal.isActive ? "¿Desactivar producto?" : "⚠️ ¿Eliminar PERMANENTEMENTE?"}
+        message={deleteModal.isActive 
+          ? `¿Estás seguro de que deseas desactivar "${deleteModal.productName}"? El producto dejará de aparecer en el inventario y en el punto de venta, pero se mantendrá en el historial de ventas.`
+          : `⚠️ ADVERTENCIA: Esta acción NO se puede deshacer. ¿Estás seguro de que deseas eliminar PERMANENTEMENTE "${deleteModal.productName}"? Se eliminarán todos los registros de inventory. Las ventas registradas se mantendrán pero sin referencia al producto.`
+        }
+        confirmText={deleteModal.isActive ? "Desactivar" : "Eliminar Permanentemente"}
         cancelText="Cancelar"
         variant="danger"
         loading={isDeleting}
+        showNoteInput={true}
+        noteValue={deleteNote}
+        onNoteChange={setDeleteNote}
+        notePlaceholder={deleteModal.isActive ? "Ej: Se acabó stock, Producto descontinuado..." : "Ej: Producto no vendido, Error de registro..."}
       />
     </div>
   );

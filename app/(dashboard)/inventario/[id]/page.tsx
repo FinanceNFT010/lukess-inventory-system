@@ -37,6 +37,8 @@ export default async function EditProductPage({ params }: PageProps) {
         quantity,
         min_stock,
         location_id,
+        size,
+        color,
         locations(id, name)
       )
     `

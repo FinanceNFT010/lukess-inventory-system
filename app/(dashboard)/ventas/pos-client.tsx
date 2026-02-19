@@ -39,6 +39,8 @@ interface POSProduct {
 interface CartItem {
   product: POSProduct;
   quantity: number;
+  size: string;
+  color: string;
 }
 
 type PaymentMethod = "cash" | "qr" | "card";
@@ -117,6 +119,10 @@ export default function POSClient({
   const [showConfetti, setShowConfetti] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showQRPayment, setShowQRPayment] = useState(false);
+  const [showVariantSelector, setShowVariantSelector] = useState(false);
+  const [selectedProductForVariant, setSelectedProductForVariant] = useState<POSProduct | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
   const [pendingSale, setPendingSale] = useState<{
     subtotal: number;
     discount: number;
@@ -186,15 +192,32 @@ export default function POSClient({
   };
 
   const getCartQuantity = (productId: string): number => {
-    return cart.find((item) => item.product.id === productId)?.quantity || 0;
+    return cart
+      .filter((item) => item.product.id === productId)
+      .reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const addToCart = (product: POSProduct) => {
-    const stock = getStock(product);
-    const currentQty = getCartQuantity(product.id);
+  const addToCart = (product: POSProduct, size?: string, color?: string) => {
+    // Si no se especificó talla/color, abrir modal de selección
+    if (!size || !color) {
+      setSelectedProductForVariant(product);
+      setSelectedSize("");
+      setSelectedColor("");
+      setShowVariantSelector(true);
+      return;
+    }
 
-    if (currentQty >= stock) {
-      toast.error("No hay suficiente stock disponible");
+    // Verificar stock de la variante específica
+    const variantStock = product.inventory.find(
+      (inv) => inv.size === size && inv.color === color
+    )?.quantity || 0;
+
+    const currentQty = cart
+      .filter((item) => item.product.id === product.id && item.size === size && item.color === color)
+      .reduce((sum, item) => sum + item.quantity, 0);
+
+    if (currentQty >= variantStock) {
+      toast.error(`No hay suficiente stock de ${size} / ${color}`);
       return;
     }
 
@@ -202,42 +225,51 @@ export default function POSClient({
     playBeep();
 
     setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+      const existing = prev.find(
+        (item) => item.product.id === product.id && item.size === size && item.color === color
+      );
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id
+          item.product.id === product.id && item.size === size && item.color === color
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, size, color }];
     });
   };
 
-  const updateQuantity = (productId: string, newQty: number) => {
+  const updateQuantity = (productId: string, size: string, color: string, newQty: number) => {
     if (newQty <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, size, color);
       return;
     }
 
-    const item = cart.find((i) => i.product.id === productId);
+    const item = cart.find((i) => i.product.id === productId && i.size === size && i.color === color);
     if (!item) return;
 
-    const stock = getStock(item.product);
-    if (newQty > stock) {
-      toast.error("No hay suficiente stock");
+    const variantStock = item.product.inventory.find(
+      (inv) => inv.size === size && inv.color === color
+    )?.quantity || 0;
+
+    if (newQty > variantStock) {
+      toast.error(`No hay suficiente stock de ${size} / ${color}`);
       return;
     }
 
     setCart((prev) =>
       prev.map((i) =>
-        i.product.id === productId ? { ...i, quantity: newQty } : i
+        i.product.id === productId && i.size === size && i.color === color
+          ? { ...i, quantity: newQty }
+          : i
       )
     );
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  const removeFromCart = (productId: string, size: string, color: string) => {
+    setCart((prev) =>
+      prev.filter((item) => !(item.product.id === productId && item.size === size && item.color === color))
+    );
   };
 
   const clearCart = () => {
@@ -331,10 +363,12 @@ export default function POSClient({
         return;
       }
 
-      // 2. Create sale items
+      // 2. Create sale items (con variantes)
       const saleItems = cart.map((item) => ({
         sale_id: sale.id,
         product_id: item.product.id,
+        size: item.size,
+        color: item.color,
         quantity: item.quantity,
         unit_price: item.product.price,
         subtotal: item.product.price * item.quantity,
@@ -350,7 +384,7 @@ export default function POSClient({
         return;
       }
 
-      // 3. Actualizar inventario
+      // 3. Actualizar inventario (por variante)
       for (const item of cart) {
         let saleLocationId = effectiveLocationId;
         
@@ -359,6 +393,8 @@ export default function POSClient({
             .from("inventory")
             .select("quantity, location_id")
             .eq("product_id", item.product.id)
+            .eq("size", item.size)
+            .eq("color", item.color)
             .gte("quantity", item.quantity)
             .order("quantity", { ascending: false })
             .limit(1);
@@ -373,26 +409,30 @@ export default function POSClient({
           .select("quantity")
           .eq("product_id", item.product.id)
           .eq("location_id", saleLocationId!)
+          .eq("size", item.size)
+          .eq("color", item.color)
           .single();
 
         if (fetchError || !currentInv) {
-          throw new Error(`Error al obtener inventario de ${item.product.name}`);
+          throw new Error(`Error al obtener inventario de ${item.product.name} (${item.size}/${item.color})`);
         }
 
         const newQuantity = currentInv.quantity - item.quantity;
 
         if (newQuantity < 0) {
-          throw new Error(`Stock insuficiente para ${item.product.name}`);
+          throw new Error(`Stock insuficiente para ${item.product.name} (${item.size}/${item.color})`);
         }
 
         const { error: invError } = await supabase
           .from("inventory")
           .update({ quantity: newQuantity })
           .eq("product_id", item.product.id)
-          .eq("location_id", saleLocationId!);
+          .eq("location_id", saleLocationId!)
+          .eq("size", item.size)
+          .eq("color", item.color);
 
         if (invError) {
-          throw new Error(`Error al actualizar inventario de ${item.product.name}`);
+          throw new Error(`Error al actualizar inventario de ${item.product.name} (${item.size}/${item.color})`);
         }
       }
 
@@ -781,9 +821,9 @@ export default function POSClient({
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {cart.map((item) => (
+              {cart.map((item, idx) => (
                 <div
-                  key={item.product.id}
+                  key={`${item.product.id}-${item.size}-${item.color}-${idx}`}
                   className="px-6 py-4 flex items-start gap-4 hover:bg-gray-50 transition-colors"
                 >
                   {/* Mini image */}
@@ -804,6 +844,14 @@ export default function POSClient({
                     <p className="text-sm font-semibold text-gray-900 truncate mb-1">
                       {item.product.name}
                     </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                        {item.size}
+                      </span>
+                      <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-medium">
+                        {item.color}
+                      </span>
+                    </div>
                     <p className="text-xs text-gray-500">
                       {formatCurrency(item.product.price)} c/u
                     </p>
@@ -814,7 +862,7 @@ export default function POSClient({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() =>
-                          updateQuantity(item.product.id, item.quantity - 1)
+                          updateQuantity(item.product.id, item.size, item.color, item.quantity - 1)
                         }
                         className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white hover:bg-red-50 hover:border-red-300 transition-all"
                       >
@@ -825,7 +873,7 @@ export default function POSClient({
                       </span>
                       <button
                         onClick={() =>
-                          updateQuantity(item.product.id, item.quantity + 1)
+                          updateQuantity(item.product.id, item.size, item.color, item.quantity + 1)
                         }
                         className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white hover:bg-green-50 hover:border-green-300 transition-all"
                       >
@@ -840,7 +888,7 @@ export default function POSClient({
 
                   {/* Remove */}
                   <button
-                    onClick={() => removeFromCart(item.product.id)}
+                    onClick={() => removeFromCart(item.product.id, item.size, item.color)}
                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
                   >
                     <X className="w-5 h-5" />
@@ -1015,9 +1063,9 @@ export default function POSClient({
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {cart.map((item) => (
+                {cart.map((item, idx) => (
                   <div
-                    key={item.product.id}
+                    key={`${item.product.id}-${item.size}-${item.color}-${idx}`}
                     className="px-4 py-4 flex items-start gap-3"
                   >
                     {/* Mini image */}
@@ -1038,13 +1086,21 @@ export default function POSClient({
                       <p className="text-sm font-semibold text-gray-900 line-clamp-2">
                         {item.product.name}
                       </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
+                          {item.size}
+                        </span>
+                        <span className="text-[10px] bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded-full font-medium">
+                          {item.color}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {formatCurrency(item.product.price)} c/u
                       </p>
                       {/* Quantity controls */}
                       <div className="flex items-center gap-3 mt-2">
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.product.id, item.size, item.color, item.quantity - 1)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white active:bg-red-50 active:border-red-300"
                         >
                           <Minus className="w-4 h-4 text-gray-600" />
@@ -1053,7 +1109,7 @@ export default function POSClient({
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.product.id, item.size, item.color, item.quantity + 1)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white active:bg-green-50 active:border-green-300"
                         >
                           <Plus className="w-4 h-4 text-gray-600" />
@@ -1064,7 +1120,7 @@ export default function POSClient({
                     {/* Subtotal + Remove */}
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeFromCart(item.product.id, item.size, item.color)}
                         className="p-1.5 text-gray-400 active:text-red-500 active:bg-red-50 rounded-lg transition"
                       >
                         <X className="w-5 h-5" />
@@ -1167,6 +1223,118 @@ export default function POSClient({
         </div>
       )}
     </div>
+
+      {/* Variant Selector Modal */}
+      {showVariantSelector && selectedProductForVariant && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Selecciona Talla y Color
+              </h2>
+              <button
+                onClick={() => setShowVariantSelector(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Product Info */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <p className="font-semibold text-gray-900">{selectedProductForVariant.name}</p>
+              <p className="text-sm text-gray-600">{selectedProductForVariant.sku}</p>
+            </div>
+
+            {/* Size Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Talla:
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {selectedProductForVariant.sizes.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      selectedSize === size
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Color Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Color:
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {selectedProductForVariant.colors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      selectedColor === color
+                        ? "bg-pink-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {color}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stock Info */}
+            {selectedSize && selectedColor && (
+              <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Stock disponible:</strong>{" "}
+                  {selectedProductForVariant.inventory.find(
+                    (inv) => inv.size === selectedSize && inv.color === selectedColor
+                  )?.quantity || 0}{" "}
+                  unidades
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowVariantSelector(false)}
+                className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-xl transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedSize && selectedColor) {
+                    addToCart(selectedProductForVariant, selectedSize, selectedColor);
+                    setShowVariantSelector(false);
+                    toast.success(`${selectedProductForVariant.name} (${selectedSize}/${selectedColor}) agregado`);
+                  } else {
+                    toast.error("Selecciona talla y color");
+                  }
+                }}
+                disabled={!selectedSize || !selectedColor}
+                className={`flex-1 px-4 py-3 font-semibold rounded-xl transition ${
+                  selectedSize && selectedColor
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                Agregar al Carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Payment Modal */}
       {showQRPayment && pendingSale && (
