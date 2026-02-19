@@ -77,6 +77,7 @@ export type Database = {
           role: "admin" | "manager" | "staff";
           avatar_url: string | null;
           is_active: boolean;
+          phone: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -89,6 +90,7 @@ export type Database = {
           role?: "admin" | "manager" | "staff";
           avatar_url?: string | null;
           is_active?: boolean;
+          phone?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -101,8 +103,50 @@ export type Database = {
           role?: "admin" | "manager" | "staff";
           avatar_url?: string | null;
           is_active?: boolean;
+          phone?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      access_requests: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          email: string;
+          full_name: string;
+          phone: string | null;
+          message: string | null;
+          status: "pending" | "approved" | "rejected";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          email: string;
+          full_name: string;
+          phone?: string | null;
+          message?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string | null;
+          email?: string;
+          full_name?: string;
+          phone?: string | null;
+          message?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
         };
       };
       categories: {
@@ -322,6 +366,7 @@ type TablesUpdate<T extends keyof Database["public"]["Tables"]> =
 export type Organization = Tables<"organizations">;
 export type Location = Tables<"locations">;
 export type Profile = Tables<"profiles">;
+export type AccessRequest = Tables<"access_requests">;
 export type Category = Tables<"categories">;
 export type Product = Tables<"products">;
 export type Inventory = Tables<"inventory">;
