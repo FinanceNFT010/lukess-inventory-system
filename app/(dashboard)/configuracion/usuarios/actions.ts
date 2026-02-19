@@ -117,6 +117,21 @@ export async function createUserFromRequest(
       return { error: "Usuario no fue creado — respuesta vacía de Supabase" };
     }
 
+    // Verify identity was created (Supabase should do this automatically via admin.createUser)
+    const { data: identityCheck } = await supabaseAdmin
+      .from("identities")
+      .select("id")
+      .eq("user_id", newUser.user.id)
+      .maybeSingle();
+
+    if (!identityCheck) {
+      console.warn(
+        "Identity not auto-created for",
+        email,
+        "— this may cause login issues"
+      );
+    }
+
     // Wait briefly for trigger to create profile
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
