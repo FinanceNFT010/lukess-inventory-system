@@ -312,6 +312,9 @@ export type Database = {
           id: string;
           sale_id: string;
           product_id: string;
+          location_id: string | null;
+          size: string | null;
+          color: string | null;
           quantity: number;
           unit_price: number;
           subtotal: number;
@@ -320,6 +323,9 @@ export type Database = {
           id?: string;
           sale_id: string;
           product_id: string;
+          location_id?: string | null;
+          size?: string | null;
+          color?: string | null;
           quantity: number;
           unit_price: number;
           subtotal: number;
@@ -328,6 +334,9 @@ export type Database = {
           id?: string;
           sale_id?: string;
           product_id?: string;
+          location_id?: string | null;
+          size?: string | null;
+          color?: string | null;
           quantity?: number;
           unit_price?: number;
           subtotal?: number;

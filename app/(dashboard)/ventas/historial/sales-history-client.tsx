@@ -34,6 +34,9 @@ interface SaleItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  size: string | null;
+  color: string | null;
+  location_id: string | null;
   product: {
     id: string;
     name: string;
@@ -62,6 +65,8 @@ interface SalesHistoryClientProps {
   initialSales: Sale[];
   locations: { id: string; name: string }[];
   sellers: { id: string; full_name: string; role: string }[];
+  userRole: string;
+  staffLocationId: string | null;
 }
 
 type DateRange = "today" | "week" | "month" | "all";
@@ -132,7 +137,10 @@ export default function SalesHistoryClient({
   initialSales,
   locations,
   sellers,
+  userRole,
+  staffLocationId,
 }: SalesHistoryClientProps) {
+  const isStaff = userRole === "staff";
   const [sales] = useState<Sale[]>(initialSales);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange>("all");
@@ -318,25 +326,27 @@ export default function SalesHistoryClient({
 
         {/* Row 2 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Location */}
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              value={locationFilter}
-              onChange={(e) => {
-                setLocationFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
-            >
-              <option value="">Todas las ubicaciones</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Location — hidden for staff */}
+          {!isStaff && (
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <select
+                value={locationFilter}
+                onChange={(e) => {
+                  setLocationFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
+              >
+                <option value="">Todas las ubicaciones</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Payment Method */}
           <div className="relative">
@@ -356,25 +366,27 @@ export default function SalesHistoryClient({
             </select>
           </div>
 
-          {/* Seller */}
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              value={sellerFilter}
-              onChange={(e) => {
-                setSellerFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
-            >
-              <option value="">Todos los vendedores</option>
-              {sellers.map((seller) => (
-                <option key={seller.id} value={seller.id}>
-                  {seller.full_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Seller — hidden for staff */}
+          {!isStaff && (
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <select
+                value={sellerFilter}
+                onChange={(e) => {
+                  setSellerFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
+              >
+                <option value="">Todos los vendedores</option>
+                {sellers.map((seller) => (
+                  <option key={seller.id} value={seller.id}>
+                    {seller.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Clear Filters */}
           <button
@@ -781,6 +793,9 @@ export default function SalesHistoryClient({
                             Producto
                           </th>
                           <th className="text-center text-xs font-semibold text-gray-600 uppercase px-4 py-3">
+                            Talla
+                          </th>
+                          <th className="text-center text-xs font-semibold text-gray-600 uppercase px-4 py-3">
                             Cantidad
                           </th>
                           <th className="text-right text-xs font-semibold text-gray-600 uppercase px-4 py-3">
@@ -814,8 +829,22 @@ export default function SalesHistoryClient({
                                   <p className="text-xs text-gray-500">
                                     SKU: {item.product.sku}
                                   </p>
+                                  {item.color && (
+                                    <p className="text-xs text-pink-600 font-medium">
+                                      {item.color}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {item.size ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
+                                  {item.size}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className="text-sm font-semibold text-gray-900">

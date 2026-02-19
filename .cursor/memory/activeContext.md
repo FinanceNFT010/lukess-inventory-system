@@ -52,7 +52,7 @@
 **Última actualización:** 19/02/2026 — 6:20 PM
 
 ## Bloque actual
-**Bloque 1e** — Fix bugs editar producto + ventas + filtro inactivos
+**Bloque 2a** — Pedidos: Schema BD
 
 ## Bloques completados ✅
 - Bloque 0 — Setup .cursor/rules/, memory bank, commands, .cursorignore
@@ -61,20 +61,14 @@
 - Bloque 1c — Panel gestión usuarios + aprobación con contraseña temporal
 - Bloque 1d-I — Middleware protección rutas + sidebar dinámico por rol
 - Bloque 1d-II — Permisos granulares UI + campo puesto en staff (location_id)
+- Bloque 1e — POS con selector de talla, fix historial ventas, fix duplicate key editar producto
 
 ## Estado RBAC actual
 - admin@lukesshome.com → admin → acceso total
 - financenft01@gmail.com → manager → Dashboard, Inventario, Ventas, Reportes
 - wildforestadriver01@gmail.com → staff → solo Ventas
 
-## Bugs pendientes (Bloque 1e)
-1. duplicate key al editar producto con variantes
-2. Error pantalla completa al clickear producto en Ventas
-3. Filtro productos inactivos necesita mejora
-
 ## Bloques pendientes
-1d-II → ✅ COMPLETADO
-1e    → Fix bugs editar producto + ventas + filtro inactivos
 2a    → Pedidos: Schema BD
 2b    → Pedidos: Página lista
 2c    → Pedidos: Modal detalle + estados

@@ -13,6 +13,7 @@ export default async function VentasPage() {
   if (!orgId) redirect("/login");
 
   const locationId = profile.location_id as string | null;
+  const userRole = profile.role as string;
 
   // Fetch all locations for the org
   const { data: locations } = await supabase
@@ -22,15 +23,15 @@ export default async function VentasPage() {
     .eq("is_active", true)
     .order("name");
 
-  // Fetch products with inventory
-  // If locationId is set, filter by that location; otherwise fetch all inventory
+  // Fetch products with inventory (including sizes and inventory size/color for variant picking)
+  // Staff users only see products from their assigned location
   let productsQuery = supabase
     .from("products")
     .select(
       `
-      id, sku, name, price, image_url, brand,
+      id, sku, name, price, image_url, brand, sizes,
       categories(name),
-      inventory!inner(quantity, location_id)
+      inventory!inner(quantity, location_id, size, color)
     `
     )
     .eq("organization_id", orgId)
@@ -58,6 +59,7 @@ export default async function VentasPage() {
       profileId={profile.id}
       organizationId={orgId}
       locationId={locationId}
+      userRole={userRole}
       locations={locations || []}
     />
   );

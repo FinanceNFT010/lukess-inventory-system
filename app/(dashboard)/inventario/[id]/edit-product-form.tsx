@@ -228,13 +228,21 @@ export default function EditProductForm({
 
       if (productError) throw productError;
 
-      // Update inventory: eliminar todo y recrear
-      await supabase.from("inventory").delete().eq("product_id", product.id);
+      // Actualizar inventory: eliminar tallas obsoletas y upsert las actuales
+      const { error: deleteError } = await supabase
+        .from("inventory")
+        .delete()
+        .eq("product_id", product.id);
+
+      if (deleteError) {
+        console.error("Error al eliminar inventory:", deleteError);
+        throw deleteError;
+      }
 
       // Crear inventory para cada location y size
       const inventoryInserts: any[] = [];
       const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ['Única'];
-      
+
       locations.forEach((loc) => {
         sizesToUse.forEach((size) => {
           const quantity = stockByLocationAndSize[loc.id]?.[size] || 0;
@@ -249,9 +257,10 @@ export default function EditProductForm({
         });
       });
 
+      // Usar upsert para evitar duplicate key si el delete no limpió todo
       const { error: inventoryError } = await supabase
         .from("inventory")
-        .insert(inventoryInserts);
+        .upsert(inventoryInserts, { onConflict: "product_id,location_id,size,color" });
 
       if (inventoryError) throw inventoryError;
 
