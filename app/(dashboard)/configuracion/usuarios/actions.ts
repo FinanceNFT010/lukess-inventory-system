@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/auth";
 
 export async function updateUserRole(
@@ -99,34 +98,56 @@ export async function createUserFromRequest(
   temporaryPassword: string
 ) {
   try {
-    const adminClient = createAdminClient();
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
 
     const { data: newUser, error: createError } =
-      await adminClient.auth.admin.createUser({
-        email,
+      await supabaseAdmin.auth.admin.createUser({
+        email: email.trim().toLowerCase(),
         password: temporaryPassword,
         email_confirm: true,
         user_metadata: { full_name: fullName },
       });
 
-    if (createError || !newUser.user) {
-      return { error: createError?.message ?? "Error al crear usuario" };
+    if (createError) {
+      console.error("Auth user creation error:", createError);
+      return { error: `Error Supabase: ${createError.message}` };
     }
 
-    await adminClient
+    if (!newUser.user) {
+      return { error: "Usuario no fue creado — respuesta vacía de Supabase" };
+    }
+
+    // Wait briefly for trigger to create profile
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .update({ role, full_name: fullName })
+      .update({
+        role,
+        full_name: fullName,
+        is_active: true,
+      })
       .eq("id", newUser.user.id);
+
+    if (profileError) {
+      console.error("Profile update error:", profileError);
+      return {
+        success: true,
+        warning: `Usuario creado pero rol no se actualizó: ${profileError.message}`,
+        message: `Usuario ${email} creado. Contraseña: ${temporaryPassword}`,
+      };
+    }
 
     revalidatePath("/configuracion/usuarios");
 
     return {
       success: true,
-      userId: newUser.user.id,
+      message: `Usuario ${email} creado con rol ${role}. Contraseña temporal: ${temporaryPassword}`,
     };
   } catch (error) {
-    console.error("Error creating user:", error);
-    return { error: "Error al crear usuario" };
+    console.error("createUserFromRequest error:", error);
+    const message = error instanceof Error ? error.message : "Error desconocido";
+    return { error: `Error interno: ${message}` };
   }
 }
 
