@@ -18,6 +18,7 @@ import {
   X,
   Users,
 } from "lucide-react";
+import { PendingOrdersBadge } from "./PendingOrdersBadge";
 import { useState, useEffect } from "react";
 
 const navLinks = [
@@ -272,15 +273,10 @@ export default function Sidebar({ profile, lowStockCount = 0, pendingOrdersCount
                       {lowStockCount}
                     </span>
                   )}
-                  {!collapsed && showPendingBadge && (
-                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
-                      {pendingOrdersCount}
-                    </span>
-                  )}
                 </Link>
-                {/* Red dot badge for collapsed state */}
-                {collapsed && showPendingBadge && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+                {/* Realtime pending orders badge (expanded & collapsed) */}
+                {link.href === "/pedidos" && (
+                  <PendingOrdersBadge initialCount={pendingOrdersCount} />
                 )}
 
                 {/* Sub-links */}

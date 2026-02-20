@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Clock,
   CheckCircle,
@@ -17,6 +17,7 @@ import type { OrderWithItems, OrderStatus } from "@/lib/types";
 import { ORDER_STATUS_CONFIG } from "@/lib/types";
 import { updateOrderStatus } from "./actions";
 import OrderDetailModal from "./order-detail-modal";
+import { createClient } from "@/lib/supabase/client";
 
 interface PedidosClientProps {
   initialOrders: OrderWithItems[];
@@ -105,6 +106,44 @@ export default function PedidosClient({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const canChangeStatus = userRole === "admin" || userRole === "manager";
+
+  // Realtime subscription — new orders appear at top without page reload
+  useEffect(() => {
+    const supabase = createClient()
+
+    const channel = supabase
+      .channel('pedidos-list')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        async (payload) => {
+          const { data: newOrder } = await supabase
+            .from('orders')
+            .select(`
+              *,
+              order_items (
+                *,
+                product:products (id, name, sku, image_url)
+              )
+            `)
+            .eq('id', (payload.new as { id: string }).id)
+            .single()
+
+          if (newOrder) {
+            setOrders((prev) => [newOrder as OrderWithItems, ...prev])
+            toast.success(
+              `Nuevo pedido de ${(newOrder as OrderWithItems).customer_name}`,
+              { icon: '🛍️', duration: 4000 }
+            )
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const hasActiveFilters =
     searchQuery !== "" || dateFilter !== "all" || paymentFilter !== "all";
