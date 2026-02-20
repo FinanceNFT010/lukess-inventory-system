@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 import Confetti from "react-confetti";
 import { playBeep, playCashRegisterSound } from "@/lib/utils/sounds";
 import {
-  Search,
   ShoppingCart,
   Plus,
   Minus,
@@ -16,11 +15,15 @@ import {
   CreditCard,
   CheckCircle,
   Package,
+  PackageSearch,
   X,
   Scan,
   Printer,
   RotateCcw,
   Percent,
+  MapPin,
+  SlidersHorizontal,
+  ChevronDown,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -103,6 +106,11 @@ export default function POSClient({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [posLocation, setPosLocation] = useState<string | null>(locationId);
+  const [sizeFilter, setSizeFilter] = useState("");
+  const [stockFilter, setStockFilter] = useState<"with" | "all" | "low">("with");
+  const [sortBy, setSortBy] = useState<"name" | "price_asc" | "price_desc" | "stock">("name");
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [customerName, setCustomerName] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -163,8 +171,17 @@ export default function POSClient({
 
   // ── Filtered products ──────────────────────────────────────────────────────
 
+  const availableSizes = useMemo(() => {
+    const sizeSet = new Set<string>();
+    products.forEach(p => {
+      if (p.sizes) p.sizes.forEach((s: string) => sizeSet.add(s));
+      p.inventory.forEach(i => { if (i.size) sizeSet.add(i.size); });
+    });
+    return Array.from(sizeSet).sort();
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+    let result = products.filter((p) => {
       const searchLower = search.toLowerCase();
       const matchesSearch =
         !search ||
@@ -175,23 +192,66 @@ export default function POSClient({
       const matchesCategory =
         !categoryFilter || p.categories?.name === categoryFilter;
 
-      return matchesSearch && matchesCategory;
+      // Stock at selected location
+      const locationStock = posLocation
+        ? p.inventory.filter(i => i.location_id === posLocation).reduce((sum, i) => sum + (i.quantity || 0), 0)
+        : p.inventory.reduce((sum, i) => sum + (i.quantity || 0), 0);
+
+      // Size filter: product has that size with stock > 0
+      const matchesSize = !sizeFilter || p.inventory.some(i =>
+        i.size === sizeFilter &&
+        (i.quantity || 0) > 0 &&
+        (!posLocation || i.location_id === posLocation)
+      );
+
+      // Stock filter
+      let matchesStock = true;
+      if (stockFilter === "with") matchesStock = locationStock > 0;
+      else if (stockFilter === "low") matchesStock = locationStock > 0 && locationStock <= 5;
+
+      return matchesSearch && matchesCategory && matchesSize && matchesStock;
     });
-  }, [products, search, categoryFilter]);
+
+    // Sort
+    if (sortBy === "price_asc") {
+      result = [...result].sort((a, b) => a.price - b.price);
+    } else if (sortBy === "price_desc") {
+      result = [...result].sort((a, b) => b.price - a.price);
+    } else if (sortBy === "stock") {
+      result = [...result].sort((a, b) => {
+        const stockA = posLocation
+          ? a.inventory.filter(i => i.location_id === posLocation).reduce((sum, i) => sum + i.quantity, 0)
+          : a.inventory.reduce((sum, i) => sum + i.quantity, 0);
+        const stockB = posLocation
+          ? b.inventory.filter(i => i.location_id === posLocation).reduce((sum, i) => sum + i.quantity, 0)
+          : b.inventory.reduce((sum, i) => sum + i.quantity, 0);
+        return stockB - stockA;
+      });
+    }
+
+    return result;
+  }, [products, search, categoryFilter, posLocation, sizeFilter, stockFilter, sortBy]);
+
+  const isAdminOrManager = userRole === "admin" || userRole === "manager";
+  const hasActiveFilters =
+    search !== "" ||
+    categoryFilter !== "" ||
+    (isAdminOrManager && posLocation !== null) ||
+    sizeFilter !== "" ||
+    stockFilter !== "with" ||
+    sortBy !== "name";
 
   // ── Cart operations ────────────────────────────────────────────────────────
 
-  // Obtener la ubicación efectiva para vender (la seleccionada, o la primera disponible)
-  const effectiveLocationId = locationId || (locations.length > 0 ? locations[0].id : null);
+  // Obtener la ubicación efectiva para vender (la seleccionada en POS, o la primera disponible)
+  const effectiveLocationId = posLocation || (locations.length > 0 ? locations[0].id : null);
 
   const getStock = (product: POSProduct): number => {
-    if (locationId) {
-      // Sumar todas las tallas en esta ubicación
+    if (posLocation) {
       return product.inventory
-        .filter((i) => i.location_id === locationId)
+        .filter((i) => i.location_id === posLocation)
         .reduce((sum, i) => sum + (i.quantity || 0), 0);
     }
-    // "Todas las ubicaciones" - sumar stock de todas las tallas y ubicaciones
     return product.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
   };
 
@@ -199,7 +259,7 @@ export default function POSClient({
   const getSizeStock = (product: POSProduct, size: string): number => {
     return product.inventory
       .filter((i) => {
-        if (effectiveLocationId && i.location_id !== effectiveLocationId) return false;
+        if (posLocation && i.location_id !== posLocation) return false;
         if (size && i.size !== size) return false;
         return true;
       })
@@ -427,8 +487,8 @@ export default function POSClient({
       for (const item of cart) {
         let saleLocationId = effectiveLocationId;
 
-        // Si no hay ubicación fija, buscar la ubicación con más stock para esta talla
-        if (!locationId) {
+        // Si no hay ubicación fija en POS, buscar la ubicación con más stock para esta talla
+        if (!posLocation) {
           let autoQuery = supabase
             .from("inventory")
             .select("quantity, location_id")
@@ -523,6 +583,15 @@ export default function POSClient({
     } finally {
       setProcessing(false);
     }
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategoryFilter("");
+    if (isAdminOrManager) setPosLocation(null);
+    setSizeFilter("");
+    setStockFilter("with");
+    setSortBy("name");
   };
 
   const generateTicket = async () => {
@@ -698,64 +767,198 @@ export default function POSClient({
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
         {/* ═══ LEFT COLUMN: Product Grid ═══ */}
         <div className="flex-1 lg:w-[60%] flex flex-col min-w-0 overflow-hidden">
-          {/* Search + category tabs */}
-          <div className="space-y-4 mb-4 flex-shrink-0">
-            {/* Scanner-style search */}
-            <div className="relative">
-              <Scan className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-blue-500" />
-              <input
-                type="text"
-                placeholder="Escanear código de barras o buscar producto..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-                className="w-full pl-14 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl text-base font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400 shadow-sm"
-              />
+          {/* ─── Filter Bar ─── */}
+          <div className="space-y-3 mb-4 flex-shrink-0">
+            {/* ROW 1: Search + Location selector */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Scan className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar producto o SKU..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  autoFocus
+                  className="w-full pl-10 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400 shadow-sm"
+                />
+              </div>
+              {/* Location selector — admin/manager only */}
+              {isAdminOrManager && (
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500 pointer-events-none" />
+                  <select
+                    value={posLocation || ""}
+                    onChange={(e) => setPosLocation(e.target.value || null)}
+                    className="pl-9 pr-8 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700 appearance-none cursor-pointer min-w-[160px] shadow-sm"
+                  >
+                    <option value="">Todas las ubicaciones</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
-          {/* Category pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <button
-              onClick={() => setCategoryFilter("")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
-                !categoryFilter
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                  : "bg-white border-2 border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50"
-              }`}
-            >
-              Todos
-            </button>
-            {categories.map((cat) => (
+            {/* ROW 2: Category pills + product count */}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1">
+                <button
+                  onClick={() => setCategoryFilter("")}
+                  className={`px-3 py-1.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
+                    !categoryFilter
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
+                      : "bg-white border-2 border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50"
+                  }`}
+                >
+                  Todos
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setCategoryFilter(categoryFilter === cat.name ? "" : cat.name)}
+                    className={`px-3 py-1.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
+                      categoryFilter === cat.name
+                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
+                        : "bg-white border-2 border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50"
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-gray-500 font-semibold whitespace-nowrap bg-gray-100 px-2.5 py-1 rounded-lg flex-shrink-0">
+                {filteredProducts.length} productos
+              </span>
+            </div>
+
+            {/* ROW 3: Más filtros toggle */}
+            <div>
               <button
-                key={cat.id}
-                onClick={() =>
-                  setCategoryFilter(
-                    categoryFilter === cat.name ? "" : cat.name
-                  )
-                }
-                className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
-                  categoryFilter === cat.name
-                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                    : "bg-white border-2 border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50"
-                }`}
+                onClick={() => setShowMoreFilters(!showMoreFilters)}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white border-2 border-gray-200 hover:border-gray-300 px-3 py-1.5 rounded-lg transition-all"
               >
-                {cat.name}
+                <SlidersHorizontal className="w-4 h-4" />
+                Más filtros
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showMoreFilters ? "rotate-180" : ""}`} />
               </button>
-            ))}
+            </div>
+
+            {/* Collapsible extra filters */}
+            {showMoreFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <select
+                  value={sizeFilter}
+                  onChange={(e) => setSizeFilter(e.target.value)}
+                  className="px-3 py-2 bg-white border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition appearance-none"
+                >
+                  <option value="">Todas las tallas</option>
+                  {availableSizes.map(size => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <select
+                  value={stockFilter}
+                  onChange={(e) => setStockFilter(e.target.value as "with" | "all" | "low")}
+                  className="px-3 py-2 bg-white border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition appearance-none"
+                >
+                  <option value="with">Con stock</option>
+                  <option value="all">Todos (incl. sin stock)</option>
+                  <option value="low">Stock bajo (≤ 5)</option>
+                </select>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "name" | "price_asc" | "price_desc" | "stock")}
+                  className="px-3 py-2 bg-white border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition appearance-none"
+                >
+                  <option value="name">Nombre A-Z</option>
+                  <option value="price_asc">Precio: menor a mayor</option>
+                  <option value="price_desc">Precio: mayor a menor</option>
+                  <option value="stock">Mayor stock</option>
+                </select>
+              </div>
+            )}
+
+            {/* Active filter chips */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {search && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
+                    🔍 &quot;{search}&quot;
+                    <button onClick={() => setSearch("")} className="ml-0.5 hover:text-blue-900 flex items-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {isAdminOrManager && posLocation && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full border border-purple-200">
+                    📍 {locations.find(l => l.id === posLocation)?.name || posLocation}
+                    <button onClick={() => setPosLocation(null)} className="ml-0.5 hover:text-purple-900 flex items-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {categoryFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-100 text-teal-700 text-xs font-semibold rounded-full border border-teal-200">
+                    {categoryFilter}
+                    <button onClick={() => setCategoryFilter("")} className="ml-0.5 hover:text-teal-900 flex items-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {sizeFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                    Talla: {sizeFilter}
+                    <button onClick={() => setSizeFilter("")} className="ml-0.5 hover:text-green-900 flex items-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {stockFilter !== "with" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full border border-amber-200">
+                    {stockFilter === "all" ? "Todos los stocks" : "Stock bajo"}
+                    <button onClick={() => setStockFilter("with")} className="ml-0.5 hover:text-amber-900 flex items-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {sortBy !== "name" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-200 text-gray-700 text-xs font-semibold rounded-full border border-gray-300">
+                    {sortBy === "price_asc" ? "Precio ↑" : sortBy === "price_desc" ? "Precio ↓" : "Mayor stock"}
+                    <button onClick={() => setSortBy("name")} className="ml-0.5 hover:text-gray-900 flex items-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={clearFilters}
+                  className="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline"
+                >
+                  Limpiar todo
+                </button>
+              </div>
+            )}
           </div>
-        </div>
 
         {/* Products grid */}
         <div className="flex-1 overflow-y-auto pr-1">
           {filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <Package className="w-12 h-12 text-gray-300 mb-3" />
-              <p className="text-sm font-medium text-gray-900">
+            <div className="flex flex-col items-center justify-center h-64 text-center px-4">
+              <PackageSearch className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-900 mb-1">
                 No se encontraron productos
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Intenta con otro término
+              <p className="text-xs text-gray-500 mb-4">
+                Intenta ajustar los filtros de búsqueda
               </p>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 transition"
+                >
+                  Limpiar filtros
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 pb-24 lg:pb-0 pt-3 px-1">
@@ -816,7 +1019,11 @@ export default function POSClient({
                               : "bg-green-100 text-green-700"
                         }`}
                       >
-                        {available}
+                        {available <= 0
+                          ? "✗ Sin stock"
+                          : available <= 5
+                            ? `⚠ Últimas ${available}`
+                            : "✓ En stock"}
                       </span>
                     </div>
 

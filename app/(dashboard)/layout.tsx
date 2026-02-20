@@ -4,7 +4,7 @@ import { getDefaultOrgId } from "@/lib/auth";
 import Sidebar from "@/components/dashboard/Sidebar";
 import TopBar from "@/components/dashboard/TopBar";
 import { DashboardWrapper } from "@/components/dashboard/DashboardWrapper";
-import type { Profile, Location } from "@/lib/types";
+import type { Profile } from "@/lib/types";
 
 export default async function DashboardLayout({
   children,
@@ -35,14 +35,6 @@ export default async function DashboardLayout({
 
   const orgId = (profile.organization_id ?? await getDefaultOrgId()) as string | null;
 
-  // Get all locations for the organization (for admin/manager selector)
-  const { data: locations } = orgId ? await supabase
-    .from("locations")
-    .select("*")
-    .eq("organization_id", orgId)
-    .eq("is_active", true)
-    .order("name") : { data: null };
-
   // Get low stock count for badge
   const LOW_STOCK_THRESHOLD = 10;
   const { data: lowStockItems } = orgId ? await supabase
@@ -59,7 +51,6 @@ export default async function DashboardLayout({
         <Sidebar 
           profile={profile as Profile} 
           lowStockCount={lowStockCount}
-          locations={(locations as Location[]) || []}
         />
 
         <div className="flex-1 flex flex-col min-w-0">

@@ -12,7 +12,6 @@ import {
   TrendingUp,
   Package,
   Eye,
-  FileText,
   X,
   ChevronLeft,
   ChevronRight,
@@ -20,7 +19,6 @@ import {
   QrCode,
   CreditCard,
   RotateCcw,
-  MessageSquare,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -268,31 +266,49 @@ export default function SalesHistoryClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Historial de Ventas</h1>
-            <p className="text-purple-100">
+            <h1 className="text-2xl font-bold mb-1">Historial de Ventas</h1>
+            <p className="text-purple-100 text-sm">
               Registro completo de todas las transacciones
             </p>
           </div>
           <button
             onClick={exportToExcel}
-            className="bg-white text-purple-600 hover:bg-purple-50 font-bold px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+            className="bg-white text-purple-600 hover:bg-purple-50 font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2 text-sm"
           >
-            <Download className="w-5 h-5" />
-            Exportar Todo (Excel)
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Exportar Excel</span>
+            <span className="sm:hidden">📥 Exportar</span>
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
-        {/* Row 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Date Range */}
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <select
+              value={dateRange}
+              onChange={(e) => {
+                setDateRange(e.target.value as DateRange);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-9 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white text-sm font-medium text-gray-700"
+            >
+              <option value="all">📅 Todas las fechas</option>
+              <option value="today">Hoy</option>
+              <option value="week">Últimos 7 días</option>
+              <option value="month">Últimos 30 días</option>
+            </select>
+          </div>
+
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
@@ -300,45 +316,42 @@ export default function SalesHistoryClient({
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Buscar por cliente, ID o producto..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+              placeholder="Buscar cliente o ID..."
+              className="w-full pl-9 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-sm font-medium text-gray-700 placeholder:text-gray-400"
             />
           </div>
 
-          {/* Date Range */}
+          {/* Payment Method */}
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <select
-              value={dateRange}
+              value={paymentFilter}
               onChange={(e) => {
-                setDateRange(e.target.value as DateRange);
+                setPaymentFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
+              className="w-full pl-9 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white text-sm font-medium text-gray-700"
             >
-              <option value="all">Todas las fechas</option>
-              <option value="today">Hoy</option>
-              <option value="week">Últimos 7 días</option>
-              <option value="month">Últimos 30 días</option>
+              <option value="">💳 Todos los pagos</option>
+              <option value="cash">Efectivo</option>
+              <option value="qr">QR</option>
+              <option value="card">Tarjeta</option>
             </select>
           </div>
-        </div>
 
-        {/* Row 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Location — hidden for staff */}
           {!isStaff && (
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <select
                 value={locationFilter}
                 onChange={(e) => {
                   setLocationFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
+                className="w-full pl-9 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white text-sm font-medium text-gray-700"
               >
-                <option value="">Todas las ubicaciones</option>
+                <option value="">📍 Todas las ubicaciones</option>
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
                     {loc.name}
@@ -348,37 +361,19 @@ export default function SalesHistoryClient({
             </div>
           )}
 
-          {/* Payment Method */}
-          <div className="relative">
-            <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              value={paymentFilter}
-              onChange={(e) => {
-                setPaymentFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
-            >
-              <option value="">Todos los métodos</option>
-              <option value="cash">Efectivo</option>
-              <option value="qr">QR</option>
-              <option value="card">Tarjeta</option>
-            </select>
-          </div>
-
           {/* Seller — hidden for staff */}
           {!isStaff && (
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <select
                 value={sellerFilter}
                 onChange={(e) => {
                   setSellerFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white"
+                className="w-full pl-9 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition appearance-none bg-white text-sm font-medium text-gray-700"
               >
-                <option value="">Todos los vendedores</option>
+                <option value="">👤 Todos los vendedores</option>
                 {sellers.map((seller) => (
                   <option key={seller.id} value={seller.id}>
                     {seller.full_name}
@@ -388,14 +383,45 @@ export default function SalesHistoryClient({
             </div>
           )}
 
-          {/* Clear Filters */}
-          <button
-            onClick={clearFilters}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Limpiar filtros
-          </button>
+          {/* When staff: only 3 filters, fill last slot with clear */}
+          {isStaff && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all text-sm"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Limpiar
+            </button>
+          )}
+        </div>
+
+        {/* Clear button for admin/manager (5 filter row) */}
+        {!isStaff && (
+          <div className="mt-3 flex items-center justify-between">
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Limpiar filtros
+            </button>
+          </div>
+        )}
+
+        {/* Summary bar */}
+        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500 font-medium flex-wrap">
+          <span className="bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full font-semibold">
+            {filteredSales.length} {filteredSales.length === 1 ? "venta" : "ventas"}
+          </span>
+          <span>·</span>
+          <span>Total: <span className="font-bold text-gray-700">{formatCurrency(stats.totalSold)}</span></span>
+          <span>·</span>
+          <span>
+            Período:{" "}
+            <span className="font-semibold text-gray-700">
+              {dateRange === "today" ? "Hoy" : dateRange === "week" ? "Últimos 7 días" : dateRange === "month" ? "Últimos 30 días" : "Todos"}
+            </span>
+          </span>
         </div>
       </div>
 
@@ -450,51 +476,47 @@ export default function SalesHistoryClient({
         </div>
       </div>
 
-      {/* Sales Table */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Sales Table — Desktop */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-200">
-                <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
-                  ID
-                </th>
-                <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
+              <tr className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-100">
+                <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
                   Fecha/Hora
                 </th>
-                <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
+                <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
                   Cliente
                 </th>
-                <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
-                  Ubicación
-                </th>
-                <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
-                  Vendedor
-                </th>
-                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
+                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
                   Items
                 </th>
-                <th className="text-right text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
-                  Subtotal
-                </th>
-                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
-                  Descuento
-                </th>
-                <th className="text-right text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
+                {!isStaff && (
+                  <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
+                    Puesto
+                  </th>
+                )}
+                {!isStaff && (
+                  <th className="text-left text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
+                    Vendedor
+                  </th>
+                )}
+                <th className="text-right text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
                   Total
                 </th>
-                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
+                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
                   Pago
                 </th>
-                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-6 py-4">
-                  Acciones
+                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
+                  Ver
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedSales.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center">
+                  <td colSpan={isStaff ? 6 : 8} className="px-6 py-12 text-center">
                     <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       No se encontraron ventas
@@ -512,98 +534,77 @@ export default function SalesHistoryClient({
                     (sum, item) => sum + item.quantity,
                     0
                   );
+                  const sellerFirstName = sale.seller?.full_name?.split(" ")[0] || "—";
 
                   return (
                     <tr
                       key={sale.id}
-                      className="hover:bg-purple-50 transition-all"
+                      onClick={() => setSelectedSale(sale)}
+                      className="hover:bg-purple-50 transition-all cursor-pointer"
                       style={{
                         animation: `fadeIn 0.3s ease-in-out ${index * 0.05}s both`,
                       }}
                     >
-                      <td className="px-6 py-4">
-                        <span className="text-xs font-mono font-semibold text-gray-600">
-                          {sale.id.substring(0, 8).toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-900">
-                          {format(new Date(sale.created_at), "d MMM", {
-                            locale: es,
-                          })}
+                      <td className="px-5 py-3.5">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {format(new Date(sale.created_at), "d MMM", { locale: es })}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {format(new Date(sale.created_at), "HH:mm")}
+                          {format(new Date(sale.created_at), "h:mm a")}
                         </p>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-900">
-                          {sale.customer_name || "Cliente general"}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                          <MapPin className="w-3.5 h-3.5" />
-                          {sale.location?.name || "—"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                            {getInitials(sale.seller?.full_name || "?")}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {sale.seller?.full_name || "—"}
-                            </p>
-                            <p className="text-xs text-gray-500 capitalize">
-                              {sale.seller?.role || "—"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {totalItems}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-medium text-gray-700">
-                          {formatCurrency(sale.subtotal)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {sale.discount > 0 ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                            -{formatCurrency(sale.discount)}
-                          </span>
+                      <td className="px-5 py-3.5">
+                        {sale.customer_name ? (
+                          <p className="text-sm font-medium text-gray-900">{sale.customer_name}</p>
                         ) : (
-                          <span className="text-sm text-gray-400">—</span>
+                          <p className="text-sm italic text-gray-400">Cliente anónimo</p>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-base font-bold text-purple-600">
-                          {formatCurrency(sale.total)}
+                      <td className="px-5 py-3.5 text-center">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                          {totalItems} {totalItems === 1 ? "item" : "items"}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      {!isStaff && (
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
+                            <MapPin className="w-3 h-3 text-gray-400" />
+                            {sale.location?.name || "—"}
+                          </span>
+                        </td>
+                      )}
+                      {!isStaff && (
+                        <td className="px-5 py-3.5">
+                          <p className="text-sm font-medium text-gray-900">{sellerFirstName}</p>
+                        </td>
+                      )}
+                      <td className="px-5 py-3.5 text-right">
+                        <span className="text-base font-bold text-purple-700">
+                          {formatCurrency(sale.total)}
+                        </span>
+                        {sale.discount > 0 && (
+                          <p className="text-xs text-red-500 font-medium">
+                            -{formatCurrency(sale.discount)} dto.
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
                         <div className="flex justify-center">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${paymentColor}`}
                           >
-                            <PayIcon className="w-3.5 h-3.5" />
+                            <PayIcon className="w-3 h-3" />
                             {paymentConfig[sale.payment_method]?.label}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-5 py-3.5">
+                        <div className="flex justify-center">
                           <button
-                            onClick={() => setSelectedSale(sale)}
-                            className="p-2 rounded-lg hover:bg-purple-100 text-purple-600 hover:text-purple-700 transition-colors"
-                            title="Ver detalle"
+                            onClick={(e) => { e.stopPropagation(); setSelectedSale(sale); }}
+                            className="p-1.5 rounded-lg hover:bg-purple-100 text-purple-600 hover:text-purple-700 transition-colors"
                           >
-                            <Eye className="w-5 h-5" />
+                            <Eye className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -613,6 +614,57 @@ export default function SalesHistoryClient({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {paginatedSales.length === 0 ? (
+            <div className="px-4 py-12 text-center">
+              <ShoppingCart className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-900">No se encontraron ventas</p>
+            </div>
+          ) : (
+            paginatedSales.map((sale) => {
+              const PayIcon = paymentConfig[sale.payment_method]?.icon || CreditCard;
+              const paymentColor = paymentConfig[sale.payment_method]?.color || "bg-gray-100 text-gray-700 border-gray-300";
+              const totalItems = sale.sale_items.reduce((sum, item) => sum + item.quantity, 0);
+              return (
+                <div
+                  key={sale.id}
+                  onClick={() => setSelectedSale(sale)}
+                  className="px-4 py-4 hover:bg-purple-50 transition active:bg-purple-100 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {format(new Date(sale.created_at), "d MMM · h:mm a", { locale: es })}
+                      </p>
+                      {sale.customer_name ? (
+                        <p className="text-xs text-gray-600 mt-0.5">{sale.customer_name}</p>
+                      ) : (
+                        <p className="text-xs italic text-gray-400 mt-0.5">Cliente anónimo</p>
+                      )}
+                    </div>
+                    <span className="text-base font-bold text-purple-700">{formatCurrency(sale.total)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                      {totalItems} {totalItems === 1 ? "item" : "items"}
+                    </span>
+                    {!isStaff && sale.location?.name && (
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                        <MapPin className="w-3 h-3" />{sale.location.name}
+                      </span>
+                    )}
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold border ${paymentColor}`}>
+                      <PayIcon className="w-3 h-3" />
+                      {paymentConfig[sale.payment_method]?.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Pagination */}
@@ -729,179 +781,121 @@ export default function SalesHistoryClient({
               </div>
 
               {/* Body */}
-              <div className="p-6 space-y-6">
-                {/* General Info */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Cliente</p>
-                    <p className="text-base font-semibold text-gray-900">
-                      {selectedSale.customer_name || "Cliente general"}
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Ubicación</p>
-                    <p className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      {selectedSale.location?.name || "—"}
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Vendedor</p>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                        {getInitials(selectedSale.seller?.full_name || "?")}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedSale.seller?.full_name || "—"}
-                        </p>
-                        <p className="text-xs text-gray-500 capitalize">
-                          {selectedSale.seller?.role || "—"}
-                        </p>
-                      </div>
+              <div className="p-6 space-y-5">
+                {/* Info row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-start gap-2.5 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
+                    <span className="text-lg">👤</span>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-0.5">Cliente</p>
+                      {selectedSale.customer_name ? (
+                        <p className="text-sm font-semibold text-gray-900">{selectedSale.customer_name}</p>
+                      ) : (
+                        <p className="text-sm italic text-gray-400">Cliente anónimo</p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Método de Pago</p>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const PayIcon =
-                          paymentConfig[selectedSale.payment_method]?.icon ||
-                          CreditCard;
-                        return <PayIcon className="w-5 h-5 text-gray-500" />;
-                      })()}
-                      <p className="text-base font-semibold text-gray-900">
-                        {paymentConfig[selectedSale.payment_method]?.label}
-                      </p>
+                  <div className="flex items-start gap-2.5 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
+                    <span className="text-lg">📍</span>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-0.5">Puesto</p>
+                      <p className="text-sm font-semibold text-gray-900">{selectedSale.location?.name || "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
+                    <span className="text-lg">👷</span>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-0.5">Vendedor</p>
+                      <p className="text-sm font-semibold text-gray-900">{selectedSale.seller?.full_name || "—"}</p>
+                      <p className="text-xs text-gray-400 capitalize">{selectedSale.seller?.role}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
+                    <span className="text-lg">💳</span>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-0.5">Pago</p>
+                      <div className="flex items-center gap-1.5">
+                        {(() => {
+                          const PayIcon = paymentConfig[selectedSale.payment_method]?.icon || CreditCard;
+                          return <PayIcon className="w-4 h-4 text-gray-600" />;
+                        })()}
+                        <p className="text-sm font-semibold text-gray-900">
+                          {paymentConfig[selectedSale.payment_method]?.label}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Products */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    Productos Vendidos
+                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
+                    Productos
                   </h3>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-left text-xs font-semibold text-gray-600 uppercase px-4 py-3">
-                            Producto
-                          </th>
-                          <th className="text-center text-xs font-semibold text-gray-600 uppercase px-4 py-3">
-                            Talla
-                          </th>
-                          <th className="text-center text-xs font-semibold text-gray-600 uppercase px-4 py-3">
-                            Cantidad
-                          </th>
-                          <th className="text-right text-xs font-semibold text-gray-600 uppercase px-4 py-3">
-                            Precio Unit.
-                          </th>
-                          <th className="text-right text-xs font-semibold text-gray-600 uppercase px-4 py-3">
-                            Subtotal
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {selectedSale.sale_items.map((item) => (
-                          <tr key={item.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                                  {item.product.image_url ? (
-                                    <img
-                                      src={item.product.image_url}
-                                      alt={item.product.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <Package className="w-6 h-6 text-gray-400" />
-                                  )}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {item.product.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    SKU: {item.product.sku}
-                                  </p>
-                                  {item.color && (
-                                    <p className="text-xs text-pink-600 font-medium">
-                                      {item.color}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {item.size ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
-                                  {item.size}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-gray-400">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <span className="text-sm font-semibold text-gray-900">
-                                {item.quantity}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <span className="text-sm font-medium text-gray-700">
-                                {formatCurrency(item.unit_price)}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <span className="text-sm font-bold text-gray-900">
-                                {formatCurrency(item.subtotal)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    {/* Totals */}
-                    <div className="bg-gray-50 border-t-2 border-gray-200 px-4 py-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
-                          Subtotal
-                        </span>
-                        <span className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(selectedSale.subtotal)}
-                        </span>
-                      </div>
-
-                      {selectedSale.discount > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-red-700">
-                            Descuento (
-                            {(
-                              (selectedSale.discount / selectedSale.subtotal) *
-                              100
-                            ).toFixed(0)}
-                            %)
-                          </span>
-                          <span className="text-sm font-semibold text-red-700">
-                            -{formatCurrency(selectedSale.discount)}
-                          </span>
+                  <div className="space-y-2">
+                    {selectedSale.sale_items.map((item) => (
+                      <div key={item.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-start gap-3">
+                        <div className="w-12 h-12 bg-white border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {item.product.image_url ? (
+                            <img
+                              src={item.product.image_url}
+                              alt={item.product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Package className="w-6 h-6 text-gray-300" />
+                          )}
                         </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-300">
-                        <span className="text-lg font-bold text-gray-900">
-                          Total
-                        </span>
-                        <span className="text-2xl font-bold text-purple-600">
-                          {formatCurrency(selectedSale.total)}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{item.product.name}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {item.size ? (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                                Talla: {item.size}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">Sin talla</span>
+                            )}
+                            {item.color && (
+                              <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-medium">
+                                {item.color}
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-500">
+                              {item.quantity} ud{item.quantity > 1 ? "s" : ""} · {formatCurrency(item.unit_price)} c/u
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-bold text-gray-900">{formatCurrency(item.subtotal)}</p>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Subtotal</span>
+                    <span className="text-sm font-semibold text-gray-900">{formatCurrency(selectedSale.subtotal)}</span>
+                  </div>
+                  {selectedSale.discount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-red-600 font-medium">
+                        Descuento ({((selectedSale.discount / selectedSale.subtotal) * 100).toFixed(0)}%)
+                      </span>
+                      <span className="text-sm font-semibold text-red-600">
+                        -{formatCurrency(selectedSale.discount)}
+                      </span>
                     </div>
+                  )}
+                  <div className="flex items-center justify-between pt-2 border-t-2 border-gray-200">
+                    <span className="text-lg font-bold text-gray-900">Total</span>
+                    <span className="text-2xl font-bold text-purple-600">{formatCurrency(selectedSale.total)}</span>
                   </div>
                 </div>
               </div>

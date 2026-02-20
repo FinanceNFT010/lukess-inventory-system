@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import type { Profile, Location } from "@/lib/types";
-import { useLocation } from "@/lib/context/LocationContext";
+import type { Profile } from "@/lib/types";
 import {
   Home,
   Package,
@@ -16,7 +15,6 @@ import {
   Menu,
   Store,
   X,
-  MapPin,
   Users,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -108,7 +106,6 @@ const roleLabels: Record<string, string> = {
 interface SidebarProps {
   profile: Profile;
   lowStockCount?: number;
-  locations: Location[];
 }
 
 function getInitials(name: string): string {
@@ -120,12 +117,11 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export default function Sidebar({ profile, lowStockCount = 0, locations }: SidebarProps) {
+export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { selectedLocationId, setSelectedLocationId } = useLocation();
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -313,50 +309,6 @@ export default function Sidebar({ profile, lowStockCount = 0, locations }: Sideb
           ) : (
             <div className="w-11 h-11 bg-blue-600 rounded-full flex items-center justify-center mx-auto text-white font-bold text-sm shadow-lg">
               {initials}
-            </div>
-          )}
-
-          {/* Location Selector */}
-          {(profile.role === "admin" || profile.role === "manager") && locations.length > 0 && (
-            <div className="mt-3">
-              {!collapsed ? (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-3">
-                    Filtrar por ubicación
-                  </label>
-                  <select
-                    value={selectedLocationId || ""}
-                    onChange={async (e) => {
-                      const newLocationId = e.target.value || null;
-                      setSelectedLocationId(newLocationId);
-
-                      const supabase = createClient();
-                      await supabase
-                        .from("profiles")
-                        .update({ location_id: newLocationId })
-                        .eq("id", profile.id);
-
-                      router.refresh();
-                    }}
-                    className="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                  >
-                    <option value="">Todas las ubicaciones</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setCollapsed(false)}
-                  className="w-full p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Filtrar ubicación"
-                >
-                  <MapPin className="w-5 h-5 text-gray-400 mx-auto" />
-                </button>
-              )}
             </div>
           )}
 

@@ -64,6 +64,7 @@
 - Bloque 1e — POS con selector de talla, fix historial ventas, fix duplicate key editar producto
 - Bloque 1e-III — Staff sin location bloqueado en /ventas y /ventas/historial; audit log mejorado con stock changes estructurados, confirmación previa al guardar, y display con badge verde/rojo + banner warning
 - Bloque 1e-IV-a — Fix audit log: muestra solo cambios reales de stock (usa stock_edit_summary precalculado); reemplazado window.confirm con modal inline mobile-friendly
+- Bloque 1e-IV — POS filtros mejorados (búsqueda + selector ubicación admin/manager + pills categoría + Más filtros collapsible + chips activos); historial ventas mejorado (tabla más limpia + modal con tarjetas producto + filtros en fila + barra resumen); selector ubicación eliminado del sidebar
 
 ## Estado RBAC actual
 - admin@lukesshome.com → admin → acceso total
@@ -85,6 +86,9 @@
 7     → WhatsApp Business API
 8     → Reportes online vs físico
 9     → GA4 + SEO + pulido landing
+
+## Bugs pendientes
+(ninguno)
 
 ## Notas importantes
 - Un solo Supabase para ambos proyectos
