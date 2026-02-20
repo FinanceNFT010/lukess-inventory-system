@@ -10,9 +10,13 @@ import {
   X,
   PackageSearch,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import type { OrderWithItems, OrderStatus } from "@/lib/types";
 import { ORDER_STATUS_CONFIG } from "@/lib/types";
+import { updateOrderStatus } from "./actions";
+import OrderDetailModal from "./order-detail-modal";
 
 interface PedidosClientProps {
   initialOrders: OrderWithItems[];
@@ -89,11 +93,18 @@ function sortOrders(orders: OrderWithItems[], status: "all" | OrderStatus): Orde
 
 export default function PedidosClient({
   initialOrders,
+  userRole,
 }: PedidosClientProps) {
+  const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
   const [activeTab, setActiveTab] = useState<"all" | OrderStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const canChangeStatus = userRole === "admin" || userRole === "manager";
 
   const hasActiveFilters =
     searchQuery !== "" || dateFilter !== "all" || paymentFilter !== "all";
@@ -104,17 +115,42 @@ export default function PedidosClient({
     setPaymentFilter("all");
   };
 
-  // Stats
+  const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+    setSelectedOrder((prev) =>
+      prev?.id === orderId ? { ...prev, status: newStatus } : prev
+    );
+  };
+
+  const handleQuickConfirm = async (orderId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmingId(orderId);
+    try {
+      const result = await updateOrderStatus(orderId, "confirmed");
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Pedido confirmado");
+        handleStatusChange(orderId, "confirmed");
+      }
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  // Stats (based on live orders state)
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const pendingCount = initialOrders.filter((o) => o.status === "pending").length;
-  const confirmedCount = initialOrders.filter((o) => o.status === "confirmed").length;
-  const todayCount = initialOrders.filter(
+  const pendingCount = orders.filter((o) => o.status === "pending").length;
+  const confirmedCount = orders.filter((o) => o.status === "confirmed").length;
+  const todayCount = orders.filter(
     (o) => new Date(o.created_at) >= startOfToday
   ).length;
-  const monthRevenue = initialOrders
+  const monthRevenue = orders
     .filter(
       (o) =>
         o.status === "completed" && new Date(o.created_at) >= startOfMonth
@@ -123,14 +159,12 @@ export default function PedidosClient({
 
   // Filtered orders
   const filteredOrders = useMemo(() => {
-    let result = [...initialOrders];
+    let result = [...orders];
 
-    // Status tab
     if (activeTab !== "all") {
       result = result.filter((o) => o.status === activeTab);
     }
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(
@@ -141,7 +175,6 @@ export default function PedidosClient({
       );
     }
 
-    // Date filter
     if (dateFilter !== "all") {
       const cutoff =
         dateFilter === "today"
@@ -152,7 +185,6 @@ export default function PedidosClient({
       result = result.filter((o) => new Date(o.created_at) >= cutoff);
     }
 
-    // Payment filter
     if (paymentFilter !== "all") {
       const paymentMap: Record<PaymentFilter, string[]> = {
         all: [],
@@ -167,11 +199,11 @@ export default function PedidosClient({
     }
 
     return sortOrders(result, activeTab);
-  }, [initialOrders, activeTab, searchQuery, dateFilter, paymentFilter]);
+  }, [orders, activeTab, searchQuery, dateFilter, paymentFilter]);
 
-  // Tab counts (only apply search+date+payment, not tab itself)
+  // Tab counts (apply search+date+payment, not tab itself)
   const tabCounts = useMemo(() => {
-    const base = initialOrders.filter((o) => {
+    const base = orders.filter((o) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         if (
@@ -212,7 +244,7 @@ export default function PedidosClient({
       completed: base.filter((o) => o.status === "completed").length,
       cancelled: base.filter((o) => o.status === "cancelled").length,
     };
-  }, [initialOrders, searchQuery, dateFilter, paymentFilter]);
+  }, [orders, searchQuery, dateFilter, paymentFilter]);
 
   return (
     <div className="space-y-6">
@@ -281,7 +313,6 @@ export default function PedidosClient({
       {/* Filter Bar */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <div className="flex flex-col lg:flex-row gap-3">
-          {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -301,7 +332,6 @@ export default function PedidosClient({
             )}
           </div>
 
-          {/* Date filter */}
           <select
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value as DateFilter)}
@@ -313,7 +343,6 @@ export default function PedidosClient({
             <option value="30days">Últimos 30 días</option>
           </select>
 
-          {/* Payment filter */}
           <select
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value as PaymentFilter)}
@@ -325,7 +354,6 @@ export default function PedidosClient({
             <option value="tarjeta">Tarjeta</option>
           </select>
 
-          {/* Clear button */}
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
@@ -337,7 +365,6 @@ export default function PedidosClient({
           )}
         </div>
 
-        {/* Active filter chips */}
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2">
             {searchQuery && (
@@ -456,6 +483,7 @@ export default function PedidosClient({
               const isPending = order.status === "pending";
               const itemsCount = order.order_items?.length ?? 0;
               const itemsSummary = getItemsSummary(order);
+              const isConfirming = confirmingId === order.id;
 
               return (
                 <div
@@ -466,7 +494,7 @@ export default function PedidosClient({
                   `}
                 >
                   <div className="p-4">
-                    {/* Top row: status badge + order id + time */}
+                    {/* Top row */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
@@ -512,14 +540,37 @@ export default function PedidosClient({
                       <span className="text-gray-500">{itemsSummary}</span>
                     </p>
 
-                    {/* Bottom row: total + action */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    {/* Bottom row */}
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
                       <span className="text-lg font-bold text-gray-900">
                         Bs {formatCurrency(order.total)}
                       </span>
-                      <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity">
-                        Ver detalle →
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Quick confirm button for pending orders */}
+                        {isPending && canChangeStatus && (
+                          <button
+                            onClick={(e) => handleQuickConfirm(order.id, e)}
+                            disabled={isConfirming}
+                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {isConfirming ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <span>✅</span>
+                            )}
+                            Confirmar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setIsModalOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+                        >
+                          Ver detalle →
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -528,6 +579,15 @@ export default function PedidosClient({
           )}
         </div>
       </div>
+
+      {/* Order Detail Modal */}
+      <OrderDetailModal
+        order={selectedOrder}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onStatusChange={handleStatusChange}
+        userRole={userRole as "admin" | "manager" | "staff"}
+      />
     </div>
   );
 }
