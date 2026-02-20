@@ -34,6 +34,7 @@ import {
 interface InventoryItem {
   id: string;
   quantity: number;
+  reserved_qty: number;
   min_stock: number;
   location_id: string;
   size: string;
@@ -1050,22 +1051,28 @@ export default function InventoryClient({
                                         location_id: locId,
                                         location_name: (inv.locations as any)?.name || "Ubicación desconocida",
                                         quantity: 0,
+                                        reserved_qty: 0,
                                         min_stock: inv.min_stock,
                                         inventories: []
                                       };
                                     }
                                     acc[locId].quantity += inv.quantity;
+                                    acc[locId].reserved_qty += (inv.reserved_qty || 0);
                                     acc[locId].inventories.push(inv);
                                     return acc;
                                   }, {} as Record<string, any>);
 
                                   return Object.values(groupedInventory).map((groupedInv: any, locIdx: number) => {
                                     const locationStock = groupedInv.quantity;
+                                    const locationReserved = groupedInv.reserved_qty as number;
+                                    const locationAvailable = Math.max(0, locationStock - locationReserved);
                                     
                                     // Agrupar por talla desde los datos reales de inventory
-                                    const sizeDistribution = groupedInv.inventories.reduce((acc: Record<string, number>, inv: InventoryItem) => {
+                                    const sizeDistribution = groupedInv.inventories.reduce((acc: Record<string, { qty: number; reserved: number }>, inv: InventoryItem) => {
                                       const size = inv.size || 'Única';
-                                      acc[size] = (acc[size] || 0) + inv.quantity;
+                                      if (!acc[size]) acc[size] = { qty: 0, reserved: 0 };
+                                      acc[size].qty += inv.quantity;
+                                      acc[size].reserved += (inv.reserved_qty || 0);
                                       return acc;
                                     }, {});
 
@@ -1089,10 +1096,24 @@ export default function InventoryClient({
                                               </p>
                                             </div>
                                           </div>
-                                          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md">
-                                            <Package className="w-4 h-4" />
-                                            {locationStock} {locationStock === 1 ? 'unidad' : 'unidades'}
-                                          </span>
+                                          <div className="flex items-center gap-2">
+                                            {locationReserved > 0 && (
+                                              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                                🔒 {locationReserved} reservado
+                                              </span>
+                                            )}
+                                            <div className="text-right">
+                                              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md">
+                                                <Package className="w-4 h-4" />
+                                                {locationStock} total
+                                              </span>
+                                              {locationReserved > 0 && (
+                                                <p className="text-xs font-semibold text-green-600 mt-1 text-right">
+                                                  ✓ {locationAvailable} disponible
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
                                         </div>
 
                                         {/* Distribución por tallas */}
@@ -1102,33 +1123,44 @@ export default function InventoryClient({
                                               Distribución por Tallas:
                                             </p>
                                             <div className="flex flex-wrap gap-3">
-                                              {Object.entries(sizeDistribution).map(([size, qty]) => {
+                                              {Object.entries(sizeDistribution).map(([size, { qty, reserved }]) => {
+                                                const available = Math.max(0, qty - reserved);
                                                 const isZero = qty === 0;
+                                                const hasReservation = reserved > 0;
                                                 return (
                                                   <div
                                                     key={`${product.id}-${groupedInv.location_id}-${size}`}
-                                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+                                                    className={`inline-flex flex-col items-center gap-1 px-4 py-2.5 rounded-lg border-2 transition-all ${
                                                       isZero
                                                         ? 'bg-gray-100 border-gray-300 opacity-60'
-                                                        : qty < 3
+                                                        : available < 2
                                                         ? 'bg-yellow-50 border-yellow-400 hover:bg-yellow-100 hover:shadow-md'
                                                         : 'bg-green-50 border-green-400 hover:bg-green-100 hover:shadow-md'
                                                     }`}
                                                   >
-                                                    <span className={`text-sm font-bold ${
-                                                      isZero ? 'text-gray-500 line-through' : 'text-gray-800'
-                                                    }`}>
-                                                      Talla {size}
-                                                    </span>
-                                                    <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 rounded-full text-sm font-bold shadow-sm ${
-                                                      isZero
-                                                        ? 'bg-gray-400 text-white'
-                                                        : qty < 3
-                                                        ? 'bg-yellow-600 text-white'
-                                                        : 'bg-green-600 text-white'
-                                                    }`}>
-                                                      {qty}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                      <span className={`text-sm font-bold ${
+                                                        isZero ? 'text-gray-500 line-through' : 'text-gray-800'
+                                                      }`}>
+                                                        Talla {size}
+                                                      </span>
+                                                      <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 rounded-full text-sm font-bold shadow-sm ${
+                                                        isZero
+                                                          ? 'bg-gray-400 text-white'
+                                                          : available < 2
+                                                          ? 'bg-yellow-600 text-white'
+                                                          : 'bg-green-600 text-white'
+                                                      }`}>
+                                                        {qty}
+                                                      </span>
+                                                    </div>
+                                                    {hasReservation && (
+                                                      <div className="flex items-center gap-1">
+                                                        <span className="text-xs text-amber-600 font-medium">
+                                                          🔒{reserved} · ✓{available} disp.
+                                                        </span>
+                                                      </div>
+                                                    )}
                                                   </div>
                                                 );
                                               })}

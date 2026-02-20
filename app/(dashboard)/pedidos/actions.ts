@@ -7,7 +7,8 @@ import type { OrderStatus } from '@/lib/types'
 export async function updateOrderStatus(
   orderId: string,
   newStatus: OrderStatus,
-  internalNote?: string
+  internalNote?: string,
+  fulfillmentNotes?: string
 ) {
   try {
     const supabase = await createClient()
@@ -32,6 +33,10 @@ export async function updateOrderStatus(
 
     if (internalNote?.trim()) {
       updateData.internal_notes = internalNote.trim()
+    }
+
+    if (fulfillmentNotes?.trim()) {
+      updateData.fulfillment_notes = fulfillmentNotes.trim()
     }
 
     const { error } = await supabase

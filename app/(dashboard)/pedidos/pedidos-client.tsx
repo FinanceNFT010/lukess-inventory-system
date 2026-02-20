@@ -11,6 +11,8 @@ import {
   PackageSearch,
   RefreshCw,
   Loader2,
+  Package,
+  MapPin,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type { OrderWithItems, OrderStatus } from "@/lib/types";
@@ -18,6 +20,19 @@ import { ORDER_STATUS_CONFIG } from "@/lib/types";
 import { updateOrderStatus } from "./actions";
 import OrderDetailModal from "./order-detail-modal";
 import { createClient } from "@/lib/supabase/client";
+
+// ── Tipos para el modal de confirmación ──────────────────────────────────────
+
+interface ReservationWithDetails {
+  id: string;
+  location_id: string;
+  location_name: string;
+  product_id: string;
+  product_name: string;
+  size: string | null;
+  quantity: number;
+  status: string;
+}
 
 interface PedidosClientProps {
   initialOrders: OrderWithItems[];
@@ -105,7 +120,79 @@ export default function PedidosClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
+  // Estado del modal de confirmación con reservas
+  const [confirmModalOrder, setConfirmModalOrder] = useState<OrderWithItems | null>(null);
+  const [reservations, setReservations] = useState<ReservationWithDetails[]>([]);
+  const [loadingReservations, setLoadingReservations] = useState(false);
+  const [fulfillmentNotes, setFulfillmentNotes] = useState("");
+
   const canChangeStatus = userRole === "admin" || userRole === "manager";
+
+  // Abre el modal de confirmación y carga las reservas para el pedido
+  const openConfirmModal = async (order: OrderWithItems) => {
+    setConfirmModalOrder(order);
+    setFulfillmentNotes("");
+    setLoadingReservations(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("inventory_reservations")
+        .select(`
+          id, location_id, product_id, size, quantity, status,
+          locations:location_id ( name ),
+          products:product_id ( name )
+        `)
+        .eq("order_id", order.id)
+        .in("status", ["reserved", "confirmed"]);
+
+      if (error) throw error;
+
+      const mapped: ReservationWithDetails[] = (data ?? []).map((r) => ({
+        id: r.id,
+        location_id: r.location_id,
+        location_name: (r.locations as { name: string } | null)?.name ?? "Ubicación",
+        product_id: r.product_id,
+        product_name: (r.products as { name: string } | null)?.name ?? "Producto",
+        size: r.size,
+        quantity: r.quantity,
+        status: r.status,
+      }));
+      setReservations(mapped);
+    } catch (err) {
+      console.error("Error cargando reservas:", err);
+      setReservations([]);
+    } finally {
+      setLoadingReservations(false);
+    }
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModalOrder(null);
+    setReservations([]);
+    setFulfillmentNotes("");
+  };
+
+  const handleConfirmOrder = async () => {
+    if (!confirmModalOrder) return;
+    setConfirmingId(confirmModalOrder.id);
+    try {
+      const result = await updateOrderStatus(
+        confirmModalOrder.id,
+        "confirmed",
+        undefined,
+        fulfillmentNotes
+      );
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Pedido confirmado");
+        handleStatusChange(confirmModalOrder.id, "confirmed");
+        closeConfirmModal();
+      }
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   // Realtime subscription — new orders appear at top without page reload
   useEffect(() => {
@@ -176,19 +263,24 @@ export default function PedidosClient({
   };
 
   const handleQuickAction = async (
-    orderId: string,
+    order: OrderWithItems,
     newStatus: OrderStatus,
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
-    setConfirmingId(orderId);
+    // Para confirmar un pedido pendiente → abrir modal con reservas
+    if (newStatus === "confirmed" && order.status === "pending") {
+      openConfirmModal(order);
+      return;
+    }
+    setConfirmingId(order.id);
     try {
-      const result = await updateOrderStatus(orderId, newStatus);
+      const result = await updateOrderStatus(order.id, newStatus);
       if (result.error) {
         toast.error(result.error);
       } else {
         toast.success(QUICK_ACTION_MESSAGES[newStatus] ?? "Estado actualizado");
-        handleStatusChange(orderId, newStatus);
+        handleStatusChange(order.id, newStatus);
       }
     } finally {
       setConfirmingId(null);
@@ -605,7 +697,7 @@ export default function PedidosClient({
                         {/* Quick action button for non-terminal orders */}
                         {quickAction && canChangeStatus && (
                           <button
-                            onClick={(e) => handleQuickAction(order.id, quickAction.nextStatus, e)}
+                            onClick={(e) => handleQuickAction(order, quickAction.nextStatus, e)}
                             disabled={isConfirming}
                             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                           >
@@ -644,6 +736,176 @@ export default function PedidosClient({
         onStatusChange={handleStatusChange}
         userRole={userRole as "admin" | "manager" | "staff"}
       />
+
+      {/* ── Modal Confirmar Pago con Stock Reservado ─────────────────────────── */}
+      {confirmModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeConfirmModal}
+          />
+
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 rounded-t-2xl px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  ✅ Confirmar pago
+                </h2>
+                <p className="text-xs text-gray-500 font-mono mt-0.5">
+                  #{confirmModalOrder.id.slice(0, 8).toUpperCase()}
+                </p>
+              </div>
+              <button
+                onClick={closeConfirmModal}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Resumen del pedido */}
+              <div className="flex items-center justify-between bg-blue-50 rounded-xl p-4">
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    👤 {confirmModalOrder.customer_name}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    📱 {confirmModalOrder.customer_phone}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold text-blue-700">
+                    Bs {formatCurrency(confirmModalOrder.total)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {confirmModalOrder.order_items?.length ?? 0} producto(s)
+                  </p>
+                </div>
+              </div>
+
+              {/* Stock reservado */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4 text-green-600" />
+                  <p className="text-sm font-semibold text-gray-800">
+                    Stock reservado automáticamente
+                  </p>
+                </div>
+
+                {loadingReservations ? (
+                  <div className="flex items-center justify-center py-8 text-gray-400">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    <span className="text-sm">Cargando reservas...</span>
+                  </div>
+                ) : reservations.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                    <p className="text-sm text-amber-700 font-medium">
+                      ⚠ Sin reservas activas
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      El inventario se decrementará al completar el pedido usando el stock disponible en ese momento.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Agrupar por producto */}
+                    {Array.from(
+                      reservations.reduce((map, r) => {
+                        const key = r.product_id;
+                        if (!map.has(key)) map.set(key, { name: r.product_name, items: [] });
+                        map.get(key)!.items.push(r);
+                        return map;
+                      }, new Map<string, { name: string; items: ReservationWithDetails[] }>())
+                    ).map(([productId, { name: productName, items }]) => (
+                      <div key={productId} className="border border-gray-200 rounded-xl overflow-hidden">
+                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                          <p className="text-sm font-semibold text-gray-800">
+                            📦 {productName}
+                          </p>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                          {items.map((r) => (
+                            <div
+                              key={r.id}
+                              className="flex items-center justify-between px-4 py-3"
+                            >
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-sm text-gray-700">
+                                  {r.location_name}
+                                </span>
+                                {r.size && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                    Talla {r.size}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                  ← reservado {r.quantity} {r.quantity === 1 ? "ud" : "uds"}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {/* Total por producto */}
+                          <div className="flex items-center justify-between px-4 py-2 bg-green-50">
+                            <span className="text-xs font-semibold text-green-700">
+                              Total reservado
+                            </span>
+                            <span className="text-sm font-bold text-green-700">
+                              {items.reduce((s, r) => s + r.quantity, 0)} unidades ✓
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Notas de preparación */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  📝 Notas de preparación{" "}
+                  <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  value={fulfillmentNotes}
+                  onChange={(e) => setFulfillmentNotes(e.target.value)}
+                  placeholder="Ej: Sacar de Puesto 2, coordinar con almacén..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Acciones */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-2xl px-6 py-4 flex items-center gap-3">
+              <button
+                onClick={closeConfirmModal}
+                disabled={confirmingId === confirmModalOrder.id}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmOrder}
+                disabled={confirmingId === confirmModalOrder.id}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {confirmingId === confirmModalOrder.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "✅ Confirmar pago"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

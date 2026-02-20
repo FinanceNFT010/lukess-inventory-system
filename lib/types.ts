@@ -236,6 +236,7 @@ export type Database = {
           size: string;
           color: string | null;
           quantity: number;
+          reserved_qty: number;
           min_stock: number;
           max_stock: number | null;
           updated_at: string;
@@ -247,6 +248,7 @@ export type Database = {
           size: string;
           color?: string | null;
           quantity?: number;
+          reserved_qty?: number;
           min_stock?: number;
           max_stock?: number | null;
           updated_at?: string;
@@ -258,8 +260,44 @@ export type Database = {
           size?: string;
           color?: string | null;
           quantity?: number;
+          reserved_qty?: number;
           min_stock?: number;
           max_stock?: number | null;
+          updated_at?: string;
+        };
+      };
+      inventory_reservations: {
+        Row: {
+          id: string;
+          order_id: string;
+          product_id: string;
+          location_id: string;
+          size: string | null;
+          quantity: number;
+          status: "reserved" | "confirmed" | "released" | "completed";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          product_id: string;
+          location_id: string;
+          size?: string | null;
+          quantity: number;
+          status?: "reserved" | "confirmed" | "released" | "completed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          product_id?: string;
+          location_id?: string;
+          size?: string | null;
+          quantity?: number;
+          status?: "reserved" | "confirmed" | "released" | "completed";
+          created_at?: string;
           updated_at?: string;
         };
       };
@@ -365,6 +403,10 @@ export type Database = {
           internal_notes: string | null;
           managed_by: string | null;
           canal: "online" | "fisico" | null;
+          fulfillment_location_id: string | null;
+          fulfillment_notes: string | null;
+          reserved_at: string | null;
+          expires_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -384,6 +426,10 @@ export type Database = {
           internal_notes?: string | null;
           managed_by?: string | null;
           canal?: "online" | "fisico" | null;
+          fulfillment_location_id?: string | null;
+          fulfillment_notes?: string | null;
+          reserved_at?: string | null;
+          expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -403,6 +449,10 @@ export type Database = {
           internal_notes?: string | null;
           managed_by?: string | null;
           canal?: "online" | "fisico" | null;
+          fulfillment_location_id?: string | null;
+          fulfillment_notes?: string | null;
+          reserved_at?: string | null;
+          expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -479,6 +529,7 @@ export type AccessRequest = Tables<"access_requests">;
 export type Category = Tables<"categories">;
 export type Product = Tables<"products">;
 export type Inventory = Tables<"inventory">;
+export type InventoryReservation = Tables<"inventory_reservations">;
 export type Sale = Tables<"sales">;
 export type SaleItem = Tables<"sale_items">;
 
