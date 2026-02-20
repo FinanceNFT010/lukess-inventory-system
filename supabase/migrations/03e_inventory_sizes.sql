@@ -48,15 +48,29 @@ CREATE INDEX IF NOT EXISTS idx_sales_canal ON sales(canal);
 CREATE INDEX IF NOT EXISTS idx_orders_canal ON orders(canal);
 
 -- ── PARTE 5: Función + trigger auto-decrement + registro en ventas ────────────
+--
+-- FIX: orders.organization_id puede ser NULL (pedidos desde landing page).
+-- Se resuelve obteniendo organization_id desde el primer producto del pedido.
 
 CREATE OR REPLACE FUNCTION handle_order_confirmation()
 RETURNS TRIGGER AS $$
 DECLARE
   item           RECORD;
   payment_mapped payment_method;
+  v_org_id       UUID;
 BEGIN
   -- Solo actuar cuando el estado cambia A 'confirmed'
   IF NEW.status = 'confirmed' AND OLD.status != 'confirmed' THEN
+
+    -- ── Obtener organization_id: del pedido si existe, sino del primer producto ──
+    v_org_id := COALESCE(
+      NEW.organization_id,
+      (SELECT p.organization_id
+       FROM order_items oi
+       JOIN products p ON p.id = oi.product_id
+       WHERE oi.order_id = NEW.id
+       LIMIT 1)
+    );
 
     -- ── Mapear payment_method (TEXT en orders) al ENUM de sales ──────────────
     payment_mapped := CASE
@@ -119,7 +133,7 @@ BEGIN
         order_id,
         created_at
       ) VALUES (
-        NEW.organization_id,
+        v_org_id,                      -- resuelto desde producto si order.org_id es NULL
         NULL,                          -- pedido online: sin puesto físico
         NEW.managed_by,                -- quién lo gestionó (puede ser NULL)
         NEW.customer_name,
