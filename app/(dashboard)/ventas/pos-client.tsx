@@ -446,6 +446,7 @@ export default function POSClient({
           tax: 0,
           total,
           payment_method: paymentMethod,
+          canal: "fisico" as const,
         })
         .select()
         .single();

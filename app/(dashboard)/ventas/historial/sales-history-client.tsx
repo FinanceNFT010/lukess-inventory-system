@@ -52,8 +52,10 @@ interface Sale {
   tax: number;
   total: number;
   payment_method: "cash" | "qr" | "card";
-  location_id: string;
-  sold_by: string;
+  location_id: string | null;
+  sold_by: string | null;
+  canal: "online" | "fisico" | null;
+  order_id: string | null;
   location: { id: string; name: string } | null;
   seller: { id: string; full_name: string; role: string } | null;
   sale_items: SaleItem[];
@@ -68,6 +70,7 @@ interface SalesHistoryClientProps {
 }
 
 type DateRange = "today" | "week" | "month" | "all";
+type CanalFilter = "all" | "fisico" | "online";
 
 // ── Payment config ───────────────────────────────────────────────────────────
 
@@ -145,6 +148,7 @@ export default function SalesHistoryClient({
   const [locationFilter, setLocationFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [sellerFilter, setSellerFilter] = useState("");
+  const [canalFilter, setCanalFilter] = useState<CanalFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
@@ -192,8 +196,16 @@ export default function SalesHistoryClient({
       filtered = filtered.filter((sale) => sale.sold_by === sellerFilter);
     }
 
+    // Canal filter
+    if (canalFilter !== "all") {
+      filtered = filtered.filter((sale) => {
+        const saleCanal = sale.canal ?? "fisico";
+        return saleCanal === canalFilter;
+      });
+    }
+
     return filtered;
-  }, [sales, searchQuery, dateRange, locationFilter, paymentFilter, sellerFilter]);
+  }, [sales, searchQuery, dateRange, locationFilter, paymentFilter, sellerFilter, canalFilter]);
 
   // ── Statistics ───────────────────────────────────────────────────────────────
 
@@ -232,6 +244,7 @@ export default function SalesHistoryClient({
     setLocationFilter("");
     setPaymentFilter("");
     setSellerFilter("");
+    setCanalFilter("all");
     setCurrentPage(1);
   };
 
@@ -395,7 +408,33 @@ export default function SalesHistoryClient({
           )}
         </div>
 
-        {/* Clear button for admin/manager (5 filter row) */}
+        {/* Canal filter pills — visible for all roles */}
+        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">
+            Canal:
+          </span>
+          {(["all", "fisico", "online"] as CanalFilter[]).map((c) => (
+            <button
+              key={c}
+              onClick={() => { setCanalFilter(c); setCurrentPage(1); }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                canalFilter === c
+                  ? c === "fisico"
+                    ? "bg-blue-600 border-blue-600 text-white shadow-md"
+                    : c === "online"
+                    ? "bg-green-600 border-green-600 text-white shadow-md"
+                    : "bg-purple-600 border-purple-600 text-white shadow-md"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {c === "all" && "Todos"}
+              {c === "fisico" && <><span>🏪</span> Físico</>}
+              {c === "online" && <><span>🌐</span> Online</>}
+            </button>
+          ))}
+        </div>
+
+        {/* Clear button for admin/manager */}
         {!isStaff && (
           <div className="mt-3 flex items-center justify-between">
             <button
@@ -506,6 +545,9 @@ export default function SalesHistoryClient({
                   Total
                 </th>
                 <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
+                  Canal
+                </th>
+                <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
                   Pago
                 </th>
                 <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
@@ -516,7 +558,7 @@ export default function SalesHistoryClient({
             <tbody className="divide-y divide-gray-100">
               {paginatedSales.length === 0 ? (
                 <tr>
-                  <td colSpan={isStaff ? 6 : 8} className="px-6 py-12 text-center">
+                  <td colSpan={isStaff ? 7 : 9} className="px-6 py-12 text-center">
                     <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       No se encontraron ventas
@@ -590,6 +632,19 @@ export default function SalesHistoryClient({
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex justify-center">
+                          {(sale.canal ?? "fisico") === "online" ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
+                              🌐 Online
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-300">
+                              🏪 Físico
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex justify-center">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${paymentColor}`}
                           >
@@ -651,6 +706,15 @@ export default function SalesHistoryClient({
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
                       {totalItems} {totalItems === 1 ? "item" : "items"}
                     </span>
+                    {(sale.canal ?? "fisico") === "online" ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
+                        🌐 Online
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-300">
+                        🏪 Físico
+                      </span>
+                    )}
                     {!isStaff && sale.location?.name && (
                       <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                         <MapPin className="w-3 h-3" />{sale.location.name}

@@ -1,8 +1,8 @@
 # Lukess Inventory System — Active Context
-**Última actualización:** 20/02/2026 — Bloque 2d completado
+**Última actualización:** 20/02/2026 — Bloque 3e-A completado
 
 ## Bloque actual
-**Bloque 3a** — Landing Auth: Schema + modal registro/login
+**Bloque 3e-B** — Landing sync con inventory per-size stock
 
 ## Bloques completados ✅
 - Bloque 0  — Setup .cursor/rules/, memory bank, commands
@@ -26,6 +26,9 @@
                auto-save, botón rápido "Confirmar" en cards pending, update optimista
 - Bloque 2d  — Realtime badge en sidebar: usePendingOrders hook + PendingOrdersBadge component,
                toast "¡Nuevo pedido online!" via CustomEvent, Realtime INSERT en pedidos-list
+- Bloque 3e-A — Canal column (online/fisico) en orders+sales, trigger auto-decrement inventario
+               al confirmar pedido, registro automático en historial ventas, POS canal='fisico',
+               migration 03e_inventory_sizes.sql (inventory YA trackea por talla via columna size)
 
 ## Estado RBAC
 - admin@lukesshome.com        → admin   → acceso total
@@ -41,8 +44,13 @@
 - Tallas: S, M, L, XL (ropa superior) | 38, 40, 42, 44 (pantalones/shorts)
 - sale_items.color y sale_items.size son nullable
 - Audit log solo registra stocks que realmente cambiaron (diff !== 0)
+- inventory.size trackea stock por talla (una fila por product+location+size)
+- sales.sold_by y sales.location_id son nullable (para pedidos online)
+- sales.canal: 'fisico' (POS) | 'online' (pedido confirmado)
+- orders.canal: 'online' por defecto (landing)
 
 ## Bloques pendientes
+3e-B → Landing sync con inventory_sizes per-size stock
 3a  → Landing Auth: Schema + modal registro/login
 3b  → Landing Auth: Wishlist persistente Supabase
 4a  → Checkout: login obligatorio al pagar

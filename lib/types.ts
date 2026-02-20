@@ -267,8 +267,8 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          location_id: string;
-          sold_by: string;
+          location_id: string | null;
+          sold_by: string | null;
           customer_name: string | null;
           subtotal: number;
           discount: number;
@@ -276,13 +276,15 @@ export type Database = {
           total: number;
           payment_method: "cash" | "qr" | "card";
           notes: string | null;
+          canal: "online" | "fisico" | null;
+          order_id: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           organization_id: string;
-          location_id: string;
-          sold_by: string;
+          location_id?: string | null;
+          sold_by?: string | null;
           customer_name?: string | null;
           subtotal: number;
           discount?: number;
@@ -290,13 +292,15 @@ export type Database = {
           total: number;
           payment_method: "cash" | "qr" | "card";
           notes?: string | null;
+          canal?: "online" | "fisico" | null;
+          order_id?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           organization_id?: string;
-          location_id?: string;
-          sold_by?: string;
+          location_id?: string | null;
+          sold_by?: string | null;
           customer_name?: string | null;
           subtotal?: number;
           discount?: number;
@@ -304,6 +308,8 @@ export type Database = {
           total?: number;
           payment_method?: "cash" | "qr" | "card";
           notes?: string | null;
+          canal?: "online" | "fisico" | null;
+          order_id?: string | null;
           created_at?: string;
         };
       };
@@ -358,6 +364,7 @@ export type Database = {
           notes: string | null;
           internal_notes: string | null;
           managed_by: string | null;
+          canal: "online" | "fisico" | null;
           created_at: string;
           updated_at: string;
         };
@@ -376,6 +383,7 @@ export type Database = {
           notes?: string | null;
           internal_notes?: string | null;
           managed_by?: string | null;
+          canal?: "online" | "fisico" | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -394,6 +402,7 @@ export type Database = {
           notes?: string | null;
           internal_notes?: string | null;
           managed_by?: string | null;
+          canal?: "online" | "fisico" | null;
           created_at?: string;
           updated_at?: string;
         };
