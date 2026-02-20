@@ -1,8 +1,8 @@
 # Lukess Inventory System — Active Context
-**Última actualización:** 20/02/2026 — Bloque 2a completado
+**Última actualización:** 20/02/2026 — Bloque 2b completado
 
 ## Bloque actual
-**Bloque 2b** — Pedidos: Página lista + tabs + filtros
+**Bloque 2c** — Pedidos: Modal detalle + cambio de estado
 
 ## Bloques completados ✅
 - Bloque 0  — Setup .cursor/rules/, memory bank, commands
@@ -19,6 +19,8 @@
                    location removido del sidebar
 - Bloque 2a  — Orders schema (CASE B: columnas añadidas), RLS policies,
                8 órdenes demo, Order types en lib/types.ts
+- Bloque 2b  — Página /pedidos: lista con tabs por estado, filtros (búsqueda/fecha/pago),
+               4 stats cards, order cards con border coloreado, badge en sidebar
 
 ## Estado RBAC
 - admin@lukesshome.com        → admin   → acceso total
@@ -36,7 +38,6 @@
 - Audit log solo registra stocks que realmente cambiaron (diff !== 0)
 
 ## Bloques pendientes
-2b  → Pedidos: Página lista + tabs + filtros
 2c  → Pedidos: Modal detalle + cambio de estado
 2d  → Pedidos: Realtime badge en sidebar
 3a  → Landing Auth: Schema + modal registro/login

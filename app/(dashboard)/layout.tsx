@@ -45,12 +45,19 @@ export default async function DashboardLayout({
 
   const lowStockCount = lowStockItems?.length || 0;
 
+  // Get pending orders count for badge
+  const { count: pendingOrdersCount } = await supabase
+    .from("orders")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending");
+
   return (
     <DashboardWrapper>
       <div className="min-h-screen bg-gray-50 flex">
         <Sidebar 
           profile={profile as Profile} 
           lowStockCount={lowStockCount}
+          pendingOrdersCount={pendingOrdersCount ?? 0}
         />
 
         <div className="flex-1 flex flex-col min-w-0">

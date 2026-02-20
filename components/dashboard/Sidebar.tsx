@@ -9,6 +9,7 @@ import {
   Home,
   Package,
   ShoppingCart,
+  ShoppingBag,
   BarChart3,
   LogOut,
   ChevronLeft,
@@ -52,6 +53,13 @@ const navLinks = [
         href: "/ventas/historial",
       },
     ],
+  },
+  {
+    label: "Pedidos",
+    href: "/pedidos",
+    icon: ShoppingBag,
+    color: "orange",
+    roles: ["admin", "manager"],
   },
   {
     label: "Reportes",
@@ -106,6 +114,7 @@ const roleLabels: Record<string, string> = {
 interface SidebarProps {
   profile: Profile;
   lowStockCount?: number;
+  pendingOrdersCount?: number;
 }
 
 function getInitials(name: string): string {
@@ -117,7 +126,7 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
+export default function Sidebar({ profile, lowStockCount = 0, pendingOrdersCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -230,10 +239,11 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
             const Icon = link.icon;
             const active = isActive(link.href);
             const colors = colorMap[link.color];
-            const showBadge = link.href === "/inventario" && lowStockCount > 0;
+            const showLowStockBadge = link.href === "/inventario" && lowStockCount > 0;
+            const showPendingBadge = link.href === "/pedidos" && pendingOrdersCount > 0;
 
             return (
-              <div key={link.href}>
+              <div key={link.href} className="relative">
                 <Link
                   href={link.href}
                   onClick={() => {
@@ -257,12 +267,21 @@ export default function Sidebar({ profile, lowStockCount = 0 }: SidebarProps) {
                   {!collapsed && (
                     <span className="flex-1">{link.label}</span>
                   )}
-                  {!collapsed && showBadge && (
+                  {!collapsed && showLowStockBadge && (
                     <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
                       {lowStockCount}
                     </span>
                   )}
+                  {!collapsed && showPendingBadge && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                      {pendingOrdersCount}
+                    </span>
+                  )}
                 </Link>
+                {/* Red dot badge for collapsed state */}
+                {collapsed && showPendingBadge && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+                )}
 
                 {/* Sub-links */}
                 {!collapsed && link.subLinks && active && (
