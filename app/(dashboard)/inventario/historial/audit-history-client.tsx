@@ -14,6 +14,7 @@ import {
   Calendar,
   Package,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 interface AuditLog {
@@ -433,6 +434,7 @@ export default function AuditHistoryClient({
           type: "stock",
           field: "Stock por Ubicación",
           stockChanges,
+          warning: after.stock_edit_summary?.warning || null,
           important: true
         });
       }
@@ -603,32 +605,47 @@ export default function AuditHistoryClient({
                     </span>
                   </div>
                   <div className="space-y-2">
-                    {change.stockChanges.map((stockChange: any, i: number) => (
-                      <div key={i} className="bg-white rounded-lg p-3 border border-emerald-200">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                      Movimiento de Stock
+                    </p>
+                    {change.stockChanges.map((stockChange: any, i: number) => {
+                      // Support both location_name (new) and location (legacy)
+                      const locationName = stockChange.location_name || stockChange.location;
+                      return (
+                        <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-emerald-200">
+                          <span className="text-sm font-medium text-gray-700">
+                            📍 {locationName}
+                            {stockChange.size && stockChange.size !== "Única"
+                              ? ` · Talla ${stockChange.size}`
+                              : ""}
+                          </span>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-emerald-900">{stockChange.location}</span>
-                            {stockChange.size && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 border border-purple-300">
-                                Talla {stockChange.size}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600 line-through">{stockChange.before} unid.</span>
-                            <span className="text-lg">→</span>
-                            <span className="text-sm font-bold text-emerald-900">{stockChange.after} unid.</span>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                              stockChange.diff > 0 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-red-100 text-red-700'
+                            <span className="text-sm text-gray-400 line-through">
+                              {stockChange.before}
+                            </span>
+                            <span className="text-gray-400">→</span>
+                            <span className={`text-sm font-bold ${
+                              stockChange.diff > 0 ? "text-green-600" : "text-red-600"
                             }`}>
-                              {stockChange.diff > 0 ? '+' : ''}{stockChange.diff}
+                              {stockChange.after}
+                            </span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                              stockChange.diff > 0
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}>
+                              {stockChange.diff > 0 ? `+${stockChange.diff}` : stockChange.diff}
                             </span>
                           </div>
                         </div>
+                      );
+                    })}
+                    {change.warning && (
+                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        <p className="text-xs text-amber-700">{change.warning}</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               );

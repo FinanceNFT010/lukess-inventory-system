@@ -180,6 +180,63 @@ export default function EditProductForm({
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const onSubmit = async (data: any) => {
+    // Build originalInventory from product.inventory for comparison
+    const originalInventory: Record<string, Record<string, number>> = {};
+    if (product.inventory && Array.isArray(product.inventory)) {
+      product.inventory.forEach((inv: any) => {
+        if (!originalInventory[inv.location_id]) {
+          originalInventory[inv.location_id] = {};
+        }
+        const size = inv.size || "Única";
+        originalInventory[inv.location_id][size] =
+          (originalInventory[inv.location_id][size] || 0) + (inv.quantity || 0);
+      });
+    }
+
+    // Compare old vs new stock per location/size
+    const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ["Única"];
+    const stockChanges: {
+      location_name: string;
+      size: string;
+      before: number;
+      after: number;
+      diff: number;
+    }[] = [];
+
+    locations.forEach((loc) => {
+      sizesToUse.forEach((size) => {
+        const oldQty = originalInventory[loc.id]?.[size] ?? 0;
+        const newQty = stockByLocationAndSize[loc.id]?.[size] ?? 0;
+        if (oldQty !== newQty) {
+          stockChanges.push({
+            location_name: loc.name,
+            size,
+            before: oldQty,
+            after: newQty,
+            diff: newQty - oldQty,
+          });
+        }
+      });
+    });
+
+    const totalDiff = stockChanges.reduce((sum, c) => sum + c.diff, 0);
+    let stockWarning: string | null = null;
+    if (totalDiff > 0) {
+      stockWarning = `⚠️ Esta edición agrega ${totalDiff} unidad(es) al stock total`;
+    } else if (totalDiff < 0) {
+      stockWarning = `⚠️ Esta edición elimina ${Math.abs(totalDiff)} unidad(es) del stock total`;
+    }
+
+    // Confirm before saving if total stock changes
+    if (stockChanges.length > 0 && totalDiff !== 0) {
+      const confirmed = window.confirm(
+        totalDiff > 0
+          ? `⚠️ Esta edición agrega ${totalDiff} unidad(es) al stock total.\n\n¿Esto es correcto? (Ej: ingreso de mercadería nueva)`
+          : `⚠️ Esta edición elimina ${Math.abs(totalDiff)} unidad(es) del stock total.\n\n¿Esto es correcto? (Ej: producto dañado o pérdida)`
+      );
+      if (!confirmed) return;
+    }
+
     setSaving(true);
     const supabase = createClient();
 
@@ -286,6 +343,14 @@ export default function EditProductForm({
           sizes: selectedSizes,
           stock_by_location_and_size: stockByLocationAndSize,
           audit_note: auditNote || null,
+          stock_edit_summary: stockChanges.length > 0
+            ? {
+                type: "stock_edit",
+                stock_changes: stockChanges,
+                total_diff: totalDiff,
+                warning: stockWarning,
+              }
+            : null,
         },
         ip_address: null,
       });

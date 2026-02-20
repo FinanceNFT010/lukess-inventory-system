@@ -62,6 +62,7 @@
 - Bloque 1d-I — Middleware protección rutas + sidebar dinámico por rol
 - Bloque 1d-II — Permisos granulares UI + campo puesto en staff (location_id)
 - Bloque 1e — POS con selector de talla, fix historial ventas, fix duplicate key editar producto
+- Bloque 1e-III — Staff sin location bloqueado en /ventas y /ventas/historial; audit log mejorado con stock changes estructurados, confirmación previa al guardar, y display con badge verde/rojo + banner warning
 
 ## Estado RBAC actual
 - admin@lukesshome.com → admin → acceso total
