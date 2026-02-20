@@ -22,6 +22,7 @@ import {
   MapPin,
   TrendingUp,
   ImageIcon,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -43,6 +44,14 @@ const productSchema = z.object({
 });
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+interface StockChange {
+  location_name: string;
+  size: string;
+  before: number;
+  after: number;
+  diff: number;
+}
 
 interface EditProductFormProps {
   product: any;
@@ -84,7 +93,12 @@ export default function EditProductForm({
   const [customSize, setCustomSize] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(product.color || "");
   const [customColorInput, setCustomColorInput] = useState<string>("");
-  
+  const [pendingStockWarning, setPendingStockWarning] = useState<{
+    stockChanges: StockChange[];
+    totalDiff: number;
+    onConfirm: () => void;
+  } | null>(null);
+
   // Stock por ubicación y talla: { locationId: { size: quantity } }
   const [stockByLocationAndSize, setStockByLocationAndSize] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
@@ -179,69 +193,16 @@ export default function EditProductForm({
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  const onSubmit = async (data: any) => {
-    // Build originalInventory from product.inventory for comparison
-    const originalInventory: Record<string, Record<string, number>> = {};
-    if (product.inventory && Array.isArray(product.inventory)) {
-      product.inventory.forEach((inv: any) => {
-        if (!originalInventory[inv.location_id]) {
-          originalInventory[inv.location_id] = {};
-        }
-        const size = inv.size || "Única";
-        originalInventory[inv.location_id][size] =
-          (originalInventory[inv.location_id][size] || 0) + (inv.quantity || 0);
-      });
-    }
-
-    // Compare old vs new stock per location/size
-    const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ["Única"];
-    const stockChanges: {
-      location_name: string;
-      size: string;
-      before: number;
-      after: number;
-      diff: number;
-    }[] = [];
-
-    locations.forEach((loc) => {
-      sizesToUse.forEach((size) => {
-        const oldQty = originalInventory[loc.id]?.[size] ?? 0;
-        const newQty = stockByLocationAndSize[loc.id]?.[size] ?? 0;
-        if (oldQty !== newQty) {
-          stockChanges.push({
-            location_name: loc.name,
-            size,
-            before: oldQty,
-            after: newQty,
-            diff: newQty - oldQty,
-          });
-        }
-      });
-    });
-
-    const totalDiff = stockChanges.reduce((sum, c) => sum + c.diff, 0);
-    let stockWarning: string | null = null;
-    if (totalDiff > 0) {
-      stockWarning = `⚠️ Esta edición agrega ${totalDiff} unidad(es) al stock total`;
-    } else if (totalDiff < 0) {
-      stockWarning = `⚠️ Esta edición elimina ${Math.abs(totalDiff)} unidad(es) del stock total`;
-    }
-
-    // Confirm before saving if total stock changes
-    if (stockChanges.length > 0 && totalDiff !== 0) {
-      const confirmed = window.confirm(
-        totalDiff > 0
-          ? `⚠️ Esta edición agrega ${totalDiff} unidad(es) al stock total.\n\n¿Esto es correcto? (Ej: ingreso de mercadería nueva)`
-          : `⚠️ Esta edición elimina ${Math.abs(totalDiff)} unidad(es) del stock total.\n\n¿Esto es correcto? (Ej: producto dañado o pérdida)`
-      );
-      if (!confirmed) return;
-    }
-
+  const performSave = async (
+    data: any,
+    stockChanges: StockChange[],
+    totalDiff: number,
+    stockWarning: string | null
+  ) => {
     setSaving(true);
     const supabase = createClient();
 
     try {
-      // Obtener usuario actual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error("No se pudo obtener el usuario");
@@ -249,7 +210,6 @@ export default function EditProductForm({
         return;
       }
 
-      // Guardar datos originales para auditoría
       const originalData = {
         sku: product.sku,
         sku_group: product.sku_group,
@@ -264,7 +224,6 @@ export default function EditProductForm({
         sizes: product.sizes,
       };
 
-      // Update product
       const { error: productError } = await supabase
         .from("products")
         .update({
@@ -285,7 +244,6 @@ export default function EditProductForm({
 
       if (productError) throw productError;
 
-      // Actualizar inventory: eliminar tallas obsoletas y upsert las actuales
       const { error: deleteError } = await supabase
         .from("inventory")
         .delete()
@@ -296,12 +254,11 @@ export default function EditProductForm({
         throw deleteError;
       }
 
-      // Crear inventory para cada location y size
       const inventoryInserts: any[] = [];
-      const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ['Única'];
+      const sizesToInsert = selectedSizes.length > 0 ? selectedSizes : ["Única"];
 
       locations.forEach((loc) => {
-        sizesToUse.forEach((size) => {
+        sizesToInsert.forEach((size) => {
           const quantity = stockByLocationAndSize[loc.id]?.[size] || 0;
           inventoryInserts.push({
             product_id: product.id,
@@ -314,14 +271,12 @@ export default function EditProductForm({
         });
       });
 
-      // Usar upsert para evitar duplicate key si el delete no limpió todo
       const { error: inventoryError } = await supabase
         .from("inventory")
         .upsert(inventoryInserts, { onConflict: "product_id,location_id,size,color" });
 
       if (inventoryError) throw inventoryError;
 
-      // Registrar auditoría
       await supabase.from("audit_log").insert({
         organization_id: organizationId,
         user_id: user.id,
@@ -341,16 +296,15 @@ export default function EditProductForm({
           cost: data.cost,
           color: selectedColor,
           sizes: selectedSizes,
-          stock_by_location_and_size: stockByLocationAndSize,
           audit_note: auditNote || null,
-          stock_edit_summary: stockChanges.length > 0
-            ? {
-                type: "stock_edit",
-                stock_changes: stockChanges,
-                total_diff: totalDiff,
-                warning: stockWarning,
-              }
-            : null,
+          ...(stockChanges.length > 0 && {
+            stock_edit_summary: {
+              type: "stock_edit",
+              stock_changes: stockChanges,
+              total_diff: totalDiff,
+              warning: stockWarning,
+            },
+          }),
         },
         ip_address: null,
       });
@@ -364,6 +318,61 @@ export default function EditProductForm({
     } finally {
       setSaving(false);
     }
+  };
+
+  const onSubmit = async (data: any) => {
+    const originalInventory: Record<string, Record<string, number>> = {};
+    if (product.inventory && Array.isArray(product.inventory)) {
+      product.inventory.forEach((inv: any) => {
+        if (!originalInventory[inv.location_id]) {
+          originalInventory[inv.location_id] = {};
+        }
+        const size = inv.size || "Única";
+        originalInventory[inv.location_id][size] =
+          (originalInventory[inv.location_id][size] || 0) + (inv.quantity || 0);
+      });
+    }
+
+    const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ["Única"];
+    const stockChanges: StockChange[] = [];
+
+    locations.forEach((loc) => {
+      sizesToUse.forEach((size) => {
+        const oldQty = originalInventory[loc.id]?.[size] ?? 0;
+        const newQty = stockByLocationAndSize[loc.id]?.[size] ?? 0;
+        if (oldQty !== newQty) {
+          stockChanges.push({
+            location_name: loc.name,
+            size,
+            before: oldQty,
+            after: newQty,
+            diff: newQty - oldQty,
+          });
+        }
+      });
+    });
+
+    const totalDiff = stockChanges.reduce((sum, c) => sum + c.diff, 0);
+    let stockWarning: string | null = null;
+    if (totalDiff > 0) {
+      stockWarning = `Esta edición agrega ${totalDiff} unidad(es) al stock total`;
+    } else if (totalDiff < 0) {
+      stockWarning = `Esta edición elimina ${Math.abs(totalDiff)} unidad(es) del stock total`;
+    }
+
+    if (stockChanges.length > 0 && totalDiff !== 0) {
+      setPendingStockWarning({
+        stockChanges,
+        totalDiff,
+        onConfirm: () => {
+          setPendingStockWarning(null);
+          performSave(data, stockChanges, totalDiff, stockWarning);
+        },
+      });
+      return;
+    }
+
+    performSave(data, stockChanges, totalDiff, stockWarning);
   };
 
   // ── Size handlers ────────────────────────────────────────────────────────────
@@ -916,6 +925,91 @@ export default function EditProductForm({
           </div>
         </form>
       </div>
+
+      {/* Modal de advertencia de cambio de stock */}
+      {pendingStockWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in slide-in-from-bottom-4">
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">
+                  Cambio de stock detectado
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Revisa los movimientos antes de guardar
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+              {pendingStockWarning.stockChanges.map((change) => (
+                <div
+                  key={`${change.location_name}-${change.size}`}
+                  className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5"
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    📍 {change.location_name}
+                    {change.size && change.size !== "Única" ? ` · Talla ${change.size}` : ""}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400 line-through">
+                      {change.before}
+                    </span>
+                    <span className="text-gray-400 text-xs">→</span>
+                    <span className={`text-sm font-bold ${change.diff > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {change.after}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                      change.diff > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}>
+                      {change.diff > 0 ? `+${change.diff}` : `${change.diff}`}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={`flex items-center gap-2 rounded-xl px-4 py-3 mb-5 ${
+              pendingStockWarning.totalDiff > 0
+                ? "bg-amber-50 border border-amber-200"
+                : "bg-red-50 border border-red-200"
+            }`}>
+              <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${
+                pendingStockWarning.totalDiff > 0 ? "text-amber-500" : "text-red-500"
+              }`} />
+              <p className={`text-sm font-medium ${
+                pendingStockWarning.totalDiff > 0 ? "text-amber-700" : "text-red-700"
+              }`}>
+                {pendingStockWarning.totalDiff > 0
+                  ? `Se agregarán ${pendingStockWarning.totalDiff} unidad(es) al stock total. ¿Es correcto? (Ej: ingreso de nueva mercadería)`
+                  : `Se eliminarán ${Math.abs(pendingStockWarning.totalDiff)} unidad(es) del stock total. ¿Es correcto? (Ej: producto dañado o pérdida)`
+                }
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingStockWarning(null)}
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={pendingStockWarning.onConfirm}
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold hover:opacity-90 transition-opacity"
+              >
+                Sí, guardar cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

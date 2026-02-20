@@ -385,57 +385,21 @@ export default function AuditHistoryClient({
         });
       }
 
-      // Cambios en stock por ubicación y talla
-      const beforeStock = before.stock_by_location_and_size || before.stock_by_location || {};
-      const afterStock = after.stock_by_location_and_size || after.stock_by_location || {};
-      const stockChanges: any[] = [];
-      
-      // Si es stock por ubicación y talla
-      if (after.stock_by_location_and_size) {
-        const allLocationIds = new Set([...Object.keys(beforeStock), ...Object.keys(afterStock)]);
-        allLocationIds.forEach((locId) => {
-          const beforeSizes = beforeStock[locId] || {};
-          const afterSizes = afterStock[locId] || {};
-          const allSizes = new Set([...Object.keys(beforeSizes), ...Object.keys(afterSizes)]);
-          
-          allSizes.forEach((size) => {
-            const oldQty = beforeSizes[size] || 0;
-            const newQty = afterSizes[size] || 0;
-            if (oldQty !== newQty) {
-              stockChanges.push({
-                location: locationsMap.get(locId) || locId,
-                size: size,
-                before: oldQty,
-                after: newQty,
-                diff: newQty - oldQty,
-              });
-            }
-          });
-        });
-      } else {
-        // Stock simple por ubicación (legacy)
-        const allLocationIds = new Set([...Object.keys(beforeStock), ...Object.keys(afterStock)]);
-        allLocationIds.forEach((locId) => {
-          const oldQty = beforeStock[locId] || 0;
-          const newQty = afterStock[locId] || 0;
-          if (oldQty !== newQty) {
-            stockChanges.push({
-              location: locationsMap.get(locId) || locId,
-              before: oldQty,
-              after: newQty,
-              diff: newQty - oldQty,
-            });
-          }
-        });
-      }
-
-      if (stockChanges.length > 0) {
+      // Cambios de stock — usar datos precalculados para mostrar solo cambios reales
+      if (after.stock_edit_summary?.stock_changes?.length > 0) {
+        const stockChanges = after.stock_edit_summary.stock_changes.map((sc: any) => ({
+          location: sc.location_name,
+          size: sc.size,
+          before: sc.before,
+          after: sc.after,
+          diff: sc.diff,
+        }));
         changes.push({
           type: "stock",
           field: "Stock por Ubicación",
           stockChanges,
-          warning: after.stock_edit_summary?.warning || null,
-          important: true
+          warning: after.stock_edit_summary.warning || null,
+          important: true,
         });
       }
 
