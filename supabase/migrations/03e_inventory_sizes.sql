@@ -1,8 +1,8 @@
 -- ============================================================================
--- MIGRACIÓN 03e: Canal de venta + auto-decrement en confirmación de pedido
+-- MIGRACIÓN 03e: Canal de venta + auto-decrement al completar pedido
 -- ============================================================================
 -- Fecha: 20/02/2026
--- Bloque: 3e-A
+-- Bloque: 3e-A / Fix 3e-A.2
 --
 -- NOTA DE AUDITORÍA:
 --   La tabla `inventory_sizes` NO es necesaria porque la tabla `inventory`
@@ -47,22 +47,31 @@ CREATE INDEX IF NOT EXISTS idx_sales_order_id ON sales(order_id);
 CREATE INDEX IF NOT EXISTS idx_sales_canal ON sales(canal);
 CREATE INDEX IF NOT EXISTS idx_orders_canal ON orders(canal);
 
--- ── PARTE 5: Función + trigger auto-decrement + registro en ventas ────────────
+-- ── PARTE 5: Función + trigger (fires on 'completed', not 'confirmed') ────────
 --
--- FIX: orders.organization_id puede ser NULL (pedidos desde landing page).
--- Se resuelve obteniendo organization_id desde el primer producto del pedido.
+-- FIX 3e-A.2: Mover decrement + registro a 'completed' para que el admin
+-- pueda confirmar y enviar sin afectar inventario hasta que el pedido termine.
+-- También incluye restore de inventario si un pedido completed se cancela.
+-- También inserta sale_items por cada order_item (para que el modal muestre productos).
 
-CREATE OR REPLACE FUNCTION handle_order_confirmation()
+DROP TRIGGER IF EXISTS trigger_handle_order_confirmation ON orders;
+DROP TRIGGER IF EXISTS handle_order_completion ON orders;
+DROP FUNCTION IF EXISTS handle_order_confirmation();
+DROP FUNCTION IF EXISTS handle_order_completion();
+
+CREATE OR REPLACE FUNCTION handle_order_completion()
 RETURNS TRIGGER AS $$
 DECLARE
   item           RECORD;
   payment_mapped payment_method;
   v_org_id       UUID;
+  v_sale_id      UUID;
 BEGIN
-  -- Solo actuar cuando el estado cambia A 'confirmed'
-  IF NEW.status = 'confirmed' AND OLD.status != 'confirmed' THEN
 
-    -- ── Obtener organization_id: del pedido si existe, sino del primer producto ──
+  -- ── ON COMPLETED: decrement inventory + register in sales ────────────────
+  IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+
+    -- Resolve organization_id from products if order doesn't have it
     v_org_id := COALESCE(
       NEW.organization_id,
       (SELECT p.organization_id
@@ -72,7 +81,7 @@ BEGIN
        LIMIT 1)
     );
 
-    -- ── Mapear payment_method (TEXT en orders) al ENUM de sales ──────────────
+    -- Map payment_method TEXT → ENUM
     payment_mapped := CASE
       WHEN NEW.payment_method ILIKE '%efectivo%' OR NEW.payment_method ILIKE '%cash%'
         THEN 'cash'::payment_method
@@ -81,61 +90,18 @@ BEGIN
       ELSE 'qr'::payment_method
     END;
 
-    -- ── Decrementar inventario por cada ítem del pedido ───────────────────────
-    FOR item IN
-      SELECT oi.product_id, oi.quantity, oi.size
-      FROM order_items oi
-      WHERE oi.order_id = NEW.id
-    LOOP
-      IF item.size IS NOT NULL AND item.size != '' THEN
-        -- Descontar del registro de inventario con esa talla y más stock
-        UPDATE inventory
-        SET quantity   = GREATEST(0, quantity - item.quantity),
-            updated_at = NOW()
-        WHERE id = (
-          SELECT id
-          FROM inventory
-          WHERE product_id = item.product_id
-            AND size       = item.size
-            AND quantity   > 0
-          ORDER BY quantity DESC
-          LIMIT 1
-        );
-      ELSE
-        -- Sin talla: descontar del registro con más stock
-        UPDATE inventory
-        SET quantity   = GREATEST(0, quantity - item.quantity),
-            updated_at = NOW()
-        WHERE id = (
-          SELECT id
-          FROM inventory
-          WHERE product_id = item.product_id
-            AND quantity   > 0
-          ORDER BY quantity DESC
-          LIMIT 1
-        );
-      END IF;
-    END LOOP;
-
-    -- ── Registrar en historial de ventas (solo una vez por pedido) ────────────
+    -- Only create sale record if not already created for this order
     IF NOT EXISTS (SELECT 1 FROM sales WHERE order_id = NEW.id) THEN
+
+      -- Insert one sales header row for the whole order
       INSERT INTO sales (
-        organization_id,
-        location_id,
-        sold_by,
-        customer_name,
-        subtotal,
-        discount,
-        tax,
-        total,
-        payment_method,
-        canal,
-        order_id,
-        created_at
+        organization_id, location_id, sold_by,
+        customer_name, subtotal, discount, tax, total,
+        payment_method, canal, order_id, notes, created_at
       ) VALUES (
-        v_org_id,                      -- resuelto desde producto si order.org_id es NULL
-        NULL,                          -- pedido online: sin puesto físico
-        NEW.managed_by,                -- quién lo gestionó (puede ser NULL)
+        v_org_id,
+        NULL,
+        NEW.managed_by,
         NEW.customer_name,
         NEW.subtotal,
         COALESCE(NEW.discount, 0),
@@ -144,24 +110,82 @@ BEGIN
         payment_mapped,
         'online',
         NEW.id,
+        'Pedido online #' || UPPER(LEFT(NEW.id::text, 8)),
         NOW()
-      );
+      )
+      RETURNING id INTO v_sale_id;
+
+      -- Insert one sale_item per order line (so modal shows products)
+      INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal, size, color, location_id)
+      SELECT v_sale_id, oi.product_id, oi.quantity, oi.unit_price, oi.subtotal,
+             oi.size, oi.color, NULL
+      FROM order_items oi
+      WHERE oi.order_id = NEW.id;
+
     END IF;
 
+    -- Decrement inventory by size for each order item
+    FOR item IN
+      SELECT oi.product_id, oi.quantity, oi.size
+      FROM order_items oi
+      WHERE oi.order_id = NEW.id
+    LOOP
+      IF item.size IS NOT NULL AND item.size != '' THEN
+        UPDATE inventory
+        SET quantity = GREATEST(0, quantity - item.quantity), updated_at = NOW()
+        WHERE id = (
+          SELECT id FROM inventory
+          WHERE product_id = item.product_id AND size = item.size AND quantity > 0
+          ORDER BY quantity DESC LIMIT 1
+        );
+      ELSE
+        UPDATE inventory
+        SET quantity = GREATEST(0, quantity - item.quantity), updated_at = NOW()
+        WHERE id = (
+          SELECT id FROM inventory
+          WHERE product_id = item.product_id AND quantity > 0
+          ORDER BY quantity DESC LIMIT 1
+        );
+      END IF;
+    END LOOP;
+
+  END IF;
+
+  -- ── ON CANCELLED (was completed): restore inventory ──────────────────────
+  IF NEW.status = 'cancelled' AND OLD.status = 'completed' THEN
+    FOR item IN
+      SELECT oi.product_id, oi.quantity, oi.size
+      FROM order_items oi
+      WHERE oi.order_id = NEW.id
+    LOOP
+      IF item.size IS NOT NULL AND item.size != '' THEN
+        UPDATE inventory
+        SET quantity = quantity + item.quantity, updated_at = NOW()
+        WHERE id = (
+          SELECT id FROM inventory
+          WHERE product_id = item.product_id AND size = item.size
+          ORDER BY quantity ASC LIMIT 1
+        );
+      ELSE
+        UPDATE inventory
+        SET quantity = quantity + item.quantity, updated_at = NOW()
+        WHERE id = (
+          SELECT id FROM inventory
+          WHERE product_id = item.product_id
+          ORDER BY quantity ASC LIMIT 1
+        );
+      END IF;
+    END LOOP;
   END IF;
 
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ── Crear trigger ─────────────────────────────────────────────────────────────
-
-DROP TRIGGER IF EXISTS trigger_handle_order_confirmation ON orders;
-
-CREATE TRIGGER trigger_handle_order_confirmation
+CREATE TRIGGER handle_order_completion
   AFTER UPDATE ON orders
   FOR EACH ROW
-  EXECUTE FUNCTION handle_order_confirmation();
+  EXECUTE FUNCTION handle_order_completion();
 
 -- ── PARTE 6: RLS para la columna order_id (usa políticas existentes de sales) ─
 -- No se necesitan políticas adicionales; sales ya tiene RLS activo.
@@ -178,16 +202,18 @@ CREATE TRIGGER trigger_handle_order_confirmation
 --   ORDER BY table_name;
 --
 --   SELECT routine_name FROM information_schema.routines
---   WHERE routine_name = 'handle_order_confirmation';
+--   WHERE routine_name = 'handle_order_completion';
 --
 --   SELECT trigger_name FROM information_schema.triggers
---   WHERE trigger_name = 'trigger_handle_order_confirmation';
+--   WHERE trigger_name = 'handle_order_completion';
 --
 -- ============================================================================
 -- NOTAS:
 --   - inventory YA rastrea stock por talla (columna `size` en tabla inventory)
 --   - El UI de inventario YA muestra desglose por talla desde la tabla inventory
---   - El trigger decrementa inventory.quantity por product_id + size
+--   - El trigger se dispara en 'completed' (no en 'confirmed')
+--   - Inserta 1 fila en sales + 1 fila en sale_items por producto del pedido
+--   - Cancelar un pedido 'completed' restaura el inventario automáticamente
 --   - sold_by y location_id ahora son nullable en sales (para pedidos online)
 --   - Las ventas del POS existentes no se ven afectadas (canal = 'fisico' default)
 -- ============================================================================

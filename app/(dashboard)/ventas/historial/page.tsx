@@ -66,6 +66,14 @@ export default async function SalesHistoryPage() {
         color,
         location_id,
         product:products(id, name, sku, image_url)
+      ),
+      order:orders(
+        id,
+        delivery_method,
+        shipping_cost,
+        shipping_address,
+        shipping_district,
+        payment_method
       )
     `
     )

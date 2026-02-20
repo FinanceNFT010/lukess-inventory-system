@@ -56,9 +56,18 @@ interface Sale {
   sold_by: string | null;
   canal: "online" | "fisico" | null;
   order_id: string | null;
+  notes: string | null;
   location: { id: string; name: string } | null;
   seller: { id: string; full_name: string; role: string } | null;
   sale_items: SaleItem[];
+  order: {
+    id: string;
+    delivery_method: string | null;
+    shipping_cost: number | null;
+    shipping_address: string | null;
+    shipping_district: string | null;
+    payment_method: string | null;
+  } | null;
 }
 
 interface SalesHistoryClientProps {
@@ -846,6 +855,19 @@ export default function SalesHistoryClient({
 
               {/* Body */}
               <div className="p-6 space-y-5">
+                {/* Canal badge */}
+                {(selectedSale.canal ?? "fisico") === "online" && (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                    <span className="text-lg">🌐</span>
+                    <div>
+                      <p className="text-sm font-semibold text-green-800">Pedido Online</p>
+                      {selectedSale.notes && (
+                        <p className="text-xs text-green-600">{selectedSale.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Info row */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-start gap-2.5 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
@@ -864,7 +886,11 @@ export default function SalesHistoryClient({
                     <span className="text-lg">📍</span>
                     <div>
                       <p className="text-xs text-gray-500 mb-0.5">Puesto</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedSale.location?.name || "—"}</p>
+                      {(selectedSale.canal ?? "fisico") === "online" ? (
+                        <p className="text-sm font-semibold text-green-700">🌐 Pedido Online</p>
+                      ) : (
+                        <p className="text-sm font-semibold text-gray-900">{selectedSale.location?.name || "—"}</p>
+                      )}
                     </div>
                   </div>
 
@@ -872,8 +898,14 @@ export default function SalesHistoryClient({
                     <span className="text-lg">👷</span>
                     <div>
                       <p className="text-xs text-gray-500 mb-0.5">Vendedor</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedSale.seller?.full_name || "—"}</p>
-                      <p className="text-xs text-gray-400 capitalize">{selectedSale.seller?.role}</p>
+                      {(selectedSale.canal ?? "fisico") === "online" ? (
+                        <p className="text-sm font-semibold text-gray-700">🤖 Sistema automático</p>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-gray-900">{selectedSale.seller?.full_name || "—"}</p>
+                          <p className="text-xs text-gray-400 capitalize">{selectedSale.seller?.role}</p>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -894,50 +926,87 @@ export default function SalesHistoryClient({
                   </div>
                 </div>
 
+                {/* Delivery info for online orders */}
+                {(selectedSale.canal ?? "fisico") === "online" && selectedSale.order && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+                    <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide">
+                      Información de Entrega
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {selectedSale.order.delivery_method && (
+                        <div>
+                          <p className="text-xs text-blue-600">Método</p>
+                          <p className="font-semibold text-blue-900 capitalize">
+                            {selectedSale.order.delivery_method === "delivery"
+                              ? "📦 Delivery"
+                              : "🏪 Retiro en tienda"}
+                          </p>
+                        </div>
+                      )}
+                      {selectedSale.order.shipping_district && (
+                        <div>
+                          <p className="text-xs text-blue-600">Zona</p>
+                          <p className="font-semibold text-blue-900">{selectedSale.order.shipping_district}</p>
+                        </div>
+                      )}
+                      {selectedSale.order.shipping_address && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-blue-600">Dirección</p>
+                          <p className="font-semibold text-blue-900">{selectedSale.order.shipping_address}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Products */}
                 <div>
                   <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
                     Productos
                   </h3>
                   <div className="space-y-2">
-                    {selectedSale.sale_items.map((item) => (
-                      <div key={item.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-start gap-3">
-                        <div className="w-12 h-12 bg-white border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {item.product.image_url ? (
-                            <img
-                              src={item.product.image_url}
-                              alt={item.product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Package className="w-6 h-6 text-gray-300" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{item.product.name}</p>
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            {item.size ? (
-                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
-                                Talla: {item.size}
-                              </span>
+                    {selectedSale.sale_items.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic text-center py-4">Sin productos registrados</p>
+                    ) : (
+                      selectedSale.sale_items.map((item) => (
+                        <div key={item.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-start gap-3">
+                          <div className="w-12 h-12 bg-white border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {item.product.image_url ? (
+                              <img
+                                src={item.product.image_url}
+                                alt={item.product.name}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
-                              <span className="text-xs text-gray-400">Sin talla</span>
+                              <Package className="w-6 h-6 text-gray-300" />
                             )}
-                            {item.color && (
-                              <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-medium">
-                                {item.color}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{item.product.name}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {item.size ? (
+                                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                                  Talla: {item.size}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">Sin talla</span>
+                              )}
+                              {item.color && (
+                                <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-medium">
+                                  {item.color}
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-500">
+                                {item.quantity} ud{item.quantity > 1 ? "s" : ""} · {formatCurrency(item.unit_price)} c/u
                               </span>
-                            )}
-                            <span className="text-xs text-gray-500">
-                              {item.quantity} ud{item.quantity > 1 ? "s" : ""} · {formatCurrency(item.unit_price)} c/u
-                            </span>
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-bold text-gray-900">{formatCurrency(item.subtotal)}</p>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-gray-900">{formatCurrency(item.subtotal)}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -954,6 +1023,16 @@ export default function SalesHistoryClient({
                       </span>
                       <span className="text-sm font-semibold text-red-600">
                         -{formatCurrency(selectedSale.discount)}
+                      </span>
+                    </div>
+                  )}
+                  {(selectedSale.canal ?? "fisico") === "online" &&
+                    selectedSale.order?.shipping_cost != null &&
+                    Number(selectedSale.order.shipping_cost) > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-blue-600 font-medium">🚚 Envío</span>
+                      <span className="text-sm font-semibold text-blue-600">
+                        +{formatCurrency(Number(selectedSale.order.shipping_cost))}
                       </span>
                     </div>
                   )}
