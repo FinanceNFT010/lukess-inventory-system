@@ -373,15 +373,89 @@ CREATE TRIGGER handle_order_status_change
   FOR EACH ROW
   EXECUTE FUNCTION handle_order_status_change();
 
--- ── Trigger para INSERT (nuevo pedido creado directamente como pending) ────────
--- OLD será NULL en INSERT, pero IS DISTINCT FROM lo maneja correctamente.
-CREATE TRIGGER handle_new_order
-  AFTER INSERT ON orders
-  FOR EACH ROW
-  WHEN (NEW.status = 'pending')
-  EXECUTE FUNCTION handle_order_status_change();
+-- ── NOTA: No se crea trigger para INSERT ─────────────────────────────────────
+-- El checkout de la landing inserta la order Y los order_items en dos
+-- statements separados. Si el trigger INSERT disparara inmediatamente,
+-- no encontraría items en order_items → 0 reservas creadas.
+-- En su lugar, el API route llama a la función RPC reserve_order_inventory()
+-- después de insertar ambos (order + items).
+--
+-- Para los admin que cambian estado a 'pending' desde el dashboard, el
+-- trigger UPDATE (handle_order_status_change) maneja la reserva correctamente.
 
--- ── PARTE 6: Función para cancelar pedidos expirados ─────────────────────────
+-- ── PARTE 6: RPC reserve_order_inventory — llamado desde checkout API ────────
+-- Hace la misma lógica de reserva que el bloque PENDING del trigger,
+-- pero se ejecuta DESPUÉS de que los order_items ya existen.
+
+CREATE OR REPLACE FUNCTION reserve_order_inventory(p_order_id UUID)
+RETURNS VOID AS $$
+DECLARE
+  item            RECORD;
+  v_inventory_row RECORD;
+  v_remaining     INTEGER;
+  v_take          INTEGER;
+BEGIN
+  -- Limpiar reservas previas si existieran
+  FOR v_inventory_row IN
+    SELECT ir.location_id, ir.product_id, ir.size, ir.quantity AS res_qty, i.id AS inv_id
+    FROM inventory_reservations ir
+    JOIN inventory i ON i.product_id = ir.product_id
+      AND i.location_id = ir.location_id
+      AND (ir.size IS NULL OR i.size = ir.size)
+    WHERE ir.order_id = p_order_id AND ir.status IN ('reserved','confirmed')
+  LOOP
+    UPDATE inventory
+      SET reserved_qty = GREATEST(0, reserved_qty - v_inventory_row.res_qty),
+          updated_at   = NOW()
+      WHERE id = v_inventory_row.inv_id;
+  END LOOP;
+  DELETE FROM inventory_reservations WHERE order_id = p_order_id;
+
+  FOR item IN
+    SELECT oi.product_id, oi.quantity, oi.size
+    FROM order_items oi WHERE oi.order_id = p_order_id
+  LOOP
+    v_remaining := item.quantity;
+
+    FOR v_inventory_row IN
+      SELECT i.id, i.location_id, i.quantity,
+             COALESCE(i.reserved_qty, 0) AS reserved_qty,
+             (i.quantity - COALESCE(i.reserved_qty, 0)) AS available
+      FROM inventory i
+      JOIN locations l ON l.id = i.location_id
+      WHERE i.product_id = item.product_id
+        AND (item.size IS NULL OR item.size = '' OR i.size = item.size)
+        AND (i.quantity - COALESCE(i.reserved_qty, 0)) > 0
+      ORDER BY
+        CASE WHEN l.name ILIKE '%bodega%' THEN 1 ELSE 0 END ASC,
+        l.name ASC
+    LOOP
+      IF v_remaining <= 0 THEN EXIT; END IF;
+      v_take := LEAST(v_remaining, v_inventory_row.available);
+
+      UPDATE inventory
+        SET reserved_qty = COALESCE(reserved_qty, 0) + v_take,
+            updated_at   = NOW()
+        WHERE id = v_inventory_row.id;
+
+      INSERT INTO inventory_reservations
+        (order_id, product_id, location_id, size, quantity, status)
+      VALUES
+        (p_order_id, item.product_id, v_inventory_row.location_id,
+         NULLIF(item.size, ''), v_take, 'reserved');
+
+      v_remaining := v_remaining - v_take;
+    END LOOP;
+  END LOOP;
+
+  UPDATE orders
+    SET reserved_at = NOW(),
+        expires_at  = NOW() + INTERVAL '2 hours'
+    WHERE id = p_order_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ── PARTE 7: Función para cancelar pedidos expirados ─────────────────────────
 -- Puede ser llamada por un Edge Function con cron o manualmente.
 
 CREATE OR REPLACE FUNCTION cancel_expired_orders()
