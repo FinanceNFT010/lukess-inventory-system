@@ -163,16 +163,32 @@ export default function PedidosClient({
     );
   };
 
-  const handleQuickConfirm = async (orderId: string, e: React.MouseEvent) => {
+  const QUICK_ACTIONS: Partial<Record<OrderStatus, { nextStatus: OrderStatus; label: string; icon: string }>> = {
+    pending:   { nextStatus: "confirmed",  label: "Confirmar",      icon: "✅" },
+    confirmed: { nextStatus: "shipped",    label: "Marcar enviado", icon: "🚚" },
+    shipped:   { nextStatus: "completed",  label: "Completado",     icon: "🎉" },
+  };
+
+  const QUICK_ACTION_MESSAGES: Partial<Record<OrderStatus, string>> = {
+    confirmed: "Pedido confirmado",
+    shipped:   "Pedido marcado como enviado",
+    completed: "Pedido completado",
+  };
+
+  const handleQuickAction = async (
+    orderId: string,
+    newStatus: OrderStatus,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
     setConfirmingId(orderId);
     try {
-      const result = await updateOrderStatus(orderId, "confirmed");
+      const result = await updateOrderStatus(orderId, newStatus);
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Pedido confirmado");
-        handleStatusChange(orderId, "confirmed");
+        toast.success(QUICK_ACTION_MESSAGES[newStatus] ?? "Estado actualizado");
+        handleStatusChange(orderId, newStatus);
       }
     } finally {
       setConfirmingId(null);
@@ -523,6 +539,7 @@ export default function PedidosClient({
               const itemsCount = order.order_items?.length ?? 0;
               const itemsSummary = getItemsSummary(order);
               const isConfirming = confirmingId === order.id;
+              const quickAction = QUICK_ACTIONS[order.status as OrderStatus];
 
               return (
                 <div
@@ -585,19 +602,19 @@ export default function PedidosClient({
                         Bs {formatCurrency(order.total)}
                       </span>
                       <div className="flex items-center gap-2">
-                        {/* Quick confirm button for pending orders */}
-                        {isPending && canChangeStatus && (
+                        {/* Quick action button for non-terminal orders */}
+                        {quickAction && canChangeStatus && (
                           <button
-                            onClick={(e) => handleQuickConfirm(order.id, e)}
+                            onClick={(e) => handleQuickAction(order.id, quickAction.nextStatus, e)}
                             disabled={isConfirming}
                             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                           >
                             {isConfirming ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
-                              <span>✅</span>
+                              <span>{quickAction.icon}</span>
                             )}
-                            Confirmar
+                            {quickAction.label}
                           </button>
                         )}
                         <button
