@@ -373,6 +373,7 @@ export default function POSClient({
       const supabase = createClient();
 
       // 1. Create sale record
+      console.log("[finalizeSale] Creating sale...", { organizationId, locationId: effectiveLocationId, total });
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .insert({
@@ -390,10 +391,12 @@ export default function POSClient({
         .single();
 
       if (saleError) {
+        console.error("[finalizeSale] Error creating sale:", saleError);
         toast.error(`Error al crear venta: ${saleError.message}`);
         setProcessing(false);
         return;
       }
+      console.log("[finalizeSale] Sale created:", sale.id);
 
       // 2. Create sale items (con talla y ubicación)
       const saleItems = cart.map((item) => ({
@@ -407,15 +410,18 @@ export default function POSClient({
         subtotal: item.product.price * item.quantity,
       }));
 
+      console.log("[finalizeSale] sale_items insert...", saleItems);
       const { error: itemsError } = await supabase
         .from("sale_items")
         .insert(saleItems);
 
       if (itemsError) {
+        console.error("[finalizeSale] Error creating sale_items:", itemsError);
         toast.error(`Error al crear ítems: ${itemsError.message}`);
         setProcessing(false);
         return;
       }
+      console.log("[finalizeSale] sale_items insertados correctamente");
 
       // 3. Actualizar inventario (por talla y ubicación)
       for (const item of cart) {
@@ -444,6 +450,8 @@ export default function POSClient({
           }
         }
 
+        console.log("[finalizeSale] Deducting stock for", item.product.name, "location:", saleLocationId, "qty:", item.quantity, "size:", item.size || null, "color:", item.color || null);
+
         // Obtener cantidad actual
         let fetchQuery = supabase
           .from("inventory")
@@ -461,6 +469,7 @@ export default function POSClient({
         const { data: currentInv, error: fetchError } = await fetchQuery.single();
 
         if (fetchError || !currentInv) {
+          console.error("[finalizeSale] Error fetching inventory for", item.product.name, fetchError);
           throw new Error(`Error al obtener inventario de ${item.product.name}${item.size ? ` (talla ${item.size})` : ""}`);
         }
 
@@ -487,8 +496,12 @@ export default function POSClient({
         const { error: invError } = await updateQuery;
 
         if (invError) {
+          console.error("[finalizeSale] Error updating inventory for", item.product.name, invError);
+          toast.error(`Error al descontar stock de ${item.product.name}`);
           throw new Error(`Error al actualizar inventario de ${item.product.name}${item.size ? ` (talla ${item.size})` : ""}`);
         }
+
+        console.log("[finalizeSale] Stock deducted for", item.product.name, "→ new qty:", newQuantity);
       }
 
       // Show success modal
