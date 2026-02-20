@@ -23,15 +23,23 @@ import { createClient } from "@/lib/supabase/client";
 
 // ── Tipos para el modal de confirmación ──────────────────────────────────────
 
-interface ReservationWithDetails {
-  id: string;
+interface AllocationRow {
   location_id: string;
   location_name: string;
+  inventory_id: string;
+  total_qty: number;
+  total_reserved: number;
+  order_current: number;
+  available: number;
+  edited: number;
+}
+
+interface ProductAllocation {
   product_id: string;
   product_name: string;
   size: string | null;
-  quantity: number;
-  status: string;
+  order_qty: number;
+  rows: AllocationRow[];
 }
 
 interface PedidosClientProps {
@@ -120,62 +128,154 @@ export default function PedidosClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-  // Estado del modal de confirmación con reservas
+  // Estado del modal de confirmación con asignaciones editables
   const [confirmModalOrder, setConfirmModalOrder] = useState<OrderWithItems | null>(null);
-  const [reservations, setReservations] = useState<ReservationWithDetails[]>([]);
-  const [loadingReservations, setLoadingReservations] = useState(false);
+  const [productAllocations, setProductAllocations] = useState<ProductAllocation[]>([]);
+  const [allocationsLoading, setAllocationsLoading] = useState(false);
   const [fulfillmentNotes, setFulfillmentNotes] = useState("");
 
   const canChangeStatus = userRole === "admin" || userRole === "manager";
 
-  // Abre el modal de confirmación y carga las reservas para el pedido
+  // Abre el modal de confirmación y construye asignaciones editables
   const openConfirmModal = async (order: OrderWithItems) => {
     setConfirmModalOrder(order);
     setFulfillmentNotes("");
-    setLoadingReservations(true);
+    setAllocationsLoading(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("inventory_reservations")
-        .select(`
-          id, location_id, product_id, size, quantity, status,
-          locations:location_id ( name ),
-          products:product_id ( name )
-        `)
-        .eq("order_id", order.id)
-        .in("status", ["reserved", "confirmed"]);
+      const productIds = [...new Set((order.order_items ?? []).map((i) => i.product_id))];
 
-      if (error) throw error;
+      const [{ data: invData }, { data: resData }] = await Promise.all([
+        supabase
+          .from("inventory")
+          .select("id, product_id, location_id, size, quantity, reserved_qty, locations:location_id(name)")
+          .in("product_id", productIds),
+        supabase
+          .from("inventory_reservations")
+          .select("product_id, location_id, size, quantity")
+          .eq("order_id", order.id)
+          .in("status", ["reserved", "confirmed"]),
+      ]);
 
-      const mapped: ReservationWithDetails[] = (data ?? []).map((r) => ({
-        id: r.id,
-        location_id: r.location_id,
-        location_name: (r.locations as { name: string } | null)?.name ?? "Ubicación",
-        product_id: r.product_id,
-        product_name: (r.products as { name: string } | null)?.name ?? "Producto",
-        size: r.size,
-        quantity: r.quantity,
-        status: r.status,
-      }));
-      setReservations(mapped);
+      const allocations: ProductAllocation[] = (order.order_items ?? []).map((item) => {
+        const rows: AllocationRow[] = ((invData ?? []) as Array<{
+          id: string; product_id: string; location_id: string; size: string | null;
+          quantity: number; reserved_qty: number | null;
+          locations: { name: string } | null;
+        }>)
+          .filter((inv) => {
+            if (inv.product_id !== item.product_id) return false;
+            if (item.size && item.size !== "" && inv.size !== item.size) return false;
+            return true;
+          })
+          .sort((a, b) => {
+            const aB = a.locations?.name?.toLowerCase().includes("bodega") ? 1 : 0;
+            const bB = b.locations?.name?.toLowerCase().includes("bodega") ? 1 : 0;
+            if (aB !== bB) return aB - bB;
+            return (a.locations?.name ?? "").localeCompare(b.locations?.name ?? "");
+          })
+          .map((inv) => {
+            const orderCurrent =
+              (resData ?? []).find(
+                (r) =>
+                  r.product_id === item.product_id &&
+                  r.location_id === inv.location_id &&
+                  r.size === item.size
+              )?.quantity ?? 0;
+            const totalReserved = inv.reserved_qty ?? 0;
+            const available = Math.max(0, inv.quantity - totalReserved + orderCurrent);
+            return {
+              location_id: inv.location_id,
+              location_name: inv.locations?.name ?? "Ubicación",
+              inventory_id: inv.id,
+              total_qty: inv.quantity,
+              total_reserved: totalReserved,
+              order_current: orderCurrent,
+              available,
+              edited: orderCurrent,
+            };
+          });
+
+        return {
+          product_id: item.product_id,
+          product_name: item.product?.name ?? "Producto",
+          size: item.size,
+          order_qty: item.quantity,
+          rows,
+        };
+      });
+
+      setProductAllocations(allocations);
     } catch (err) {
-      console.error("Error cargando reservas:", err);
-      setReservations([]);
+      console.error("Error cargando asignaciones:", err);
+      setProductAllocations([]);
     } finally {
-      setLoadingReservations(false);
+      setAllocationsLoading(false);
     }
+  };
+
+  const updateAllocation = (prodIdx: number, rowIdx: number, newQty: number) => {
+    setProductAllocations((prev) =>
+      prev.map((prod, pi) => {
+        if (pi !== prodIdx) return prod;
+        return {
+          ...prod,
+          rows: prod.rows.map((row, ri) => {
+            if (ri !== rowIdx) return row;
+            return { ...row, edited: Math.max(0, Math.min(newQty, row.available)) };
+          }),
+        };
+      })
+    );
   };
 
   const closeConfirmModal = () => {
     setConfirmModalOrder(null);
-    setReservations([]);
+    setProductAllocations([]);
     setFulfillmentNotes("");
   };
 
   const handleConfirmOrder = async () => {
     if (!confirmModalOrder) return;
+
+    // Validar que cada producto tenga asignación completa
+    const allValid = productAllocations.every(
+      (prod) => prod.rows.reduce((s, r) => s + r.edited, 0) === prod.order_qty
+    );
+    if (!allValid && productAllocations.length > 0) {
+      toast.error("Revisa la asignación de stock — el total no coincide con el pedido");
+      return;
+    }
+
     setConfirmingId(confirmModalOrder.id);
     try {
+      // Si se editaron las asignaciones, aplicar antes de confirmar
+      const anyChanged = productAllocations.some((prod) =>
+        prod.rows.some((row) => row.edited !== row.order_current)
+      );
+
+      if (anyChanged) {
+        const allocations = productAllocations.flatMap((prod) =>
+          prod.rows
+            .filter((row) => row.edited > 0)
+            .map((row) => ({
+              product_id: prod.product_id,
+              location_id: row.location_id,
+              size: prod.size ?? "",
+              quantity: row.edited,
+            }))
+        );
+        const supabase = createClient();
+        const { error: allocErr } = await supabase.rpc("apply_order_allocation", {
+          p_order_id: confirmModalOrder.id,
+          p_allocations: allocations,
+        });
+        if (allocErr) {
+          toast.error(`Error al reasignar stock: ${allocErr.message}`);
+          return;
+        }
+      }
+
       const result = await updateOrderStatus(
         confirmModalOrder.id,
         "confirmed",
@@ -185,7 +285,7 @@ export default function PedidosClient({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Pedido confirmado");
+        toast.success("Pedido confirmado ✅");
         handleStatusChange(confirmModalOrder.id, "confirmed");
         closeConfirmModal();
       }
@@ -223,6 +323,19 @@ export default function PedidosClient({
               { icon: '🛍️', duration: 4000 }
             )
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        (payload) => {
+          const updated = payload.new as { id: string; status: OrderStatus; [key: string]: unknown }
+          setOrders((prev) =>
+            prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+          )
+          setSelectedOrder((prev) =>
+            prev?.id === updated.id ? { ...prev, ...updated } : prev
+          )
         }
       )
       .subscribe()
@@ -737,175 +850,245 @@ export default function PedidosClient({
         userRole={userRole as "admin" | "manager" | "staff"}
       />
 
-      {/* ── Modal Confirmar Pago con Stock Reservado ─────────────────────────── */}
-      {confirmModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={closeConfirmModal}
-          />
+      {/* ── Modal Confirmar Pago — Asignación editable por puesto ─────────────── */}
+      {confirmModalOrder && (() => {
+        const allValid =
+          productAllocations.length === 0 ||
+          productAllocations.every(
+            (prod) => prod.rows.reduce((s, r) => s + r.edited, 0) === prod.order_qty
+          );
+        const isConfirming = confirmingId === confirmModalOrder.id;
 
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-100 rounded-t-2xl px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  ✅ Confirmar pago
-                </h2>
-                <p className="text-xs text-gray-500 font-mono mt-0.5">
-                  #{confirmModalOrder.id.slice(0, 8).toUpperCase()}
-                </p>
-              </div>
-              <button
-                onClick={closeConfirmModal}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={closeConfirmModal}
+            />
 
-            <div className="px-6 py-5 space-y-5">
-              {/* Resumen del pedido */}
-              <div className="flex items-center justify-between bg-blue-50 rounded-xl p-4">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-100 rounded-t-2xl px-6 py-4 flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-gray-900">
-                    👤 {confirmModalOrder.customer_name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    📱 {confirmModalOrder.customer_phone}
+                  <h2 className="text-lg font-bold text-gray-900">✅ Confirmar pago</h2>
+                  <p className="text-xs text-gray-500 font-mono mt-0.5">
+                    #{confirmModalOrder.id.slice(0, 8).toUpperCase()}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-blue-700">
-                    Bs {formatCurrency(confirmModalOrder.total)}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {confirmModalOrder.order_items?.length ?? 0} producto(s)
-                  </p>
-                </div>
+                <button
+                  onClick={closeConfirmModal}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Stock reservado */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Package className="w-4 h-4 text-green-600" />
-                  <p className="text-sm font-semibold text-gray-800">
-                    Stock reservado automáticamente
-                  </p>
+              <div className="px-6 py-5 space-y-5">
+                {/* Resumen del pedido */}
+                <div className="flex items-center justify-between bg-blue-50 rounded-xl p-4">
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      👤 {confirmModalOrder.customer_name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      📱 {confirmModalOrder.customer_phone}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-blue-700">
+                      Bs {formatCurrency(confirmModalOrder.total)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {confirmModalOrder.order_items?.length ?? 0} producto(s)
+                    </p>
+                  </div>
                 </div>
 
-                {loadingReservations ? (
-                  <div className="flex items-center justify-center py-8 text-gray-400">
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    <span className="text-sm">Cargando reservas...</span>
-                  </div>
-                ) : reservations.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                    <p className="text-sm text-amber-700 font-medium">
-                      ⚠ Sin reservas activas
+                {/* Asignación de stock por puesto */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Package className="w-4 h-4 text-green-600" />
+                    <p className="text-sm font-semibold text-gray-800">
+                      Asignación de stock por puesto
                     </p>
-                    <p className="text-xs text-amber-600 mt-1">
-                      El inventario se decrementará al completar el pedido usando el stock disponible en ese momento.
-                    </p>
+                    <span className="text-xs text-gray-400">(editable)</span>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {/* Agrupar por producto */}
-                    {Array.from(
-                      reservations.reduce((map, r) => {
-                        const key = r.product_id;
-                        if (!map.has(key)) map.set(key, { name: r.product_name, items: [] });
-                        map.get(key)!.items.push(r);
-                        return map;
-                      }, new Map<string, { name: string; items: ReservationWithDetails[] }>())
-                    ).map(([productId, { name: productName, items }]) => (
-                      <div key={productId} className="border border-gray-200 rounded-xl overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                          <p className="text-sm font-semibold text-gray-800">
-                            📦 {productName}
-                          </p>
-                        </div>
-                        <div className="divide-y divide-gray-100">
-                          {items.map((r) => (
-                            <div
-                              key={r.id}
-                              className="flex items-center justify-between px-4 py-3"
-                            >
+
+                  {allocationsLoading ? (
+                    <div className="flex items-center justify-center py-8 text-gray-400">
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      <span className="text-sm">Cargando stock...</span>
+                    </div>
+                  ) : productAllocations.length === 0 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                      <p className="text-sm text-amber-700 font-medium">⚠ Sin stock disponible</p>
+                      <p className="text-xs text-amber-600 mt-1">
+                        No hay inventario registrado para los productos de este pedido.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {productAllocations.map((prod, prodIdx) => {
+                        const assigned = prod.rows.reduce((s, r) => s + r.edited, 0);
+                        const diff = assigned - prod.order_qty;
+                        const prodValid = diff === 0;
+
+                        return (
+                          <div
+                            key={`${prod.product_id}-${prod.size ?? "ns"}`}
+                            className="border border-gray-200 rounded-xl overflow-hidden"
+                          >
+                            {/* Cabecera del producto */}
+                            <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                                <span className="text-sm text-gray-700">
-                                  {r.location_name}
+                                <span className="text-sm font-semibold text-gray-800">
+                                  {prod.product_name}
                                 </span>
-                                {r.size && (
+                                {prod.size && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                    Talla {r.size}
+                                    Talla {prod.size}
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                                  ← reservado {r.quantity} {r.quantity === 1 ? "ud" : "uds"}
-                                </span>
-                              </div>
+                              <span className="text-xs font-medium text-gray-500">
+                                Pedido: {prod.order_qty} ud{prod.order_qty !== 1 ? "s" : ""}
+                              </span>
                             </div>
-                          ))}
-                          {/* Total por producto */}
-                          <div className="flex items-center justify-between px-4 py-2 bg-green-50">
-                            <span className="text-xs font-semibold text-green-700">
-                              Total reservado
-                            </span>
-                            <span className="text-sm font-bold text-green-700">
-                              {items.reduce((s, r) => s + r.quantity, 0)} unidades ✓
-                            </span>
+
+                            {/* Filas de ubicaciones */}
+                            <div className="divide-y divide-gray-100">
+                              {prod.rows.map((row, rowIdx) => {
+                                const isDisabled = row.available === 0 && row.edited === 0;
+                                return (
+                                  <div
+                                    key={row.location_id}
+                                    className={`flex items-center justify-between px-4 py-3 ${isDisabled ? "opacity-40" : ""}`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                      <span className="text-sm text-gray-700 truncate">
+                                        {row.location_name}
+                                      </span>
+                                      <span className="text-xs text-gray-400 flex-shrink-0">
+                                        (disp: {row.available})
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                      <button
+                                        onClick={() =>
+                                          updateAllocation(prodIdx, rowIdx, row.edited - 1)
+                                        }
+                                        disabled={row.edited === 0}
+                                        className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold"
+                                      >
+                                        −
+                                      </button>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={row.available}
+                                        value={row.edited}
+                                        onChange={(e) =>
+                                          updateAllocation(
+                                            prodIdx,
+                                            rowIdx,
+                                            parseInt(e.target.value, 10) || 0
+                                          )
+                                        }
+                                        className="w-14 text-center text-sm font-semibold border border-gray-200 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <button
+                                        onClick={() =>
+                                          updateAllocation(prodIdx, rowIdx, row.edited + 1)
+                                        }
+                                        disabled={row.edited >= row.available}
+                                        className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold"
+                                      >
+                                        +
+                                      </button>
+                                      <span className="text-xs text-gray-400 w-6">uds</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Footer: total asignado */}
+                            <div
+                              className={`flex items-center justify-between px-4 py-2 border-t ${
+                                prodValid
+                                  ? "bg-green-50 border-green-100"
+                                  : "bg-red-50 border-red-100"
+                              }`}
+                            >
+                              <span
+                                className={`text-xs font-semibold ${
+                                  prodValid ? "text-green-700" : "text-red-600"
+                                }`}
+                              >
+                                Total asignado
+                              </span>
+                              <span
+                                className={`text-sm font-bold ${
+                                  prodValid ? "text-green-700" : "text-red-600"
+                                }`}
+                              >
+                                {assigned} / {prod.order_qty}
+                                {prodValid
+                                  ? " ✓"
+                                  : diff > 0
+                                  ? ` — excede en ${diff}`
+                                  : ` — faltan ${Math.abs(diff)}`}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Notas de preparación */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    📝 Notas de preparación{" "}
+                    <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <textarea
+                    value={fulfillmentNotes}
+                    onChange={(e) => setFulfillmentNotes(e.target.value)}
+                    placeholder="Ej: Sacar de Puesto 2, coordinar con almacén..."
+                    rows={3}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  />
+                </div>
               </div>
 
-              {/* Notas de preparación */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  📝 Notas de preparación{" "}
-                  <span className="text-gray-400 font-normal">(opcional)</span>
-                </label>
-                <textarea
-                  value={fulfillmentNotes}
-                  onChange={(e) => setFulfillmentNotes(e.target.value)}
-                  placeholder="Ej: Sacar de Puesto 2, coordinar con almacén..."
-                  rows={3}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                />
+              {/* Acciones */}
+              <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-2xl px-6 py-4 flex items-center gap-3">
+                <button
+                  onClick={closeConfirmModal}
+                  disabled={isConfirming}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmOrder}
+                  disabled={isConfirming || (!allValid && productAllocations.length > 0)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isConfirming ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "✅ Confirmar pago"
+                  )}
+                </button>
               </div>
-            </div>
-
-            {/* Acciones */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-2xl px-6 py-4 flex items-center gap-3">
-              <button
-                onClick={closeConfirmModal}
-                disabled={confirmingId === confirmModalOrder.id}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmOrder}
-                disabled={confirmingId === confirmModalOrder.id}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {confirmingId === confirmModalOrder.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "✅ Confirmar pago"
-                )}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

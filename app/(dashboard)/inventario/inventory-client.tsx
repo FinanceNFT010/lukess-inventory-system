@@ -196,9 +196,12 @@ export default function InventoryClient({
       return matchesSearch && matchesCategory && matchesLocation && matchesLowStock;
     });
 
-    // Helper inline para calcular stock total (evita problemas de hoisting)
+    // Helper inline para calcular disponible (quantity - reserved_qty)
     const calcTotalStock = (product: ProductWithRelations) => {
-      return (product.inventory || []).reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+      return (product.inventory || []).reduce(
+        (sum, inv) => sum + Math.max(0, (inv.quantity || 0) - (inv.reserved_qty || 0)),
+        0
+      );
     };
 
     // Sorting
@@ -247,16 +250,20 @@ export default function InventoryClient({
 
   const getStockForLocation = (product: ProductWithRelations, locId: string) => {
     const inv = product.inventory.find((i) => i.location_id === locId);
-    return inv?.quantity ?? 0;
+    if (!inv) return 0;
+    return Math.max(0, inv.quantity - (inv.reserved_qty ?? 0));
   };
 
   const getTotalStock = (product: ProductWithRelations) => {
-    return product.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+    return product.inventory.reduce(
+      (sum, inv) => sum + Math.max(0, inv.quantity - (inv.reserved_qty ?? 0)),
+      0
+    );
   };
 
   const isLowStock = (product: ProductWithRelations) => {
     return product.inventory.some(
-      (inv) => inv.quantity < inv.min_stock
+      (inv) => Math.max(0, inv.quantity - (inv.reserved_qty ?? 0)) < inv.min_stock
     );
   };
 
@@ -867,7 +874,7 @@ export default function InventoryClient({
                               ) : (
                                 <Package className="w-3.5 h-3.5" />
                               )}
-                              {stock} {stock === 1 ? 'unidad' : 'unidades'}
+                              {stock} {stock === 1 ? 'disponible' : 'disponibles'}
                             </span>
                           </div>
                         </td>

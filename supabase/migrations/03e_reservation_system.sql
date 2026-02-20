@@ -455,7 +455,77 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ── PARTE 7: Función para cancelar pedidos expirados ─────────────────────────
+-- ── PARTE 7: RPC apply_order_allocation — reasigna reservas manualmente ──────
+-- Permite que el admin redistribuya el stock entre puestos desde el modal de
+-- confirmación. Libera las reservas actuales del pedido e inserta las nuevas.
+--
+-- Parámetros:
+--   p_order_id    UUID del pedido
+--   p_allocations JSONB array: [{ product_id, location_id, size, quantity }]
+
+CREATE OR REPLACE FUNCTION apply_order_allocation(
+  p_order_id    UUID,
+  p_allocations JSONB
+)
+RETURNS VOID AS $$
+DECLARE
+  v_alloc RECORD;
+  v_inv_id UUID;
+BEGIN
+  -- Liberar reserved_qty de las reservas activas actuales
+  FOR v_alloc IN
+    SELECT ir.location_id, ir.product_id, ir.size, ir.quantity AS res_qty, i.id AS inv_id
+    FROM inventory_reservations ir
+    JOIN inventory i ON i.product_id = ir.product_id
+      AND i.location_id = ir.location_id
+      AND (ir.size IS NULL OR i.size = ir.size)
+    WHERE ir.order_id = p_order_id AND ir.status IN ('reserved','confirmed')
+  LOOP
+    UPDATE inventory
+      SET reserved_qty = GREATEST(0, reserved_qty - v_alloc.res_qty),
+          updated_at   = NOW()
+      WHERE id = v_alloc.inv_id;
+  END LOOP;
+
+  DELETE FROM inventory_reservations WHERE order_id = p_order_id;
+
+  -- Aplicar nuevas asignaciones
+  FOR v_alloc IN
+    SELECT *
+    FROM jsonb_to_recordset(p_allocations)
+      AS x(product_id UUID, location_id UUID, size TEXT, quantity INTEGER)
+  LOOP
+    IF v_alloc.quantity <= 0 THEN CONTINUE; END IF;
+
+    SELECT i.id INTO v_inv_id
+    FROM inventory i
+    WHERE i.product_id = v_alloc.product_id
+      AND i.location_id = v_alloc.location_id
+      AND (v_alloc.size IS NULL OR v_alloc.size = '' OR i.size = v_alloc.size)
+    LIMIT 1;
+
+    IF v_inv_id IS NOT NULL THEN
+      UPDATE inventory
+        SET reserved_qty = COALESCE(reserved_qty, 0) + v_alloc.quantity,
+            updated_at   = NOW()
+        WHERE id = v_inv_id;
+
+      INSERT INTO inventory_reservations
+        (order_id, product_id, location_id, size, quantity, status)
+      VALUES
+        (p_order_id, v_alloc.product_id, v_alloc.location_id,
+         NULLIF(v_alloc.size, ''), v_alloc.quantity, 'reserved');
+    END IF;
+  END LOOP;
+
+  UPDATE orders
+    SET reserved_at = NOW(),
+        expires_at  = NOW() + INTERVAL '2 hours'
+    WHERE id = p_order_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ── PARTE 8: Función para cancelar pedidos expirados ─────────────────────────
 -- Puede ser llamada por un Edge Function con cron o manualmente.
 
 CREATE OR REPLACE FUNCTION cancel_expired_orders()
