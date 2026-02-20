@@ -440,8 +440,6 @@ export default function POSClient({
           if (item.size) autoQuery = autoQuery.eq("size", item.size);
           if (item.color) {
             autoQuery = autoQuery.eq("color", item.color);
-          } else {
-            autoQuery = autoQuery.is("color", null);
           }
 
           const { data: invOptions } = await autoQuery;
@@ -462,11 +460,9 @@ export default function POSClient({
         if (item.size) fetchQuery = fetchQuery.eq("size", item.size);
         if (item.color) {
           fetchQuery = fetchQuery.eq("color", item.color);
-        } else {
-          fetchQuery = fetchQuery.is("color", null);
         }
 
-        const { data: currentInv, error: fetchError } = await fetchQuery.single();
+        const { data: currentInv, error: fetchError } = await fetchQuery.maybeSingle();
 
         if (fetchError || !currentInv) {
           console.error("[finalizeSale] Error fetching inventory for", item.product.name, fetchError);
@@ -489,8 +485,6 @@ export default function POSClient({
         if (item.size) updateQuery = updateQuery.eq("size", item.size);
         if (item.color) {
           updateQuery = updateQuery.eq("color", item.color);
-        } else {
-          updateQuery = updateQuery.is("color", null);
         }
 
         const { error: invError } = await updateQuery;
@@ -1388,7 +1382,14 @@ export default function POSClient({
                     toast.error("Selecciona una talla");
                     return;
                   }
-                  addToCart(selectedProductForVariant, selectedSize || undefined, selectedColor || undefined);
+                  // Auto-derive color from inventory for the selected size+location
+                  const inventoryForVariant = selectedProductForVariant.inventory.filter(inv => {
+                    if (effectiveLocationId && inv.location_id !== effectiveLocationId) return false;
+                    if (selectedSize && inv.size !== selectedSize) return false;
+                    return true;
+                  });
+                  const derivedColor = inventoryForVariant[0]?.color ?? undefined;
+                  addToCart(selectedProductForVariant, selectedSize || undefined, derivedColor || undefined);
                   setShowVariantSelector(false);
                   toast.success(
                     `${selectedProductForVariant.name}${selectedSize ? ` — Talla ${selectedSize}` : ""} agregado`

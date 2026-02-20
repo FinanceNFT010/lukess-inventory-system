@@ -173,23 +173,36 @@ export async function createUserFromRequest(
     // Wait for trigger to create profile
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
+    // Get org ID — needed for upsert in case trigger didn't create the profile
+    const { data: orgData } = await supabaseAdmin
+      .from("organizations")
+      .select("id")
+      .limit(1)
+      .single();
+
+    // Upsert: creates profile if trigger failed, updates if trigger succeeded
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .update({
-        role,
-        full_name: fullName,
-        is_active: true,
-        location_id: locationId ?? null,
-      })
-      .eq("id", newUser.user.id);
+      .upsert(
+        {
+          id: newUser.user.id,
+          email: email.trim().toLowerCase(),
+          full_name: fullName,
+          role,
+          is_active: true,
+          location_id: locationId ?? null,
+          organization_id: orgData?.id ?? null,
+        },
+        { onConflict: "id" }
+      );
 
-    console.log("[createUser] Profile update:", profileError?.message ?? "OK");
+    console.log("[createUser] Profile upsert:", profileError?.message ?? "OK");
 
     if (profileError) {
-      console.error("Profile update error:", profileError);
+      console.error("Profile upsert error:", profileError);
       return {
         success: true,
-        warning: `Usuario creado pero rol no se actualizó: ${profileError.message}`,
+        warning: `Usuario creado pero perfil no se configuró: ${profileError.message}`,
         message: `Usuario ${email} creado. Contraseña: ${temporaryPassword}`,
       };
     }
