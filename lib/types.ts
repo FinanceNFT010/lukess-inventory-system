@@ -342,6 +342,97 @@ export type Database = {
           subtotal?: number;
         };
       };
+      orders: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          customer_name: string;
+          customer_phone: string;
+          customer_email: string | null;
+          subtotal: number;
+          discount: number;
+          total: number;
+          status: "pending" | "confirmed" | "shipped" | "completed" | "cancelled";
+          payment_method: string;
+          payment_proof: string | null;
+          notes: string | null;
+          internal_notes: string | null;
+          managed_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          customer_name: string;
+          customer_phone: string;
+          customer_email?: string | null;
+          subtotal: number;
+          discount?: number;
+          total: number;
+          status?: "pending" | "confirmed" | "shipped" | "completed" | "cancelled";
+          payment_method?: string;
+          payment_proof?: string | null;
+          notes?: string | null;
+          internal_notes?: string | null;
+          managed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string | null;
+          customer_name?: string;
+          customer_phone?: string;
+          customer_email?: string | null;
+          subtotal?: number;
+          discount?: number;
+          total?: number;
+          status?: "pending" | "confirmed" | "shipped" | "completed" | "cancelled";
+          payment_method?: string;
+          payment_proof?: string | null;
+          notes?: string | null;
+          internal_notes?: string | null;
+          managed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      order_items: {
+        Row: {
+          id: string;
+          order_id: string;
+          product_id: string;
+          quantity: number;
+          unit_price: number;
+          size: string | null;
+          color: string | null;
+          subtotal: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          product_id: string;
+          quantity: number;
+          unit_price: number;
+          size?: string | null;
+          color?: string | null;
+          subtotal: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          product_id?: string;
+          quantity?: number;
+          unit_price?: number;
+          size?: string | null;
+          color?: string | null;
+          subtotal?: number;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -427,3 +518,72 @@ export type ProfileWithDetails = Profile & {
 
 export type UserRole = Database["public"]["Enums"]["user_role"];
 export type PaymentMethod = Database["public"]["Enums"]["payment_method"];
+
+// ─── Orders ──────────────────────────────────────────────────────────────────
+
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "shipped"
+  | "completed"
+  | "cancelled";
+
+export type Order = Tables<"orders">;
+export type OrderItem = Tables<"order_items">;
+export type OrderInsert = TablesInsert<"orders">;
+export type OrderUpdate = TablesUpdate<"orders">;
+export type OrderItemInsert = TablesInsert<"order_items">;
+
+/** Orden con sus ítems y datos de producto */
+export type OrderWithItems = Order & {
+  order_items: (OrderItem & {
+    product?: Product;
+  })[];
+};
+
+export const ORDER_STATUS_CONFIG: Record<
+  OrderStatus,
+  {
+    label: string;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    icon: string;
+  }
+> = {
+  pending: {
+    label: "Pendiente",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+    icon: "🕐",
+  },
+  confirmed: {
+    label: "Confirmado",
+    color: "text-blue-700",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    icon: "✅",
+  },
+  shipped: {
+    label: "Enviado",
+    color: "text-purple-700",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    icon: "🚚",
+  },
+  completed: {
+    label: "Completado",
+    color: "text-green-700",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    icon: "🎉",
+  },
+  cancelled: {
+    label: "Cancelado",
+    color: "text-red-700",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
+    icon: "❌",
+  },
+};
