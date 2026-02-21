@@ -19,6 +19,7 @@ import type { OrderWithItems, OrderStatus } from "@/lib/types";
 import { ORDER_STATUS_CONFIG } from "@/lib/types";
 import { updateOrderStatus } from "./actions";
 import OrderDetailModal from "./order-detail-modal";
+import CancelOrderModal from "@/components/orders/CancelOrderModal";
 import { createClient } from "@/lib/supabase/client";
 
 // ── Tipos para el modal de confirmación ──────────────────────────────────────
@@ -129,6 +130,7 @@ export default function PedidosClient({
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<OrderWithItems | null>(null);
 
   // Estado del modal de confirmación con asignaciones editables
   const [confirmModalOrder, setConfirmModalOrder] = useState<OrderWithItems | null>(null);
@@ -235,6 +237,24 @@ export default function PedidosClient({
     setConfirmModalOrder(null);
     setProductAllocations([]);
     setFulfillmentNotes("");
+  };
+
+  const handleCancelConfirm = async (reason: string) => {
+    if (!cancelTarget) return;
+    const orderId = cancelTarget.id;
+    setCancelTarget(null);
+    setConfirmingId(orderId);
+    try {
+      const result = await updateOrderStatus(orderId, "cancelled", undefined, undefined, reason);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Pedido cancelado");
+        handleStatusChange(orderId, "cancelled");
+      }
+    } finally {
+      setConfirmingId(null);
+    }
   };
 
   const handleConfirmOrder = async () => {
@@ -852,6 +872,14 @@ export default function PedidosClient({
         onClose={() => setIsModalOpen(false)}
         onStatusChange={handleStatusChange}
         userRole={userRole as "admin" | "manager" | "staff"}
+      />
+
+      {/* Cancel Order Modal — para cancelaciones desde la lista */}
+      <CancelOrderModal
+        isOpen={cancelTarget !== null}
+        orderId={cancelTarget?.id ?? ""}
+        onConfirm={handleCancelConfirm}
+        onClose={() => setCancelTarget(null)}
       />
 
       {/* ── Modal Confirmar Pago — Asignación editable por puesto ─────────────── */}

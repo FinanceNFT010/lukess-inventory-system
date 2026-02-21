@@ -7,6 +7,7 @@ import type { OrderWithItems, OrderStatus } from '@/lib/types'
 import { ORDER_STATUS_CONFIG } from '@/lib/types'
 import { updateOrderStatus, saveInternalNote } from './actions'
 import { createClient } from '@/lib/supabase/client'
+import CancelOrderModal from '@/components/orders/CancelOrderModal'
 
 interface ReservationRow {
   location_name: string
@@ -203,6 +204,7 @@ export default function OrderDetailModal({
   const [noteSaved, setNoteSaved] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
   const [reservations, setReservations] = useState<ReservationRow[]>([])
+  const [showCancelModal, setShowCancelModal] = useState(false)
   const canEdit = userRole === 'admin' || userRole === 'manager'
 
   useEffect(() => {
@@ -244,6 +246,10 @@ export default function OrderDetailModal({
 
   async function handleStatusChange(newStatus: OrderStatus) {
     if (!order) return
+    if (newStatus === 'cancelled') {
+      setShowCancelModal(true)
+      return
+    }
     setLoadingStatus(newStatus)
     try {
       const result = await updateOrderStatus(order.id, newStatus)
@@ -252,6 +258,23 @@ export default function OrderDetailModal({
       } else {
         toast.success('Estado actualizado correctamente')
         onStatusChange(order.id, newStatus)
+      }
+    } finally {
+      setLoadingStatus(null)
+    }
+  }
+
+  async function handleCancelConfirm(reason: string) {
+    if (!order) return
+    setShowCancelModal(false)
+    setLoadingStatus('cancelled')
+    try {
+      const result = await updateOrderStatus(order.id, 'cancelled', undefined, undefined, reason)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success('Pedido cancelado')
+        onStatusChange(order.id, 'cancelled')
       }
     } finally {
       setLoadingStatus(null)
@@ -332,6 +355,13 @@ export default function OrderDetailModal({
   }
 
   return (
+    <>
+    <CancelOrderModal
+      isOpen={showCancelModal}
+      orderId={order.id}
+      onConfirm={handleCancelConfirm}
+      onClose={() => setShowCancelModal(false)}
+    />
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -536,5 +566,6 @@ export default function OrderDetailModal({
         </div>
       </div>
     </div>
+    </>
   )
 }

@@ -17,6 +17,7 @@ export interface OrderForEmail {
   gps_distance_km: number | null
   subtotal: number
   total: number
+  cancellationReason?: string
   items?: OrderItemForEmail[]
 }
 
@@ -68,6 +69,7 @@ export async function sendOrderStatusEmail(
           discountAmount: 0,
           discountCode: null,
           total: order.total,
+          cancellationReason: order.cancellationReason ?? null,
         },
       }),
     })

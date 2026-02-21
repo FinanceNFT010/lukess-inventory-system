@@ -31,7 +31,8 @@ export async function updateOrderStatus(
   orderId: string,
   newStatus: OrderStatus,
   internalNote?: string,
-  fulfillmentNotes?: string
+  fulfillmentNotes?: string,
+  cancellationReason?: string
 ) {
   try {
     // Validar autenticación y permisos con el cliente de sesión
@@ -61,6 +62,10 @@ export async function updateOrderStatus(
 
     if (fulfillmentNotes?.trim()) {
       updateData.fulfillment_notes = fulfillmentNotes.trim()
+    }
+
+    if (newStatus === 'cancelled' && cancellationReason?.trim()) {
+      updateData.notes = cancellationReason.trim()
     }
 
     // Usar service role para el UPDATE: evita problemas de RLS con cookies
@@ -114,6 +119,7 @@ export async function updateOrderStatus(
           gps_distance_km: raw.gps_distance_km,
           subtotal: raw.subtotal,
           total: raw.total,
+          cancellationReason: cancellationReason?.trim() || undefined,
           items: raw.order_items.map((item): OrderItemForEmail => ({
             name: item.products?.name ?? 'Producto',
             quantity: item.quantity,
