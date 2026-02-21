@@ -23,6 +23,7 @@ import {
   MapPin,
   TrendingUp,
   ImageIcon,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -85,11 +86,13 @@ export default function NewProductForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [customSize, setCustomSize] = useState("");
   const [recentBrands, setRecentBrands] = useState<string[]>([]);
   const [auditNote, setAuditNote] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [customColorInput, setCustomColorInput] = useState<string>("");
+  const [publishedToLanding, setPublishedToLanding] = useState(false);
   // Stock por ubicación y talla: { locationId: { size: quantity } }
   const [stockByLocationAndSize, setStockByLocationAndSize] = useState<Record<string, Record<string, number>>>({});
 
@@ -186,6 +189,17 @@ export default function NewProductForm({
     );
   };
 
+  const addCustomSize = () => {
+    if (customSize.trim() && !selectedSizes.includes(customSize.trim())) {
+      setSelectedSizes((prev) => [...prev, customSize.trim()]);
+      setCustomSize("");
+    }
+  };
+
+  const removeSize = (size: string) => {
+    setSelectedSizes((prev) => prev.filter((s) => s !== size));
+  };
+
   const clearAllSizes = () => {
     setSelectedSizes([]);
   };
@@ -229,6 +243,7 @@ export default function NewProductForm({
           color: selectedColor || null,
           sizes: selectedSizes,
           is_active: true,
+          published_to_landing: publishedToLanding,
         })
         .select()
         .single();
@@ -655,8 +670,30 @@ export default function NewProductForm({
             <p className="text-xs text-gray-500">
               S, M, L, XL → para ropa superior | 38, 40, 42, 44 → para pantalones y calzado
             </p>
+            {/* Talla personalizada */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customSize}
+                onChange={(e) => setCustomSize(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomSize();
+                  }
+                }}
+                placeholder="Talla personalizada"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+              />
+              <button
+                type="button"
+                onClick={addCustomSize}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-
 
           {/* Selected sizes display */}
           {selectedSizes.length > 0 && (
@@ -669,7 +706,7 @@ export default function NewProductForm({
                   {size}
                   <button
                     type="button"
-                    onClick={() => toggleSize(size)}
+                    onClick={() => removeSize(size)}
                     className="hover:text-purple-900"
                   >
                     <X className="w-3 h-3" />
@@ -925,6 +962,39 @@ export default function NewProductForm({
                 total + Object.values(sizeStock).reduce((sum, qty) => sum + qty, 0), 0
               )} unidades
             </span>
+          </div>
+        </div>
+
+        {/* ── Tienda Online ─────────────────────────────────────────────── */}
+        <div className={`rounded-xl border-2 p-5 ${
+          publishedToLanding ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                publishedToLanding ? "bg-green-100" : "bg-gray-100"
+              }`}>
+                <Globe className={`w-5 h-5 ${publishedToLanding ? "text-green-600" : "text-gray-500"}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Tienda Online</p>
+                <p className="text-xs text-gray-500 mt-0.5">Publicar en la landing page</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPublishedToLanding((v) => !v)}
+              title={publishedToLanding ? "Ocultar de la tienda online" : "Publicar en la tienda online"}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+                publishedToLanding ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  publishedToLanding ? "translate-x-8" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
         </div>
 
