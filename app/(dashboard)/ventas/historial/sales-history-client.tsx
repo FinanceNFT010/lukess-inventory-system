@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Download,
@@ -19,11 +19,13 @@ import {
   QrCode,
   CreditCard,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
+import { createClient } from "@/lib/supabase/client";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +79,13 @@ interface SalesHistoryClientProps {
   sellers: { id: string; full_name: string; role: string }[];
   userRole: string;
   staffLocationId: string | null;
+}
+
+interface DispatchLocation {
+  product_name: string;
+  size: string | null;
+  location_name: string;
+  quantity: number;
 }
 
 type DateRange = "today" | "week" | "month" | "all";
@@ -161,6 +170,35 @@ export default function SalesHistoryClient({
   const [canalFilter, setCanalFilter] = useState<CanalFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [dispatchLocations, setDispatchLocations] = useState<DispatchLocation[] | null>(null);
+  const [loadingDispatch, setLoadingDispatch] = useState(false);
+
+  // Cargar ubicaciones de despacho para ventas online
+  useEffect(() => {
+    if (!selectedSale || (selectedSale.canal ?? "fisico") !== "online" || !selectedSale.order_id) {
+      setDispatchLocations(null);
+      return;
+    }
+
+    setLoadingDispatch(true);
+    const supabase = createClient();
+    supabase
+      .from("inventory_reservations")
+      .select("quantity, size, status, locations:location_id(name), products:product_id(name)")
+      .eq("order_id", selectedSale.order_id)
+      .in("status", ["completed", "confirmed", "reserved"])
+      .then(({ data }) => {
+        setDispatchLocations(
+          (data ?? []).map((r) => ({
+            product_name: (r.products as { name: string } | null)?.name ?? "Producto",
+            size: r.size as string | null,
+            location_name: (r.locations as { name: string } | null)?.name ?? "Ubicación",
+            quantity: r.quantity as number,
+          }))
+        );
+        setLoadingDispatch(false);
+      });
+  }, [selectedSale]);
 
   const itemsPerPage = 15;
 
@@ -1001,7 +1039,8 @@ export default function SalesHistoryClient({
                                 {item.quantity} ud{item.quantity > 1 ? "s" : ""} · {formatCurrency(item.unit_price)} c/u
                               </span>
                             </div>
-                            {item.location?.name && (
+                            {/* Solo mostrar ubicación por ítem para ventas físicas */}
+                            {item.location?.name && (selectedSale.canal ?? "fisico") !== "online" && (
                               <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
                                 <MapPin className="w-3 h-3 flex-shrink-0" />
                                 Despachado desde: <span className="font-semibold">{item.location.name}</span>
@@ -1016,6 +1055,58 @@ export default function SalesHistoryClient({
                     )}
                   </div>
                 </div>
+
+                {/* Despacho multi-ubicación (solo online) */}
+                {(selectedSale.canal ?? "fisico") === "online" && (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
+                      📦 Despacho
+                    </h3>
+                    {loadingDispatch ? (
+                      <div className="flex items-center gap-2 text-gray-400 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Cargando ubicaciones...</span>
+                      </div>
+                    ) : !dispatchLocations || dispatchLocations.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic">Sin información de despacho</p>
+                    ) : (
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl divide-y divide-blue-100 overflow-hidden">
+                        {/* Resumen por ubicación (suma de todos los productos) */}
+                        {Array.from(
+                          dispatchLocations.reduce((map, d) => {
+                            map.set(d.location_name, (map.get(d.location_name) ?? 0) + d.quantity);
+                            return map;
+                          }, new Map<string, number>())
+                        ).map(([locationName, qty]) => (
+                          <div key={locationName} className="flex items-center justify-between px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                              <span className="text-sm font-medium text-blue-900">{locationName}</span>
+                            </div>
+                            <span className="text-sm font-bold text-blue-700">
+                              {qty} {qty === 1 ? "ud" : "uds"}
+                            </span>
+                          </div>
+                        ))}
+                        {/* Detalle por producto si hay más de uno */}
+                        {dispatchLocations.length > 1 && (
+                          <details className="px-4 py-2">
+                            <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800 font-medium">
+                              Ver detalle por producto
+                            </summary>
+                            <div className="mt-2 space-y-1">
+                              {dispatchLocations.map((d, i) => (
+                                <p key={i} className="text-xs text-blue-700">
+                                  {d.product_name}{d.size ? ` · Talla ${d.size}` : ""} — {d.location_name}: {d.quantity} ud{d.quantity !== 1 ? "s" : ""}
+                                </p>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Totals */}
                 <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 space-y-2">
