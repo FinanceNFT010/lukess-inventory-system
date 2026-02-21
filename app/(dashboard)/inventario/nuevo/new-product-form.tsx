@@ -839,10 +839,39 @@ export default function NewProductForm({
           )}
 
           {selectedSizes.length === 0 ? (
-            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 text-center">
-              <p className="text-sm text-yellow-800 font-medium">
-                ⚠️ Primero selecciona las tallas disponibles arriba
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500 italic">
+                Producto sin tallas (accesorios, cinturones, gorras) — el stock se registra directamente por ubicación.
               </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {locations.map((loc) => (
+                  <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
+                      {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        value={stockByLocationAndSize[loc.id]?.['Única'] ?? 0}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          setStockByLocationAndSize(prev => ({
+                            ...prev,
+                            [loc.id]: {
+                              ...prev[loc.id],
+                              'Única': value
+                            }
+                          }));
+                        }}
+                        className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
+                      />
+                      <span className="text-xs text-gray-600">uds</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

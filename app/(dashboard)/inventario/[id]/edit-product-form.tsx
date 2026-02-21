@@ -263,7 +263,7 @@ export default function EditProductForm({
           inventoryInserts.push({
             product_id: product.id,
             location_id: loc.id,
-            size: size,
+            size: size,  // 'Única' para accesorios (sin talla)
             color: selectedColor || null,
             quantity: quantity,
             min_stock: data.low_stock_threshold,
@@ -825,14 +825,43 @@ export default function EditProductForm({
           {/* Stock por Talla y Ubicación */}
           <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700">
-              Stock por Talla y Ubicación
+              {selectedSizes.length === 0 ? "Stock por Ubicación" : "Stock por Talla y Ubicación"}
             </label>
             
             {selectedSizes.length === 0 ? (
-              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-yellow-800 font-medium">
-                  ⚠️ Primero selecciona las tallas disponibles arriba
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500 italic">
+                  Producto sin tallas — el stock se registra directamente por ubicación.
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {locations.map((loc) => (
+                    <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
+                        {(loc as any).address && <p className="text-xs text-gray-500">{(loc as any).address}</p>}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          value={stockByLocationAndSize[loc.id]?.['Única'] ?? 0}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 0;
+                            setStockByLocationAndSize(prev => ({
+                              ...prev,
+                              [loc.id]: {
+                                ...prev[loc.id],
+                                'Única': value
+                              }
+                            }));
+                          }}
+                          className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
+                        />
+                        <span className="text-xs text-gray-600">uds</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
