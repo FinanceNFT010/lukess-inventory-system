@@ -1,11 +1,19 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, ChevronDown, Loader2 } from 'lucide-react'
+import { X, ChevronDown, Loader2, MapPin, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { OrderWithItems, OrderStatus } from '@/lib/types'
 import { ORDER_STATUS_CONFIG } from '@/lib/types'
 import { updateOrderStatus, saveInternalNote } from './actions'
+import { createClient } from '@/lib/supabase/client'
+
+interface ReservationRow {
+  location_name: string
+  product_name: string
+  size: string | null
+  quantity: number
+}
 
 interface Props {
   order: OrderWithItems | null
@@ -184,6 +192,7 @@ export default function OrderDetailModal({
   const [internalNote, setInternalNote] = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
+  const [reservations, setReservations] = useState<ReservationRow[]>([])
   const canEdit = userRole === 'admin' || userRole === 'manager'
 
   useEffect(() => {
@@ -192,6 +201,32 @@ export default function OrderDetailModal({
       setNoteSaved(false)
     }
   }, [order?.id])
+
+  // Cargar reservas de inventory_reservations para pedidos con reservas activas
+  useEffect(() => {
+    if (!order?.id) { setReservations([]); return }
+    const s = order.status
+    if (s !== 'confirmed' && s !== 'shipped' && s !== 'pending') { setReservations([]); return }
+
+    const supabase = createClient()
+    supabase
+      .from('inventory_reservations')
+      .select('quantity, size, locations:location_id(name), products:product_id(name)')
+      .eq('order_id', order.id)
+      .in('status', ['reserved', 'confirmed'])
+      .then(({ data }) => {
+        if (data) {
+          setReservations(
+            data.map((r) => ({
+              location_name: (r.locations as { name: string } | null)?.name ?? 'Ubicación',
+              product_name: (r.products as { name: string } | null)?.name ?? 'Producto',
+              size: r.size ?? null,
+              quantity: r.quantity,
+            }))
+          )
+        }
+      })
+  }, [order?.id, order?.status])
 
   if (!isOpen || !order) return null
 
@@ -379,6 +414,34 @@ export default function OrderDetailModal({
               })}
             </div>
           </div>
+
+          {/* STOCK RESERVADO POR UBICACIÓN */}
+          {reservations.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5" />
+                Stock reservado para este pedido
+              </h3>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl divide-y divide-amber-100 overflow-hidden">
+                {reservations.map((r, idx) => (
+                  <div key={idx} className="flex items-center gap-3 px-4 py-2.5">
+                    <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-700 min-w-[120px]">
+                      {r.location_name}
+                    </span>
+                    <span className="text-gray-400 text-sm">→</span>
+                    <span className="text-sm text-gray-700 flex-1 truncate">
+                      {r.product_name}
+                      {r.size ? ` T.${r.size}` : ''}
+                    </span>
+                    <span className="text-sm font-bold text-amber-700 flex-shrink-0">
+                      × {r.quantity}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* TOTALS */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">

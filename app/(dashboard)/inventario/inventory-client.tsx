@@ -123,7 +123,7 @@ export default function InventoryClient({
         `
         *,
         categories(id, name),
-        inventory(id, quantity, min_stock, location_id, size, color, locations(id, name))
+        inventory(id, quantity, reserved_qty, min_stock, location_id, size, color, locations(id, name))
       `
       )
       .eq("organization_id", initialProducts[0]?.organization_id || "")
@@ -188,10 +188,12 @@ export default function InventoryClient({
         !locationFilter ||
         product.inventory.some((inv) => inv.location_id === locationFilter);
 
-      // Low stock filter
+      // Low stock filter — usar disponible (quantity - reserved_qty)
       const matchesLowStock =
         !onlyLowStock ||
-        product.inventory.some((inv) => inv.quantity < inv.min_stock);
+        product.inventory.some(
+          (inv) => Math.max(0, inv.quantity - (inv.reserved_qty ?? 0)) < inv.min_stock
+        );
 
       return matchesSearch && matchesCategory && matchesLocation && matchesLowStock;
     });
@@ -1192,8 +1194,8 @@ export default function InventoryClient({
                                           </div>
                                         )}
 
-                                        {/* Alerta de bajo stock */}
-                                        {locationStock < groupedInv.min_stock && (
+                                        {/* Alerta de bajo stock — basada en disponible, no total */}
+                                        {locationAvailable < groupedInv.min_stock && (
                                           <div className="mt-4 flex items-center gap-2 text-sm text-amber-800 bg-amber-50 px-4 py-3 rounded-lg border-2 border-amber-300 shadow-sm">
                                             <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                                             <span className="font-semibold">
