@@ -23,8 +23,10 @@ import {
   TrendingUp,
   ImageIcon,
   AlertTriangle,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
+import { togglePublishedToLanding } from "../actions";
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +91,10 @@ export default function EditProductForm({
   const [saving, setSaving] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>(product.sizes || []);
   const [auditNote, setAuditNote] = useState("");
+  const [publishedToLanding, setPublishedToLanding] = useState<boolean>(
+    product.published_to_landing ?? false
+  );
+  const [togglingLanding, setTogglingLanding] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [customSize, setCustomSize] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(product.color || "");
@@ -184,6 +190,27 @@ export default function EditProductForm({
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const handleToggleLanding = async () => {
+    if (!product.is_active && !publishedToLanding) {
+      toast.error("Activa el producto primero para publicarlo en la tienda");
+      return;
+    }
+    setTogglingLanding(true);
+    const prev = publishedToLanding;
+    setPublishedToLanding(!prev);
+
+    const result = await togglePublishedToLanding(product.id, prev);
+    if (!result.success) {
+      setPublishedToLanding(prev);
+      toast.error(result.error || "Error al cambiar estado de la tienda");
+    } else {
+      toast.success(
+        !prev ? "Publicado en la tienda online ✅" : "Ocultado de la tienda online 🔒"
+      );
+    }
+    setTogglingLanding(false);
   };
 
   // Update form when sizes change
@@ -928,6 +955,54 @@ export default function EditProductForm({
           </div>
           );
           })()}
+
+          {/* Tienda Online */}
+          <div className={`rounded-xl border-2 p-5 ${
+            publishedToLanding
+              ? "bg-green-50 border-green-200"
+              : "bg-gray-50 border-gray-200"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  publishedToLanding ? "bg-green-100" : "bg-gray-100"
+                }`}>
+                  <Globe className={`w-5 h-5 ${publishedToLanding ? "text-green-600" : "text-gray-500"}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Tienda Online</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Publicar en la landing page</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleLanding}
+                disabled={togglingLanding || (!product.is_active && !publishedToLanding)}
+                title={
+                  !product.is_active && !publishedToLanding
+                    ? "Activa el producto primero"
+                    : publishedToLanding
+                    ? "Ocultar de la tienda online"
+                    : "Publicar en la tienda online"
+                }
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  publishedToLanding ? "bg-green-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    publishedToLanding ? "translate-x-8" : "translate-x-1"
+                  } ${togglingLanding ? "animate-pulse" : ""}`}
+                />
+              </button>
+            </div>
+            {!product.is_active && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                Solo productos activos pueden aparecer en la tienda online
+              </div>
+            )}
+          </div>
 
           {/* Nota de auditoría */}
           <div className="bg-yellow-50 rounded-xl border-2 border-yellow-200 p-5 space-y-3">

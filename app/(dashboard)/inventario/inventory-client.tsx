@@ -27,7 +27,10 @@ import {
   ChevronUp,
   Eye,
   EyeOff,
+  Globe,
+  Lock,
 } from "lucide-react";
+import { togglePublishedToLanding } from "./actions";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +58,7 @@ interface ProductWithRelations {
   sizes: string[];
   image_url: string | null;
   is_active: boolean;
+  published_to_landing: boolean;
   organization_id: string;
   category_id: string | null;
   created_at: string;
@@ -111,6 +115,7 @@ export default function InventoryClient({
   const [generatingLabels, setGeneratingLabels] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<ProductWithRelations | null>(null);
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+  const [togglingLandingId, setTogglingLandingId] = useState<string | null>(null);
   const itemsPerPage = 20;
 
   // ── Fetch products function ───────────────────────────────────────────────
@@ -356,6 +361,49 @@ export default function InventoryClient({
       console.error('❌ Error inesperado:', error);
       toast.error('Error inesperado al reactivar el producto');
     }
+  };
+
+  const handleToggleLanding = async (product: ProductWithRelations) => {
+    if (!product.is_active) {
+      toast.error("Activa el producto primero para publicarlo en la tienda");
+      return;
+    }
+
+    setTogglingLandingId(product.id);
+
+    // Actualización optimista
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === product.id
+          ? { ...p, published_to_landing: !p.published_to_landing }
+          : p
+      )
+    );
+
+    const result = await togglePublishedToLanding(
+      product.id,
+      product.published_to_landing
+    );
+
+    if (!result.success) {
+      // Revertir si hubo error
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === product.id
+            ? { ...p, published_to_landing: product.published_to_landing }
+            : p
+        )
+      );
+      toast.error(result.error || "Error al cambiar estado de la tienda");
+    } else {
+      if (!product.published_to_landing) {
+        toast.success("Publicado en la tienda online ✅");
+      } else {
+        toast.success("Ocultado de la tienda online 🔒");
+      }
+    }
+
+    setTogglingLandingId(null);
   };
 
   const activeLocationFilter = locationFilter
@@ -756,6 +804,11 @@ export default function InventoryClient({
                       )}
                     </button>
                   </th>
+                  {(userRole === "admin" || userRole === "manager") && (
+                    <th className="text-center text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 py-4">
+                      Landing
+                    </th>
+                  )}
                   <th className="text-center text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-4">
                     Acciones
                   </th>
@@ -826,6 +879,17 @@ export default function InventoryClient({
                                     Inactivo
                                   </span>
                                 )}
+                                {product.published_to_landing ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-300">
+                                    <Globe className="w-3 h-3" />
+                                    Online
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                                    <Lock className="w-3 h-3" />
+                                    Oculto
+                                  </span>
+                                )}
                                 {product.is_active && (() => {
                                   const createdDate = new Date(product.created_at);
                                   const now = new Date();
@@ -890,6 +954,37 @@ export default function InventoryClient({
                             </div>
                           </div>
                         </td>
+                        {(userRole === "admin" || userRole === "manager") && (
+                          <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-col items-center gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleLanding(product);
+                                }}
+                                disabled={togglingLandingId === product.id || !product.is_active}
+                                title={
+                                  !product.is_active
+                                    ? "Activa el producto primero"
+                                    : product.published_to_landing
+                                    ? "Ocultar de la tienda online"
+                                    : "Publicar en la tienda online"
+                                }
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed ${
+                                  product.published_to_landing
+                                    ? "bg-green-500"
+                                    : "bg-gray-300"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                                    product.published_to_landing ? "translate-x-6" : "translate-x-1"
+                                  } ${togglingLandingId === product.id ? "animate-pulse" : ""}`}
+                                />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
                             {(userRole === "admin" || userRole === "manager") ? (
@@ -963,7 +1058,7 @@ export default function InventoryClient({
                       {/* Fila expandible con detalles completos del producto */}
                       {isExpanded && (
                         <tr key={`${product.id}-details`} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600">
-                          <td colSpan={6} className="px-8 py-6">
+                          <td colSpan={(userRole === "admin" || userRole === "manager") ? 7 : 6} className="px-8 py-6">
                             <div className="space-y-6">
                               {/* Header con información del producto */}
                               <div className="bg-white rounded-xl p-6 border-2 border-blue-300 shadow-md">
