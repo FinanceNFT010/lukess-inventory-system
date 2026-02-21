@@ -4,6 +4,28 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import type { OrderStatus } from '@/lib/types'
+import { sendOrderStatusEmail } from '@/lib/notifications'
+import type { OrderForEmail, OrderItemForEmail } from '@/lib/notifications'
+
+type OrderQueryResult = {
+  id: string
+  customer_name: string
+  customer_email: string | null
+  notify_email: boolean
+  maps_link: string | null
+  shipping_address: string | null
+  shipping_cost: number
+  gps_distance_km: number | null
+  subtotal: number
+  total: number
+  order_items: {
+    quantity: number
+    unit_price: number
+    size: string | null
+    color: string | null
+    products: { name: string } | null
+  }[]
+}
 
 export async function updateOrderStatus(
   orderId: string,
@@ -52,6 +74,58 @@ export async function updateOrderStatus(
 
     if (!updated || updated.length === 0) {
       return { error: 'Pedido no encontrado o no se pudo actualizar.' }
+    }
+
+    try {
+      const { data: orderData } = await supabaseAdmin
+        .from('orders')
+        .select(`
+          id,
+          customer_name,
+          customer_email,
+          notify_email,
+          maps_link,
+          shipping_address,
+          shipping_cost,
+          gps_distance_km,
+          subtotal,
+          total,
+          order_items (
+            quantity,
+            unit_price,
+            size,
+            color,
+            products ( name )
+          )
+        `)
+        .eq('id', orderId)
+        .single()
+
+      if (orderData) {
+        const raw = orderData as unknown as OrderQueryResult
+        const orderForEmail: OrderForEmail = {
+          id: raw.id,
+          customer_name: raw.customer_name,
+          customer_email: raw.customer_email,
+          notify_email: raw.notify_email ?? true,
+          maps_link: raw.maps_link,
+          shipping_address: raw.shipping_address,
+          shipping_cost: raw.shipping_cost ?? 0,
+          gps_distance_km: raw.gps_distance_km,
+          subtotal: raw.subtotal,
+          total: raw.total,
+          items: raw.order_items.map((item): OrderItemForEmail => ({
+            name: item.products?.name ?? 'Producto',
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            size: item.size,
+            color: item.color,
+          })),
+        }
+        await sendOrderStatusEmail(orderForEmail, newStatus)
+      }
+    } catch (emailErr) {
+      console.error('[updateOrderStatus] Error al obtener pedido para email:', emailErr)
     }
 
     revalidatePath('/pedidos')
