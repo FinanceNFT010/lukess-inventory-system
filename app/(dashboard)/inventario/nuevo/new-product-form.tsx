@@ -245,7 +245,8 @@ export default function NewProductForm({
 
       // 2. Create inventory for each location and size
       const inventoryInserts: any[] = [];
-      const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ['Única'];
+      // Accesorios sin tallas → guardar con size='Unitalla'
+      const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ['Unitalla'];
       
       locations.forEach((loc) => {
         sizesToUse.forEach((size) => {
@@ -841,7 +842,7 @@ export default function NewProductForm({
           {selectedSizes.length === 0 ? (
             <div className="space-y-3">
               <p className="text-xs text-gray-500 italic">
-                Producto sin tallas (accesorios, cinturones, gorras) — el stock se registra directamente por ubicación.
+                Accesorio sin talla (cinturones, gorras, billeteras) — se guardará con talla "Unitalla" automáticamente.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {locations.map((loc) => (
@@ -854,14 +855,14 @@ export default function NewProductForm({
                       <input
                         type="number"
                         min="0"
-                        value={stockByLocationAndSize[loc.id]?.['Única'] ?? 0}
+                        value={stockByLocationAndSize[loc.id]?.['Unitalla'] ?? 0}
                         onChange={(e) => {
                           const value = parseInt(e.target.value) || 0;
                           setStockByLocationAndSize(prev => ({
                             ...prev,
                             [loc.id]: {
                               ...prev[loc.id],
-                              'Única': value
+                              'Unitalla': value
                             }
                           }));
                         }}

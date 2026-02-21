@@ -112,7 +112,7 @@ export default function EditProductForm({
         if (!initial[inv.location_id]) {
           initial[inv.location_id] = {};
         }
-        const size = inv.size || 'Única';
+        const size = inv.size || 'Unitalla';
         const currentQty = initial[inv.location_id][size] || 0;
         initial[inv.location_id][size] = currentQty + (inv.quantity || 0);
       });
@@ -255,7 +255,10 @@ export default function EditProductForm({
       }
 
       const inventoryInserts: any[] = [];
-      const sizesToInsert = selectedSizes.length > 0 ? selectedSizes : ["Única"];
+      // Accesorios: sizes vacío o ['Unitalla'] → guardar con size='Unitalla'
+      const isAccessoryProduct = selectedSizes.length === 0 ||
+        (selectedSizes.length === 1 && selectedSizes[0] === 'Unitalla');
+      const sizesToInsert = isAccessoryProduct ? ["Unitalla"] : selectedSizes;
 
       locations.forEach((loc) => {
         sizesToInsert.forEach((size) => {
@@ -263,7 +266,7 @@ export default function EditProductForm({
           inventoryInserts.push({
             product_id: product.id,
             location_id: loc.id,
-            size: size,  // 'Única' para accesorios (sin talla)
+            size: size,
             color: selectedColor || null,
             quantity: quantity,
             min_stock: data.low_stock_threshold,
@@ -327,13 +330,15 @@ export default function EditProductForm({
         if (!originalInventory[inv.location_id]) {
           originalInventory[inv.location_id] = {};
         }
-        const size = inv.size || "Única";
+        const size = inv.size || "Unitalla";
         originalInventory[inv.location_id][size] =
           (originalInventory[inv.location_id][size] || 0) + (inv.quantity || 0);
       });
     }
 
-    const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ["Única"];
+    const isAccessoryForDiff = selectedSizes.length === 0 ||
+      (selectedSizes.length === 1 && selectedSizes[0] === 'Unitalla');
+    const sizesToUse = isAccessoryForDiff ? ["Unitalla"] : selectedSizes;
     const stockChanges: StockChange[] = [];
 
     locations.forEach((loc) => {
@@ -823,15 +828,20 @@ export default function EditProductForm({
           </div>
 
           {/* Stock por Talla y Ubicación */}
+          {/* isAccessory: sin tallas (array vacío) o solo tiene 'Unitalla' */}
+          {(() => {
+            const isAccessory = selectedSizes.length === 0 ||
+              (selectedSizes.length === 1 && selectedSizes[0] === 'Unitalla');
+            return (
           <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700">
-              {selectedSizes.length === 0 ? "Stock por Ubicación" : "Stock por Talla y Ubicación"}
+              {isAccessory ? "Stock por Ubicación" : "Stock por Talla y Ubicación"}
             </label>
             
-            {selectedSizes.length === 0 ? (
+            {isAccessory ? (
               <div className="space-y-3">
                 <p className="text-xs text-gray-500 italic">
-                  Producto sin tallas — el stock se registra directamente por ubicación.
+                  Accesorio sin talla — el stock se registra directamente por ubicación.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {locations.map((loc) => (
@@ -844,14 +854,14 @@ export default function EditProductForm({
                         <input
                           type="number"
                           min="0"
-                          value={stockByLocationAndSize[loc.id]?.['Única'] ?? 0}
+                          value={stockByLocationAndSize[loc.id]?.['Unitalla'] ?? 0}
                           onChange={(e) => {
                             const value = parseInt(e.target.value) || 0;
                             setStockByLocationAndSize(prev => ({
                               ...prev,
                               [loc.id]: {
                                 ...prev[loc.id],
-                                'Única': value
+                                'Unitalla': value
                               }
                             }));
                           }}
@@ -916,6 +926,8 @@ export default function EditProductForm({
               </span>
             </div>
           </div>
+          );
+          })()}
 
           {/* Nota de auditoría */}
           <div className="bg-yellow-50 rounded-xl border-2 border-yellow-200 p-5 space-y-3">
