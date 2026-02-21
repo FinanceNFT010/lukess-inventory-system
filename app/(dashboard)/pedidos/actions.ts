@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import type { OrderStatus } from '@/lib/types'
 
@@ -11,6 +12,7 @@ export async function updateOrderStatus(
   fulfillmentNotes?: string
 ) {
   try {
+    // Validar autenticación y permisos con el cliente de sesión
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'No autenticado' }
@@ -39,7 +41,8 @@ export async function updateOrderStatus(
       updateData.fulfillment_notes = fulfillmentNotes.trim()
     }
 
-    const { data: updated, error } = await supabase
+    // Usar service role para el UPDATE: evita problemas de RLS con cookies
+    const { data: updated, error } = await supabaseAdmin
       .from('orders')
       .update(updateData)
       .eq('id', orderId)
@@ -48,7 +51,7 @@ export async function updateOrderStatus(
     if (error) return { error: error.message }
 
     if (!updated || updated.length === 0) {
-      return { error: 'No se pudo actualizar el pedido. Verifica que tengas permisos de admin o manager.' }
+      return { error: 'Pedido no encontrado o no se pudo actualizar.' }
     }
 
     revalidatePath('/pedidos')
@@ -75,7 +78,7 @@ export async function saveInternalNote(orderId: string, note: string) {
       return { error: 'Sin permisos' }
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('orders')
       .update({ internal_notes: note.trim() || null, updated_at: new Date().toISOString() })
       .eq('id', orderId)
