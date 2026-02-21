@@ -455,6 +455,84 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- ── PARTE 6b: RPC reserve_order_inventory — REEMPLAZA versión anterior ───────
+-- Mejoras: idempotente (limpia reservas previas), maneja size='' igual que NULL,
+-- usa ON CONFLICT DO NOTHING en inventory_reservations.
+
+CREATE OR REPLACE FUNCTION reserve_order_inventory(p_order_id UUID)
+RETURNS void AS $$
+DECLARE
+  item             RECORD;
+  v_inventory_row  RECORD;
+  v_remaining      INTEGER;
+  v_take           INTEGER;
+BEGIN
+  -- Limpiar reservas previas del mismo pedido (idempotente)
+  FOR v_inventory_row IN
+    SELECT ir.location_id, ir.product_id, ir.size, ir.quantity AS res_qty, i.id AS inv_id
+    FROM inventory_reservations ir
+    JOIN inventory i ON i.product_id = ir.product_id
+      AND i.location_id = ir.location_id
+      AND (ir.size IS NULL OR i.size = ir.size)
+    WHERE ir.order_id = p_order_id AND ir.status IN ('reserved','confirmed')
+  LOOP
+    UPDATE inventory
+      SET reserved_qty = GREATEST(0, reserved_qty - v_inventory_row.res_qty),
+          updated_at   = NOW()
+      WHERE id = v_inventory_row.inv_id;
+  END LOOP;
+  DELETE FROM inventory_reservations WHERE order_id = p_order_id;
+
+  FOR item IN
+    SELECT oi.product_id, oi.quantity,
+           NULLIF(TRIM(COALESCE(oi.size, '')), '') AS size
+    FROM order_items oi
+    WHERE oi.order_id = p_order_id
+  LOOP
+    v_remaining := item.quantity;
+
+    FOR v_inventory_row IN
+      SELECT i.id, i.location_id,
+             (i.quantity - COALESCE(i.reserved_qty, 0)) AS available
+      FROM inventory i
+      JOIN locations l ON l.id = i.location_id
+      WHERE i.product_id = item.product_id
+        AND (
+          item.size IS NULL
+          OR i.size = item.size
+          OR (i.size IS NULL AND item.size IS NULL)
+        )
+        AND (i.quantity - COALESCE(i.reserved_qty, 0)) > 0
+      ORDER BY
+        CASE WHEN l.name ILIKE '%bodega%' THEN 1 ELSE 0 END ASC,
+        l.name ASC
+    LOOP
+      IF v_remaining <= 0 THEN EXIT; END IF;
+      v_take := LEAST(v_remaining, v_inventory_row.available);
+
+      UPDATE inventory
+        SET reserved_qty = COALESCE(reserved_qty, 0) + v_take,
+            updated_at   = NOW()
+        WHERE id = v_inventory_row.id;
+
+      INSERT INTO inventory_reservations
+        (order_id, product_id, location_id, size, quantity, status)
+      VALUES
+        (p_order_id, item.product_id, v_inventory_row.location_id,
+         item.size, v_take, 'reserved')
+      ON CONFLICT DO NOTHING;
+
+      v_remaining := v_remaining - v_take;
+    END LOOP;
+  END LOOP;
+
+  UPDATE orders
+    SET reserved_at = NOW(),
+        expires_at  = NOW() + INTERVAL '2 hours'
+    WHERE id = p_order_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- ── PARTE 7: RPC apply_order_allocation — reasigna reservas manualmente ──────
 -- Permite que el admin redistribuya el stock entre puestos desde el modal de
 -- confirmación. Libera las reservas actuales del pedido e inserta las nuevas.

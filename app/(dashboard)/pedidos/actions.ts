@@ -39,12 +39,17 @@ export async function updateOrderStatus(
       updateData.fulfillment_notes = fulfillmentNotes.trim()
     }
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('orders')
       .update(updateData)
       .eq('id', orderId)
+      .select('id')
 
     if (error) return { error: error.message }
+
+    if (!updated || updated.length === 0) {
+      return { error: 'No se pudo actualizar el pedido. Verifica que tengas permisos de admin o manager.' }
+    }
 
     revalidatePath('/pedidos')
     return { success: true }

@@ -41,6 +41,7 @@ interface SaleItem {
     sku: string;
     image_url: string | null;
   };
+  location: { name: string } | null;
 }
 
 interface Sale {
@@ -1000,6 +1001,12 @@ export default function SalesHistoryClient({
                                 {item.quantity} ud{item.quantity > 1 ? "s" : ""} · {formatCurrency(item.unit_price)} c/u
                               </span>
                             </div>
+                            {item.location?.name && (
+                              <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                                <MapPin className="w-3 h-3 flex-shrink-0" />
+                                Despachado desde: <span className="font-semibold">{item.location.name}</span>
+                              </p>
+                            )}
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-sm font-bold text-gray-900">{formatCurrency(item.subtotal)}</p>
