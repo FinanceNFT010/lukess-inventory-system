@@ -764,6 +764,9 @@ export default function InventoryClient({
                   const stock = locationFilter
                     ? getStockForLocation(product, locationFilter)
                     : getTotalStock(product);
+                  const totalReserved = product.inventory.reduce(
+                    (s, inv) => s + (inv.reserved_qty ?? 0), 0
+                  );
                   const lowStock = isLowStock(product);
                   const minStock = product.inventory[0]?.min_stock || 10;
                   const badgeColor = getStockBadgeColor(stock, minStock);
@@ -864,18 +867,25 @@ export default function InventoryClient({
                             {lowStock && (
                               <AlertTriangle className="w-4 h-4 text-amber-500" />
                             )}
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${badgeColor}`}
-                            >
-                              {stock === 0 ? (
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                              ) : stock < minStock ? (
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                              ) : (
-                                <Package className="w-3.5 h-3.5" />
+                            <div className="flex flex-col items-end gap-1">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${badgeColor}`}
+                              >
+                                {stock === 0 ? (
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                ) : stock < minStock ? (
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Package className="w-3.5 h-3.5" />
+                                )}
+                                {stock} {stock === 1 ? 'disponible' : 'disponibles'}
+                              </span>
+                              {totalReserved > 0 && (
+                                <span className="text-xs text-amber-600 font-medium">
+                                  🔒 {totalReserved} reservado{totalReserved !== 1 ? 's' : ''}
+                                </span>
                               )}
-                              {stock} {stock === 1 ? 'disponible' : 'disponibles'}
-                            </span>
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
