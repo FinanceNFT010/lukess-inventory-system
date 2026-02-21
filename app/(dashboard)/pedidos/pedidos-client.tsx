@@ -54,14 +54,16 @@ type PaymentFilter = "all" | "qr" | "efectivo" | "tarjeta";
 const STATUS_TABS: { key: "all" | OrderStatus; label: string; icon?: string }[] = [
   { key: "all", label: "Todos" },
   { key: "pending", label: "Pendientes", icon: "🕐" },
+  { key: "reserved", label: "Pago pendiente", icon: "💳" },
   { key: "confirmed", label: "Confirmados", icon: "✅" },
-  { key: "shipped", label: "Enviados", icon: "🚚" },
-  { key: "completed", label: "Completados", icon: "🎉" },
+  { key: "shipped", label: "En camino", icon: "🚚" },
+  { key: "completed", label: "Entregados", icon: "🎉" },
   { key: "cancelled", label: "Cancelados", icon: "❌" },
 ];
 
 const STATUS_BORDER: Record<OrderStatus, string> = {
   pending: "border-l-amber-400",
+  reserved: "border-l-orange-400",
   confirmed: "border-l-blue-400",
   shipped: "border-l-purple-400",
   completed: "border-l-green-400",
@@ -365,6 +367,7 @@ export default function PedidosClient({
 
   const QUICK_ACTIONS: Partial<Record<OrderStatus, { nextStatus: OrderStatus; label: string; icon: string }>> = {
     pending:   { nextStatus: "confirmed",  label: "Confirmar",      icon: "✅" },
+    reserved:  { nextStatus: "confirmed",  label: "Confirmar pago", icon: "✅" },
     confirmed: { nextStatus: "shipped",    label: "Marcar enviado", icon: "🚚" },
     shipped:   { nextStatus: "completed",  label: "Completado",     icon: "🎉" },
   };
@@ -381,8 +384,8 @@ export default function PedidosClient({
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
-    // Para confirmar un pedido pendiente → abrir modal con reservas
-    if (newStatus === "confirmed" && order.status === "pending") {
+    // Para confirmar un pedido pendiente o reservado → abrir modal con reservas
+    if (newStatus === "confirmed" && (order.status === "pending" || order.status === "reserved")) {
       openConfirmModal(order);
       return;
     }
@@ -499,6 +502,7 @@ export default function PedidosClient({
     return {
       all: base.length,
       pending: base.filter((o) => o.status === "pending").length,
+      reserved: base.filter((o) => o.status === "reserved").length,
       confirmed: base.filter((o) => o.status === "confirmed").length,
       shipped: base.filter((o) => o.status === "shipped").length,
       completed: base.filter((o) => o.status === "completed").length,
@@ -740,7 +744,7 @@ export default function PedidosClient({
             filteredOrders.map((order) => {
               const config = ORDER_STATUS_CONFIG[order.status as OrderStatus];
               const borderColor = STATUS_BORDER[order.status as OrderStatus];
-              const isPending = order.status === "pending";
+              const isPending = order.status === "pending" || order.status === "reserved";
               const itemsCount = order.order_items?.length ?? 0;
               const itemsSummary = getItemsSummary(order);
               const isConfirming = confirmingId === order.id;

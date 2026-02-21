@@ -27,6 +27,7 @@ const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'shipped', 'complete
 
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['confirmed', 'cancelled'],
+  reserved: ['confirmed', 'cancelled'],
   confirmed: ['shipped', 'cancelled'],
   shipped: ['completed', 'cancelled'],
   completed: [],
@@ -52,7 +53,9 @@ function formatCurrency(amount: number): string {
 
 function StatusStepper({ status }: { status: OrderStatus }) {
   const cancelled = status === 'cancelled'
-  const currentIdx = STATUS_FLOW.indexOf(status)
+  const reserved = status === 'reserved'
+  // 'reserved' se muestra entre pending (idx 0) y confirmed (idx 1)
+  const currentIdx = reserved ? 0 : STATUS_FLOW.indexOf(status)
 
   return (
     <div className="relative">
@@ -60,8 +63,8 @@ function StatusStepper({ status }: { status: OrderStatus }) {
         {STATUS_FLOW.map((step, idx) => {
           const cfg = ORDER_STATUS_CONFIG[step]
           const isDone = !cancelled && idx < currentIdx
-          const isCurrent = !cancelled && idx === currentIdx
-          const isFuture = cancelled || idx > currentIdx
+          const isCurrent = !cancelled && !reserved && idx === currentIdx
+          const isFuture = cancelled || (reserved ? idx > 0 : idx > currentIdx)
 
           return (
             <div key={step} className="flex items-center flex-1">
@@ -104,6 +107,13 @@ function StatusStepper({ status }: { status: OrderStatus }) {
         <div className="absolute inset-0 flex items-center justify-center pb-5">
           <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full border border-red-200">
             ❌ Cancelado
+          </span>
+        </div>
+      )}
+      {reserved && (
+        <div className="absolute inset-0 flex items-center justify-center pb-5">
+          <span className="bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full border border-orange-200">
+            💳 Pago pendiente de confirmación
           </span>
         </div>
       )}
@@ -206,7 +216,7 @@ export default function OrderDetailModal({
   useEffect(() => {
     if (!order?.id) { setReservations([]); return }
     const s = order.status
-    if (s !== 'confirmed' && s !== 'shipped' && s !== 'pending') { setReservations([]); return }
+    if (s !== 'confirmed' && s !== 'shipped' && s !== 'pending' && s !== 'reserved') { setReservations([]); return }
 
     const supabase = createClient()
     supabase
@@ -284,7 +294,10 @@ export default function OrderDetailModal({
     const actions: { status: OrderStatus; label: string; variant: 'primary' | 'danger' }[] = []
 
     if (s === 'pending') {
-      actions.push({ status: 'confirmed', label: '✅ Confirmar pedido', variant: 'primary' })
+      actions.push({ status: 'confirmed', label: '✅ Confirmar pago', variant: 'primary' })
+      actions.push({ status: 'cancelled', label: '❌ Cancelar', variant: 'danger' })
+    } else if (s === 'reserved') {
+      actions.push({ status: 'confirmed', label: '✅ Confirmar pago', variant: 'primary' })
       actions.push({ status: 'cancelled', label: '❌ Cancelar', variant: 'danger' })
     } else if (s === 'confirmed') {
       actions.push({ status: 'shipped', label: '🚚 Marcar como enviado', variant: 'primary' })

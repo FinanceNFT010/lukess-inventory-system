@@ -583,6 +583,7 @@ export type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
 export type OrderStatus =
   | "pending"
+  | "reserved"
   | "confirmed"
   | "shipped"
   | "completed"
@@ -618,22 +619,29 @@ export const ORDER_STATUS_CONFIG: Record<
     borderColor: "border-amber-200",
     icon: "🕐",
   },
+  reserved: {
+    label: "Pago pendiente",
+    color: "text-orange-700",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    icon: "💳",
+  },
   confirmed: {
-    label: "Confirmado",
+    label: "Pago confirmado",
     color: "text-blue-700",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-200",
     icon: "✅",
   },
   shipped: {
-    label: "Enviado",
+    label: "En camino",
     color: "text-purple-700",
     bgColor: "bg-purple-50",
     borderColor: "border-purple-200",
     icon: "🚚",
   },
   completed: {
-    label: "Completado",
+    label: "Entregado",
     color: "text-green-700",
     bgColor: "bg-green-50",
     borderColor: "border-green-200",

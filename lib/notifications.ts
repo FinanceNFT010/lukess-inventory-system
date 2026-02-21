@@ -33,6 +33,14 @@ export async function sendOrderStatusEmail(
   newStatus: string
 ): Promise<void> {
   const emailType = STATUS_TO_EMAIL_TYPE[newStatus]
+
+  console.log('[email] llamado', {
+    status: newStatus,
+    email: order.customer_email,
+    notify: order.notify_email,
+    emailType: emailType ?? 'sin mapeo — no se envía',
+  })
+
   if (!emailType) return
   if (!order.notify_email) return
   if (!order.customer_email) return
@@ -40,7 +48,9 @@ export async function sendOrderStatusEmail(
   const landingUrl = process.env.LANDING_URL ?? 'https://lukess-home.vercel.app'
 
   try {
-    await fetch(`${landingUrl}/api/send-email`, {
+    console.log('[email] fetch →', landingUrl)
+
+    const res = await fetch(`${landingUrl}/api/send-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -61,6 +71,13 @@ export async function sendOrderStatusEmail(
         },
       }),
     })
+
+    console.log('[email] response', { ok: res.ok, status: res.status })
+
+    if (!res.ok) {
+      const body = await res.text()
+      console.error('[email] error body:', body)
+    }
   } catch (err) {
     console.error('[sendOrderStatusEmail] Error enviando notificación de email:', err)
   }
