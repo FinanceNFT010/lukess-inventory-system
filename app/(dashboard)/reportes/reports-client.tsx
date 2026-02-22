@@ -30,8 +30,10 @@ import {
   Activity,
   Percent,
   TrendingDown,
+  Download,
 } from "lucide-react";
-import { format, eachDayOfInterval, parseISO, differenceInDays } from "date-fns";
+import { format, eachDayOfInterval, parseISO, differenceInDays, formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,6 +45,7 @@ interface OrderRow {
   canal: "online" | "fisico" | null;
   created_at: string;
   status: string;
+  customer_name: string | null;
 }
 
 interface OrderItemRow {
@@ -250,6 +253,15 @@ export default function ReportesVentasClient({
   const cancelRate =
     allStatusOrders.length > 0 ? (cancelledCount / allStatusOrders.length) * 100 : 0;
 
+  // ── Last order ─────────────────────────────────────────────────────────────
+
+  const lastOrder = useMemo(() => {
+    if (orders.length === 0) return null;
+    return [...orders].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+  }, [orders]);
+
   // ── Bar chart by day ───────────────────────────────────────────────────────
 
   const barData = useMemo(() => {
@@ -369,14 +381,17 @@ export default function ReportesVentasClient({
   const dowMax = Math.max(...dowData.map((d) => d.total));
 
   // ── Discount impact ────────────────────────────────────────────────────────
+  // totalRevenue = SUM(total) → valor bruto (sin descuento aplicado) → siempre mayor
+  // ingresosNetos = SUM(subtotal) → valor neto (con descuento aplicado) → siempre menor
 
-  const ingresosBrutos = useMemo(() => orders.reduce((s, o) => s + (o.subtotal ?? o.total), 0), [orders]);
-  const totalDescuentos = ingresosBrutos - totalRevenue;
+  const ingresosNetos = useMemo(() => orders.reduce((s, o) => s + (o.subtotal ?? o.total), 0), [orders]);
+  const ingresosBrutos = totalRevenue;
+  const totalDescuentos = ingresosBrutos - ingresosNetos;
   const descuentoPct = ingresosBrutos > 0 ? (totalDescuentos / ingresosBrutos) * 100 : 0;
 
   const discountChartData = [
     { name: "Bruto", value: ingresosBrutos, fill: "#8B5CF6" },
-    { name: "Neto", value: totalRevenue, fill: "#3B82F6" },
+    { name: "Neto", value: ingresosNetos, fill: "#3B82F6" },
   ];
 
   // ── Inventory alerts ───────────────────────────────────────────────────────
@@ -440,6 +455,50 @@ export default function ReportesVentasClient({
       .sort((a, b) => b.quantity - a.quantity);
   }, [aggregatedInventory, recentlySoldProductIds]);
 
+  // ── CSV Export ─────────────────────────────────────────────────────────────
+
+  function exportCSV() {
+    const canalLabel =
+      canalFilter === "online" ? "Online" : canalFilter === "fisico" ? "Físico" : "Todos";
+    const rows: string[] = [];
+
+    rows.push("RESUMEN DEL PERÍODO");
+    rows.push("Métrica,Valor");
+    rows.push(`Período,${desde} al ${hasta}`);
+    rows.push(`Fuente,${canalLabel}`);
+    rows.push(`Ingresos totales,Bs ${totalRevenue.toFixed(2)}`);
+    rows.push(`Pedidos completados,${totalOrders}`);
+    rows.push(`Ticket promedio,Bs ${aov.toFixed(2)}`);
+    rows.push(`Tasa de cancelación,${cancelRate.toFixed(1)}%`);
+    rows.push(`Ingresos brutos,Bs ${ingresosBrutos.toFixed(2)}`);
+    rows.push(`Total descuentos,Bs ${totalDescuentos.toFixed(2)}`);
+    rows.push(`Ingresos netos,Bs ${ingresosNetos.toFixed(2)}`);
+    rows.push("");
+
+    rows.push("DETALLE POR DÍA");
+    rows.push("Fecha,Online (Bs.),Físico (Bs.),Total (Bs.),Pedidos Online,Pedidos Físico");
+    tableData.forEach((r) =>
+      rows.push(
+        `${r.dateFormatted},${r.online.toFixed(2)},${r.fisico.toFixed(2)},${r.total.toFixed(2)},${r.onlineCount},${r.fisicoCount}`
+      )
+    );
+    rows.push("");
+
+    rows.push("TOP 10 PRODUCTOS");
+    rows.push("Posición,Producto,Categoría,Unidades,Ingresos (Bs.)");
+    top10.forEach((p) =>
+      rows.push(`${p.pos},"${p.name}","${p.categoria}",${p.units},${p.revenue.toFixed(2)}`)
+    );
+
+    const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte-lukess-${desde}-${hasta}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ── Empty state ────────────────────────────────────────────────────────────
 
   if (orders.length === 0) {
@@ -458,6 +517,17 @@ export default function ReportesVentasClient({
 
   return (
     <div className="space-y-6">
+      {/* ── Acciones ────────────────────────────────────────────────────── */}
+      <div className="flex justify-end">
+        <button
+          onClick={exportCSV}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all shadow-md"
+        >
+          <Download className="w-4 h-4" />
+          Exportar CSV
+        </button>
+      </div>
+
       {/* ── 6 KPI Cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <KPICard
@@ -505,6 +575,17 @@ export default function ReportesVentasClient({
           subtitle={`${cancelledCount} cancelados`}
         />
       </div>
+
+      {/* ── Último pedido ────────────────────────────────────────────────── */}
+      {lastOrder && (
+        <p className="text-xs text-gray-400 text-right -mt-2">
+          Último pedido: hace{" "}
+          {formatDistanceToNow(parseISO(lastOrder.created_at), { locale: es })}
+          {lastOrder.customer_name ? ` · ${lastOrder.customer_name}` : ""}
+          {` · ${formatBs(lastOrder.total)}`}
+          {` · ${lastOrder.canal === "fisico" ? "Físico" : "Online"}`}
+        </p>
+      )}
 
       {/* ── Charts row: bar + donut ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -935,7 +1016,7 @@ export default function ReportesVentasClient({
             </div>
             <div className="flex justify-between items-center py-2 border-b border-gray-100">
               <span className="text-xs font-medium text-gray-500">Ingresos netos</span>
-              <span className="text-sm font-bold text-blue-700">{formatBs(totalRevenue)}</span>
+              <span className="text-sm font-bold text-blue-700">{formatBs(ingresosNetos)}</span>
             </div>
             <div className="flex justify-between items-center pt-1">
               <span className="text-xs font-medium text-gray-500">% descuento promedio</span>

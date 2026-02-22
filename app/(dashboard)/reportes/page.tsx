@@ -63,7 +63,7 @@ export default async function ReportesPage({
   // ── Completed orders (current period) ─────────────────────────────────────
   let currentQuery = supabase
     .from("orders")
-    .select("id, total, subtotal, discount, canal, created_at, status")
+    .select("id, total, subtotal, discount, canal, created_at, status, customer_name")
     .eq("status", "completed")
     .gte("created_at", desdeFull)
     .lte("created_at", hastaFull);
