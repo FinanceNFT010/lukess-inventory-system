@@ -407,6 +407,7 @@ export type Database = {
           fulfillment_notes: string | null;
           reserved_at: string | null;
           expires_at: string | null;
+          payment_receipt_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -430,6 +431,7 @@ export type Database = {
           fulfillment_notes?: string | null;
           reserved_at?: string | null;
           expires_at?: string | null;
+          payment_receipt_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -453,6 +455,7 @@ export type Database = {
           fulfillment_notes?: string | null;
           reserved_at?: string | null;
           expires_at?: string | null;
+          payment_receipt_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };

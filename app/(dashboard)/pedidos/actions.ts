@@ -142,6 +142,35 @@ export async function updateOrderStatus(
   }
 }
 
+export async function getReceiptSignedUrl(receiptPath: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autenticado' }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.is_active || profile.role === 'staff') {
+      return { error: 'Sin permisos para ver comprobantes' }
+    }
+
+    const { data, error } = await supabaseAdmin.storage
+      .from('payment-receipts')
+      .createSignedUrl(receiptPath, 3600)
+
+    if (error) return { error: error.message }
+
+    return { signedUrl: data.signedUrl }
+  } catch (err) {
+    console.error('getReceiptSignedUrl error:', err)
+    return { error: 'Error interno del servidor' }
+  }
+}
+
 export async function saveInternalNote(orderId: string, note: string) {
   try {
     const supabase = await createClient()

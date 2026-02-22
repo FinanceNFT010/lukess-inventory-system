@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, ChevronDown, Loader2, MapPin, Package } from 'lucide-react'
+import { X, ChevronDown, Loader2, MapPin, Package, Paperclip, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { OrderWithItems, OrderStatus } from '@/lib/types'
 import { ORDER_STATUS_CONFIG } from '@/lib/types'
-import { updateOrderStatus, saveInternalNote } from './actions'
+import { updateOrderStatus, saveInternalNote, getReceiptSignedUrl } from './actions'
 import { createClient } from '@/lib/supabase/client'
 import CancelOrderModal from '@/components/orders/CancelOrderModal'
 
@@ -205,12 +205,18 @@ export default function OrderDetailModal({
   const [savingNote, setSavingNote] = useState(false)
   const [reservations, setReservations] = useState<ReservationRow[]>([])
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [receiptState, setReceiptState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle')
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null)
+  const [receiptError, setReceiptError] = useState<string | null>(null)
   const canEdit = userRole === 'admin' || userRole === 'manager'
 
   useEffect(() => {
     if (order) {
       setInternalNote(order.internal_notes ?? '')
       setNoteSaved(false)
+      setReceiptState('idle')
+      setReceiptUrl(null)
+      setReceiptError(null)
     }
   }, [order?.id])
 
@@ -294,6 +300,25 @@ export default function OrderDetailModal({
       }
     } finally {
       setSavingNote(false)
+    }
+  }
+
+  async function handleViewReceipt() {
+    if (!order?.payment_receipt_url) return
+    setReceiptState('loading')
+    setReceiptError(null)
+    try {
+      const result = await getReceiptSignedUrl(order.payment_receipt_url)
+      if ('error' in result) {
+        setReceiptState('error')
+        setReceiptError(result.error)
+      } else {
+        setReceiptUrl(result.signedUrl)
+        setReceiptState('loaded')
+      }
+    } catch {
+      setReceiptState('error')
+      setReceiptError('No se pudo cargar el comprobante')
     }
   }
 
@@ -511,6 +536,86 @@ export default function OrderDetailModal({
               <span className="font-bold text-gray-900">TOTAL</span>
               <span className="text-xl font-bold text-gray-900">Bs {formatCurrency(order.total)}</span>
             </div>
+          </div>
+
+          {/* PAYMENT RECEIPT */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Paperclip className="w-3.5 h-3.5" />
+              Comprobante de pago
+            </h3>
+
+            {!order.payment_receipt_url ? (
+              <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <span className="text-base flex-shrink-0">⚠️</span>
+                <div>
+                  <p className="text-sm font-medium text-amber-700">El cliente no subió comprobante.</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Verificá el pago en la app del banco.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {receiptState === 'idle' && (
+                  <button
+                    onClick={handleViewReceipt}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-blue-200 text-blue-700 font-semibold text-sm rounded-xl hover:bg-blue-50 transition-colors"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                    Ver comprobante
+                  </button>
+                )}
+
+                {receiptState === 'loading' && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-white border border-gray-200 rounded-xl">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                    Cargando comprobante...
+                  </div>
+                )}
+
+                {receiptState === 'error' && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                    ❌ {receiptError}
+                  </div>
+                )}
+
+                {receiptState === 'loaded' && receiptUrl && (
+                  <div className="space-y-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={receiptUrl}
+                      alt="Comprobante de pago"
+                      className="w-full rounded-xl border border-gray-200 object-contain bg-white"
+                      style={{ maxHeight: '400px' }}
+                    />
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <a
+                        href={receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 font-medium text-sm rounded-xl hover:bg-gray-50 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Abrir en tamaño completo
+                      </a>
+                      {(order.status === 'reserved' || order.status === 'pending') && canEdit && (
+                        <button
+                          onClick={() => handleStatusChange('confirmed')}
+                          disabled={loadingStatus !== null}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-sm rounded-xl hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
+                        >
+                          {loadingStatus === 'confirmed' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <span>✓</span>
+                          )}
+                          Pago verificado → Confirmar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* INTERNAL NOTES */}
