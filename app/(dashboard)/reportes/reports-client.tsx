@@ -1,649 +1,503 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
-  Legend,
-  Area,
-  AreaChart,
 } from "recharts";
 import {
-  TrendingUp,
-  TrendingDown,
-  ShoppingCart,
-  Package,
-  MapPin,
-  Calendar,
   DollarSign,
-  CreditCard,
-  Download,
+  ShoppingBag,
+  Globe,
+  Store,
   ArrowUp,
   ArrowDown,
+  TrendingUp,
 } from "lucide-react";
-import { format, subDays, startOfDay, eachDayOfInterval } from "date-fns";
+import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import toast from "react-hot-toast";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface SaleRecord {
+interface OrderRow {
   id: string;
   total: number;
-  payment_method: "cash" | "qr" | "card";
-  location_id: string;
+  canal: "online" | "fisico" | null;
   created_at: string;
-  locations: { name: string } | null;
+  status: string;
 }
 
-interface SaleItemRecord {
-  quantity: number;
-  subtotal: number;
-  product_id: string;
-  products: { name: string; sku: string; organization_id: string } | null;
-  sales: { created_at: string; organization_id: string } | null;
+interface ReportesVentasClientProps {
+  orders: OrderRow[];
+  prevOrders: OrderRow[];
+  desde: string;
+  hasta: string;
+  canalFilter: string;
 }
 
-interface LocationInfo {
-  id: string;
-  name: string;
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-interface ReportsClientProps {
-  sales: SaleRecord[];
-  saleItems: SaleItemRecord[];
-  locations: LocationInfo[];
-}
-
-// ── Constants ────────────────────────────────────────────────────────────────
-
-const PAYMENT_COLORS: Record<string, string> = {
-  cash: "#10B981",
-  qr: "#3B82F6",
-  card: "#8B5CF6",
-};
-
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: "Efectivo",
-  qr: "QR",
-  card: "Tarjeta",
-};
-
-const CHART_COLORS = [
-  "#3B82F6",
-  "#10B981",
-  "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
-  "#EC4899",
-  "#06B6D4",
-  "#F97316",
-];
-
-const DATE_RANGES = [
-  { label: "7 días", days: 7 },
-  { label: "14 días", days: 14 },
-  { label: "30 días", days: 30 },
-  { label: "Personalizado", days: 0 },
-];
-
-// Helper para formatear moneda
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-BO", {
-    style: "currency",
-    currency: "BOB",
+function formatBs(amount: number): string {
+  return `Bs ${amount.toLocaleString("es-BO", {
     minimumFractionDigits: 2,
-  }).format(amount).replace("BOB", "Bs");
+    maximumFractionDigits: 2,
+  })}`;
 }
 
-// Helper para exportar a CSV
-function exportToCSV(data: any[], filename: string) {
-  const headers = Object.keys(data[0] || {});
-  const csv = [
-    headers.join(","),
-    ...data.map((row) =>
-      headers.map((h) => JSON.stringify(row[h] ?? "")).join(",")
-    ),
-  ].join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
+function pctChange(current: number, prev: number): number | null {
+  if (prev === 0) return null;
+  return ((current - prev) / prev) * 100;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-export default function ReportsClient({
-  sales,
-  saleItems,
-  locations,
-}: ReportsClientProps) {
-  const [selectedRange, setSelectedRange] = useState(7);
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
+function KPICard({
+  icon: Icon,
+  label,
+  value,
+  change,
+  color,
+  delay = 0,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  change: number | null;
+  color: "blue" | "green" | "purple" | "orange";
+  delay?: number;
+}) {
+  const colors = {
+    blue: "from-blue-500 to-blue-700",
+    green: "from-green-500 to-green-700",
+    purple: "from-purple-500 to-purple-700",
+    orange: "from-orange-400 to-orange-600",
+  };
 
-  // ── Filter sales by date range ─────────────────────────────────────────────
-
-  const filteredSales = useMemo(() => {
-    if (selectedRange === 0 && customStartDate && customEndDate) {
-      const start = new Date(customStartDate);
-      const end = new Date(customEndDate);
-      end.setHours(23, 59, 59, 999);
-      return sales.filter((s) => {
-        const date = new Date(s.created_at);
-        return date >= start && date <= end;
-      });
-    }
-    const cutoff = startOfDay(subDays(new Date(), selectedRange));
-    return sales.filter((s) => new Date(s.created_at) >= cutoff);
-  }, [sales, selectedRange, customStartDate, customEndDate]);
-
-  const filteredItems = useMemo(() => {
-    if (selectedRange === 0 && customStartDate && customEndDate) {
-      const start = new Date(customStartDate);
-      const end = new Date(customEndDate);
-      end.setHours(23, 59, 59, 999);
-      return saleItems.filter((item) => {
-        if (!item.sales) return false;
-        const date = new Date(item.sales.created_at);
-        return date >= start && date <= end;
-      });
-    }
-    const cutoff = startOfDay(subDays(new Date(), selectedRange));
-    return saleItems.filter(
-      (item) => item.sales && new Date(item.sales.created_at) >= cutoff
-    );
-  }, [saleItems, selectedRange, customStartDate, customEndDate]);
-
-  // ── Previous period for comparison ─────────────────────────────────────────
-
-  const previousPeriodSales = useMemo(() => {
-    const cutoff = startOfDay(subDays(new Date(), selectedRange * 2));
-    const periodStart = startOfDay(subDays(new Date(), selectedRange));
-    return sales.filter((s) => {
-      const date = new Date(s.created_at);
-      return date >= cutoff && date < periodStart;
-    });
-  }, [sales, selectedRange]);
-
-  // ── Stats ──────────────────────────────────────────────────────────────────
-
-  const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
-  const totalSalesCount = filteredSales.length;
-  const avgTicket = totalSalesCount > 0 ? totalRevenue / totalSalesCount : 0;
-  const totalItemsSold = filteredItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
-
-  // Previous period stats for comparison
-  const previousRevenue = previousPeriodSales.reduce(
-    (sum, s) => sum + s.total,
-    0
-  );
-  const revenueChange =
-    previousRevenue > 0
-      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
-      : 0;
-
-  const previousSalesCount = previousPeriodSales.length;
-  const salesCountChange =
-    previousSalesCount > 0
-      ? ((totalSalesCount - previousSalesCount) / previousSalesCount) * 100
-      : 0;
-
-  // ── Sales by day (Line chart) ──────────────────────────────────────────────
-
-  const salesByDay = useMemo(() => {
-    const days = eachDayOfInterval({
-      start: startOfDay(subDays(new Date(), selectedRange - 1)),
-      end: new Date(),
-    });
-
-    return days.map((day) => {
-      const dayStr = format(day, "yyyy-MM-dd");
-      const daySales = filteredSales.filter(
-        (s) => format(new Date(s.created_at), "yyyy-MM-dd") === dayStr
-      );
-      return {
-        date: format(day, "dd MMM", { locale: es }),
-        ventas: daySales.reduce((sum, s) => sum + s.total, 0),
-        cantidad: daySales.length,
-      };
-    });
-  }, [filteredSales, selectedRange]);
-
-  // ── Payment methods (Pie chart) ────────────────────────────────────────────
-
-  const paymentData = useMemo(() => {
-    const grouped: Record<string, { count: number; total: number }> = {};
-    filteredSales.forEach((s) => {
-      if (!grouped[s.payment_method]) {
-        grouped[s.payment_method] = { count: 0, total: 0 };
-      }
-      grouped[s.payment_method].count++;
-      grouped[s.payment_method].total += s.total;
-    });
-
-    return Object.entries(grouped).map(([method, data]) => ({
-      name: PAYMENT_LABELS[method] || method,
-      value: data.total,
-      count: data.count,
-      color: PAYMENT_COLORS[method] || "#9CA3AF",
-    }));
-  }, [filteredSales]);
-
-  // ── Top 5 products ─────────────────────────────────────────────────────────
-
-  const topProducts = useMemo(() => {
-    const grouped: Record<
-      string,
-      { name: string; sku: string; qty: number; revenue: number }
-    > = {};
-
-    filteredItems.forEach((item) => {
-      if (!item.products) return;
-      const key = item.product_id;
-      if (!grouped[key]) {
-        grouped[key] = {
-          name: item.products.name,
-          sku: item.products.sku,
-          qty: 0,
-          revenue: 0,
-        };
-      }
-      grouped[key].qty += item.quantity;
-      grouped[key].revenue += item.subtotal;
-    });
-
-    return Object.values(grouped)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
-  }, [filteredItems]);
-
-  // ── Sales by location (Bar chart) ──────────────────────────────────────────
-
-  const salesByLocation = useMemo(() => {
-    return locations.map((loc) => {
-      const locSales = filteredSales.filter(
-        (s) => s.location_id === loc.id
-      );
-      return {
-        name: loc.name.replace("Puesto ", "P").replace(" - ", ": "),
-        fullName: loc.name,
-        ventas: locSales.reduce((sum, s) => sum + s.total, 0),
-        cantidad: locSales.length,
-      };
-    });
-  }, [filteredSales, locations]);
-
-  // ── Custom tooltip ─────────────────────────────────────────────────────────
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null;
-    
-    // Calculate daily average for comparison
-    const currentValue = payload.find((p: any) => p.dataKey === "ventas")?.value || 0;
-    const dailyAvg = totalSalesCount > 0 ? totalRevenue / selectedRange : 0;
-    const comparedToAvg = dailyAvg > 0 ? ((currentValue - dailyAvg) / dailyAvg * 100) : 0;
-    
-    return (
-      <div className="bg-white border-2 border-gray-200 rounded-2xl shadow-2xl p-5 min-w-[220px]">
-        <p className="text-sm font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">{label}</p>
-        {payload.map((entry: any, i: number) => (
-          <div key={i} className="flex items-center justify-between gap-6 mb-1">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-sm font-medium text-gray-600">
-                {entry.name === "ventas" ? "Ingresos" : entry.name === "cantidad" ? "Transacciones" : entry.name}
-              </span>
-            </div>
-            <span className="text-sm font-bold" style={{ color: entry.color }}>
-              {entry.name === "ventas" || entry.dataKey === "ventas"
-                ? formatCurrency(entry.value)
-                : entry.value}
-            </span>
-          </div>
-        ))}
-        {currentValue > 0 && dailyAvg > 0 && (
-          <div className="mt-3 pt-2 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">vs promedio diario</span>
-              <span className={`text-xs font-bold ${comparedToAvg >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {comparedToAvg >= 0 ? '+' : ''}{comparedToAvg.toFixed(1)}%
-              </span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Promedio: {formatCurrency(dailyAvg)}/día
-            </p>
+  return (
+    <div
+      className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className={`w-12 h-12 bg-gradient-to-br ${colors[color]} rounded-xl flex items-center justify-center shadow-md`}
+        >
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+        {change !== null && (
+          <div
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
+              change >= 0
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }`}
+          >
+            {change >= 0 ? (
+              <ArrowUp className="w-3 h-3" />
+            ) : (
+              <ArrowDown className="w-3 h-3" />
+            )}
+            {Math.abs(change).toFixed(1)}%
           </div>
         )}
       </div>
-    );
-  };
+      <p className="text-sm font-medium text-gray-500 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+    </div>
+  );
+}
 
-  // Export to CSV
-  const handleExport = () => {
-    const exportData = filteredSales.map((sale) => ({
-      Fecha: format(new Date(sale.created_at), "dd/MM/yyyy HH:mm"),
-      Total: sale.total,
-      "Método de Pago": PAYMENT_LABELS[sale.payment_method],
-      Ubicación: sale.locations?.name || "N/A",
-    }));
+// Custom tooltip for bar chart
+function BarTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; fill: string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const total = payload.reduce((s, p) => s + (p.value ?? 0), 0);
+  return (
+    <div className="bg-white border-2 border-gray-200 rounded-xl shadow-xl p-4 min-w-[200px]">
+      <p className="text-sm font-bold text-gray-800 mb-2 border-b border-gray-100 pb-2">
+        {label}
+      </p>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center justify-between gap-4 mb-1">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: p.fill }}
+            />
+            <span className="text-xs font-medium text-gray-600">{p.name}</span>
+          </div>
+          <span className="text-xs font-bold text-gray-900">
+            {formatBs(p.value)}
+          </span>
+        </div>
+      ))}
+      <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between">
+        <span className="text-xs text-gray-500">Total</span>
+        <span className="text-xs font-bold text-gray-900">{formatBs(total)}</span>
+      </div>
+    </div>
+  );
+}
 
-    exportToCSV(
-      exportData,
-      `ventas_${format(new Date(), "yyyy-MM-dd")}.csv`
-    );
-    toast.success("Reporte exportado exitosamente");
-  };
+// Custom label for center of donut
+function DonutCenter({
+  cx,
+  cy,
+  total,
+}: {
+  cx?: number;
+  cy?: number;
+  total: number;
+}) {
+  if (!cx || !cy) return null;
+  return (
+    <text textAnchor="middle" dominantBaseline="middle">
+      <tspan x={cx} y={cy - 10} fontSize={11} fill="#6B7280" fontWeight={500}>
+        Total
+      </tspan>
+      <tspan x={cx} y={cy + 10} fontSize={13} fill="#111827" fontWeight={700}>
+        {formatBs(total)}
+      </tspan>
+    </text>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
+export default function ReportesVentasClient({
+  orders,
+  prevOrders,
+  desde,
+  hasta,
+  canalFilter,
+}: ReportesVentasClientProps) {
+  // ── KPI calculations ───────────────────────────────────────────────────────
+
+  const totalRevenue = useMemo(
+    () => orders.reduce((s, o) => s + o.total, 0),
+    [orders]
+  );
+  const totalOrders = orders.length;
+
+  const onlineOrders = useMemo(
+    () => orders.filter((o) => o.canal === "online" || o.canal === null),
+    [orders]
+  );
+  const fisicoOrders = useMemo(
+    () => orders.filter((o) => o.canal === "fisico"),
+    [orders]
+  );
+
+  const onlineRevenue = useMemo(
+    () => onlineOrders.reduce((s, o) => s + o.total, 0),
+    [onlineOrders]
+  );
+  const fisicoRevenue = useMemo(
+    () => fisicoOrders.reduce((s, o) => s + o.total, 0),
+    [fisicoOrders]
+  );
+
+  // Previous period
+  const prevRevenue = useMemo(
+    () => prevOrders.reduce((s, o) => s + o.total, 0),
+    [prevOrders]
+  );
+  const prevCount = prevOrders.length;
+  const prevOnlineRevenue = useMemo(
+    () =>
+      prevOrders
+        .filter((o) => o.canal === "online" || o.canal === null)
+        .reduce((s, o) => s + o.total, 0),
+    [prevOrders]
+  );
+  const prevFisicoRevenue = useMemo(
+    () =>
+      prevOrders
+        .filter((o) => o.canal === "fisico")
+        .reduce((s, o) => s + o.total, 0),
+    [prevOrders]
+  );
+
+  // ── Bar chart data (by day) ────────────────────────────────────────────────
+
+  const barData = useMemo(() => {
+    const start = parseISO(desde);
+    const end = parseISO(hasta);
+    const days = eachDayOfInterval({ start, end });
+
+    return days.map((day) => {
+      const dayStr = format(day, "yyyy-MM-dd");
+      const dayOrders = orders.filter(
+        (o) => format(parseISO(o.created_at), "yyyy-MM-dd") === dayStr
+      );
+      const online = dayOrders
+        .filter((o) => o.canal === "online" || o.canal === null)
+        .reduce((s, o) => s + o.total, 0);
+      const fisico = dayOrders
+        .filter((o) => o.canal === "fisico")
+        .reduce((s, o) => s + o.total, 0);
+
+      return {
+        fecha: format(day, "dd/MM"),
+        Online: online,
+        Físico: fisico,
+      };
+    });
+  }, [orders, desde, hasta]);
+
+  // ── Donut data ─────────────────────────────────────────────────────────────
+
+  const donutData = useMemo(() => {
+    const data = [];
+    if (onlineRevenue > 0) data.push({ name: "Online", value: onlineRevenue });
+    if (fisicoRevenue > 0) data.push({ name: "Físico", value: fisicoRevenue });
+    return data;
+  }, [onlineRevenue, fisicoRevenue]);
+
+  const DONUT_COLORS = ["#3B82F6", "#F97316"];
+
+  // ── Table data (by day descending) ────────────────────────────────────────
+
+  const tableData = useMemo(() => {
+    const map: Record<
+      string,
+      { online: number; fisico: number; onlineCount: number; fisicoCount: number }
+    > = {};
+
+    orders.forEach((o) => {
+      const day = format(parseISO(o.created_at), "yyyy-MM-dd");
+      if (!map[day]) map[day] = { online: 0, fisico: 0, onlineCount: 0, fisicoCount: 0 };
+      if (o.canal === "fisico") {
+        map[day].fisico += o.total;
+        map[day].fisicoCount++;
+      } else {
+        map[day].online += o.total;
+        map[day].onlineCount++;
+      }
+    });
+
+    return Object.entries(map)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 30)
+      .map(([date, v]) => ({
+        date,
+        dateFormatted: format(parseISO(date), "dd/MM/yyyy"),
+        online: v.online,
+        fisico: v.fisico,
+        total: v.online + v.fisico,
+        onlineCount: v.onlineCount,
+        fisicoCount: v.fisicoCount,
+      }));
+  }, [orders]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  if (orders.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-16 text-center">
+        <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-bold text-gray-400">Sin datos en este período</h3>
+        <p className="text-sm text-gray-400 mt-1">
+          No hay pedidos completados con el filtro seleccionado.
+        </p>
+      </div>
+    );
+  }
+
+  const onlinePct = totalRevenue > 0 ? (onlineRevenue / totalRevenue) * 100 : 0;
+  const fisicoPct = totalRevenue > 0 ? (fisicoRevenue / totalRevenue) * 100 : 0;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Reportes</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Análisis de ventas e inventario
-            </p>
-          </div>
-
-          {/* Export button */}
-          <button
-            onClick={handleExport}
-            disabled={filteredSales.length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed"
-          >
-            <Download className="w-5 h-5" />
-            Exportar a Excel
-          </button>
-        </div>
-
-        {/* Date range selector */}
-        <div className="bg-white rounded-xl border-2 border-gray-200 p-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-bold text-gray-700">
-                Rango de fechas
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {DATE_RANGES.map((range) => (
-                <button
-                  key={range.days}
-                  onClick={() => setSelectedRange(range.days)}
-                  className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
-                    selectedRange === range.days
-                      ? "bg-blue-600 text-white shadow-lg scale-105"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {range.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Custom date inputs */}
-            {selectedRange === 0 && (
-              <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-gray-200">
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Fecha inicio
-                  </label>
-                  <input
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Fecha fin
-                  </label>
-                  <input
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <KPICard
+          icon={DollarSign}
+          label="Ingresos totales"
+          value={formatBs(totalRevenue)}
+          change={pctChange(totalRevenue, prevRevenue)}
+          color="blue"
+          delay={0}
+        />
+        <KPICard
+          icon={ShoppingBag}
+          label="Pedidos totales"
+          value={`${totalOrders}`}
+          change={pctChange(totalOrders, prevCount)}
+          color="green"
+          delay={100}
+        />
+        <KPICard
+          icon={Globe}
+          label="Ventas Online"
+          value={formatBs(onlineRevenue)}
+          change={pctChange(onlineRevenue, prevOnlineRevenue)}
+          color="purple"
+          delay={200}
+        />
+        <KPICard
+          icon={Store}
+          label="Ventas Físico"
+          value={formatBs(fisicoRevenue)}
+          change={pctChange(fisicoRevenue, prevFisicoRevenue)}
+          color="orange"
+          delay={300}
+        />
       </div>
 
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Revenue card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 0ms both' }}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md">
-              <DollarSign className="w-7 h-7 text-white" />
-            </div>
-            {revenueChange !== 0 && (
-              <div
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
-                  revenueChange > 0
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                {revenueChange > 0 ? (
-                  <ArrowUp className="w-3 h-3" />
-                ) : (
-                  <ArrowDown className="w-3 h-3" />
-                )}
-                {Math.abs(revenueChange).toFixed(1)}%
-              </div>
-            )}
-          </div>
-          <p className="text-sm font-medium text-gray-500 mb-1">
-            Ingresos Totales
-          </p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(totalRevenue)}
-          </p>
-        </div>
-
-        {/* Sales count card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 100ms both' }}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center shadow-md">
-              <ShoppingCart className="w-7 h-7 text-white" />
-            </div>
-            {salesCountChange !== 0 && (
-              <div
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
-                  salesCountChange > 0
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                {salesCountChange > 0 ? (
-                  <ArrowUp className="w-3 h-3" />
-                ) : (
-                  <ArrowDown className="w-3 h-3" />
-                )}
-                {Math.abs(salesCountChange).toFixed(1)}%
-              </div>
-            )}
-          </div>
-          <p className="text-sm font-medium text-gray-500 mb-1">
-            Total Ventas
-          </p>
-          <p className="text-2xl font-bold text-gray-900">{totalSalesCount}</p>
-        </div>
-
-        {/* Average ticket card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 200ms both' }}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center shadow-md">
-              <TrendingUp className="w-7 h-7 text-white" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-500 mb-1">
-            Ticket Promedio
-          </p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(avgTicket)}
-          </p>
-        </div>
-
-        {/* Items sold card */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer group" style={{ animation: 'slideInUp 0.5s ease-out 300ms both' }}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-md">
-              <Package className="w-7 h-7 text-white" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-500 mb-1">
-            Ítems Vendidos
-          </p>
-          <p className="text-2xl font-bold text-gray-900">{totalItemsSold}</p>
-        </div>
-      </div>
-
-      {/* Charts Row 1 */}
+      {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sales trend - Area chart with gradient */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900">
-                Ventas por Día
+        {/* Stacked Bar chart */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">
+                Ingresos por día
               </h2>
+              <p className="text-xs text-gray-500">Barras apiladas online vs físico</p>
             </div>
           </div>
 
-          {salesByDay.length === 0 ? (
-            <div className="h-80 flex items-center justify-center text-sm text-gray-400">
-              No hay datos de ventas
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={320}>
-              <AreaChart data={salesByDay}>
-                <defs>
-                  <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="5 5" stroke="#E5E7EB" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
-                  axisLine={{ stroke: "#D1D5DB" }}
-                  tickLine={{ stroke: "#D1D5DB" }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
-                  axisLine={{ stroke: "#D1D5DB" }}
-                  tickLine={{ stroke: "#D1D5DB" }}
-                  tickFormatter={(v) => `Bs ${v}`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="ventas"
-                  stroke="#3B82F6"
-                  strokeWidth={3}
-                  fill="url(#colorVentas)"
-                  dot={{ fill: "#3B82F6", strokeWidth: 0, r: 5 }}
-                  activeDot={{ r: 7, fill: "#2563EB", strokeWidth: 2, stroke: "#fff" }}
-                  name="ventas"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={barData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="4 4" stroke="#E5E7EB" />
+              <XAxis
+                dataKey="fecha"
+                tick={{ fontSize: 11, fill: "#6B7280" }}
+                axisLine={{ stroke: "#D1D5DB" }}
+                tickLine={false}
+                interval={Math.max(0, Math.floor(barData.length / 8) - 1)}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "#6B7280" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `Bs${v}`}
+                width={60}
+              />
+              <Tooltip content={<BarTooltip />} />
+              <Legend
+                iconType="circle"
+                iconSize={10}
+                wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
+              />
+              <Bar
+                dataKey="Online"
+                stackId="a"
+                fill="#3B82F6"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar
+                dataKey="Físico"
+                stackId="a"
+                fill="#F97316"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Payment methods - Donut chart */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+        {/* Donut chart */}
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center">
-              <CreditCard className="w-6 h-6 text-white" />
+              <Globe className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">Métodos de Pago</h2>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Proporción</h2>
+              <p className="text-xs text-gray-500">Online vs Físico</p>
+            </div>
           </div>
 
-          {paymentData.length === 0 ? (
-            <div className="h-80 flex items-center justify-center text-sm text-gray-400">
-              No hay datos
+          {donutData.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+              Sin datos
             </div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={240}>
+              <ResponsiveContainer width="100%" height={210}>
                 <PieChart>
                   <Pie
-                    data={paymentData}
+                    data={donutData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
+                    innerRadius={65}
                     outerRadius={90}
-                    paddingAngle={6}
+                    paddingAngle={4}
                     dataKey="value"
+                    labelLine={false}
                   >
-                    {paymentData.map((entry, index) => (
+                    {donutData.map((_, index) => (
                       <Cell
                         key={index}
-                        fill={entry.color}
-                        className="hover:opacity-80 transition-opacity cursor-pointer"
+                        fill={DONUT_COLORS[index % DONUT_COLORS.length]}
                       />
                     ))}
+                    {/* Center label via label prop */}
                   </Pie>
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      formatBs(value),
+                      name,
+                    ]}
+                  />
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* Legend with percentages */}
-              <div className="space-y-3 mt-4">
-                {paymentData.map((entry, i) => {
-                  const percentage = (
-                    (entry.value / totalRevenue) *
-                    100
-                  ).toFixed(1);
+              {/* Center label absolute */}
+              <div className="-mt-[210px] mb-[210px] flex flex-col items-center justify-center pointer-events-none h-[210px]">
+                <span className="text-xs text-gray-500 font-medium">Total</span>
+                <span className="text-sm font-bold text-gray-900">
+                  {formatBs(totalRevenue)}
+                </span>
+              </div>
+
+              {/* Legend */}
+              <div className="mt-2 space-y-3">
+                {donutData.map((entry, i) => {
+                  const pct =
+                    totalRevenue > 0
+                      ? ((entry.value / totalRevenue) * 100).toFixed(1)
+                      : "0";
                   return (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition"
+                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <div
-                          className="w-4 h-4 rounded-full shadow-sm"
-                          style={{ backgroundColor: entry.color }}
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: DONUT_COLORS[i] }}
                         />
                         <span className="text-sm font-semibold text-gray-700">
                           {entry.name}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-bold text-gray-900">
-                          {formatCurrency(entry.value)}
+                        <span className="text-xs font-bold text-gray-900">
+                          {pct}%
                         </span>
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({percentage}%)
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({formatBs(entry.value)})
                         </span>
                       </div>
                     </div>
@@ -655,217 +509,106 @@ export default function ReportsClient({
         </div>
       </div>
 
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top 5 products */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center">
-              <Package className="w-6 h-6 text-white" />
+      {/* Detail table */}
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-gray-600 to-gray-800 rounded-xl flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4 text-white" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">
-              Top 5 Productos Vendidos
-            </h2>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">
+                Detalle por día
+              </h2>
+              <p className="text-xs text-gray-500">
+                Máximo 30 días · ordenado descendente
+              </p>
+            </div>
           </div>
-
-          {topProducts.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-sm text-gray-400">
-              No hay datos de productos
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {topProducts.map((product, i) => {
-                const maxRevenue = topProducts[0]?.revenue || 1;
-                const pct = (product.revenue / maxRevenue) * 100;
-                const gradientId = `gradient-${i}`;
-
-                return (
-                  <div
-                    key={i}
-                    className="group hover:bg-gray-50 p-3 rounded-xl transition-all"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      {/* Ranking badge */}
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-md"
-                        style={{
-                          background: `linear-gradient(135deg, ${CHART_COLORS[i]}, ${CHART_COLORS[i]}dd)`,
-                        }}
-                      >
-                        {i + 1}
-                      </div>
-
-                      {/* Product image placeholder */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                        <Package className="w-5 h-5 text-gray-400" />
-                      </div>
-
-                      {/* Product info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900 truncate">
-                          {product.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {product.sku} · {product.qty} unidades vendidas
-                        </p>
-                      </div>
-
-                      {/* Revenue */}
-                      <span className="text-base font-bold text-gray-900 flex-shrink-0">
-                        {formatCurrency(product.revenue)}
-                      </span>
-                    </div>
-
-                    {/* Progress bar with gradient */}
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden ml-11">
-                      <svg width="100%" height="100%">
-                        <defs>
-                          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor={CHART_COLORS[i]} />
-                            <stop offset="100%" stopColor={`${CHART_COLORS[i]}88`} />
-                          </linearGradient>
-                        </defs>
-                        <rect
-                          width={`${pct}%`}
-                          height="100%"
-                          fill={`url(#${gradientId})`}
-                          rx="4"
-                          className="transition-all duration-700"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="hidden sm:flex items-center gap-4 text-xs font-semibold">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
+              Online
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
+              Físico
+            </span>
+          </div>
         </div>
 
-        {/* Sales by location - Bar chart */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-lg font-bold text-gray-900">
-              Ventas por Ubicación
-            </h2>
-          </div>
-
-          {salesByLocation.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-sm text-gray-400">
-              No hay datos
-            </div>
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={salesByLocation}>
-                  <defs>
-                    {salesByLocation.map((_, i) => (
-                      <linearGradient
-                        key={i}
-                        id={`barGradient${i}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={CHART_COLORS[i % CHART_COLORS.length]}
-                          stopOpacity={1}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={CHART_COLORS[i % CHART_COLORS.length]}
-                          stopOpacity={0.6}
-                        />
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <CartesianGrid strokeDasharray="5 5" stroke="#E5E7EB" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
-                    axisLine={{ stroke: "#D1D5DB" }}
-                    tickLine={{ stroke: "#D1D5DB" }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "#6B7280", fontWeight: 500 }}
-                    axisLine={{ stroke: "#D1D5DB" }}
-                    tickLine={{ stroke: "#D1D5DB" }}
-                    tickFormatter={(v) => `Bs ${v}`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar
-                    dataKey="ventas"
-                    fill="url(#barGradient0)"
-                    radius={[8, 8, 0, 0]}
-                    name="ventas"
-                  >
-                    {salesByLocation.map((_, index) => (
-                      <Cell key={index} fill={`url(#barGradient${index})`} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-
-              {/* Location summary table */}
-              <div className="mt-6 border-t-2 border-gray-100 pt-4">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left text-xs font-bold text-gray-600 uppercase tracking-wider pb-3">
-                        Ubicación
-                      </th>
-                      <th className="text-right text-xs font-bold text-gray-600 uppercase tracking-wider pb-3">
-                        Ventas
-                      </th>
-                      <th className="text-right text-xs font-bold text-gray-600 uppercase tracking-wider pb-3">
-                        Ingresos
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {salesByLocation.map((loc, i) => (
-                      <tr key={i} className="hover:bg-gray-50 transition">
-                        <td className="py-3 flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{
-                              backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-                            }}
-                          />
-                          <span className="text-sm font-semibold text-gray-900">
-                            {loc.fullName}
-                          </span>
-                        </td>
-                        <td className="py-3 text-sm font-medium text-gray-700 text-right">
-                          {loc.cantidad}
-                        </td>
-                        <td className="py-3 text-sm font-bold text-gray-900 text-right">
-                          {formatCurrency(loc.ventas)}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="border-t-2 border-gray-200 bg-gray-50">
-                      <td className="py-3 text-sm font-bold text-gray-900">
-                        Total
-                      </td>
-                      <td className="py-3 text-sm font-bold text-gray-900 text-right">
-                        {salesByLocation.reduce((sum, l) => sum + l.cantidad, 0)}
-                      </td>
-                      <td className="py-3 text-base font-bold text-blue-600 text-right">
-                        {formatCurrency(
-                          salesByLocation.reduce((sum, l) => sum + l.ventas, 0)
-                        )}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+        <div className="overflow-y-auto max-h-80">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 sticky top-0">
+              <tr>
+                <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Fecha
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-blue-600 uppercase tracking-wider">
+                  Online (Bs.)
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-orange-500 uppercase tracking-wider">
+                  Físico (Bs.)
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Total (Bs.)
+                </th>
+                <th className="text-right px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                  Pedidos
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {tableData.map((row) => (
+                <tr
+                  key={row.date}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-6 py-3.5 font-medium text-gray-900">
+                    {row.dateFormatted}
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-semibold text-blue-700">
+                    {row.online > 0 ? formatBs(row.online) : "—"}
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-semibold text-orange-600">
+                    {row.fisico > 0 ? formatBs(row.fisico) : "—"}
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-bold text-gray-900">
+                    {formatBs(row.total)}
+                  </td>
+                  <td className="px-6 py-3.5 text-right text-gray-400 hidden sm:table-cell">
+                    <span className="text-blue-500 font-medium">
+                      {row.onlineCount}
+                    </span>
+                    {" + "}
+                    <span className="text-orange-400 font-medium">
+                      {row.fisicoCount}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {/* Totals row */}
+            <tfoot className="bg-gray-50 border-t-2 border-gray-200 sticky bottom-0">
+              <tr>
+                <td className="px-6 py-3.5 text-xs font-bold text-gray-600 uppercase">
+                  Total período
+                </td>
+                <td className="px-4 py-3.5 text-right text-sm font-bold text-blue-700">
+                  {formatBs(onlineRevenue)}
+                </td>
+                <td className="px-4 py-3.5 text-right text-sm font-bold text-orange-600">
+                  {formatBs(fisicoRevenue)}
+                </td>
+                <td className="px-4 py-3.5 text-right text-sm font-bold text-gray-900">
+                  {formatBs(totalRevenue)}
+                </td>
+                <td className="px-6 py-3.5 text-right text-xs text-gray-500 hidden sm:table-cell">
+                  {totalOrders} pedidos
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
     </div>
