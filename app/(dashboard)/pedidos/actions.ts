@@ -6,12 +6,17 @@ import { revalidatePath } from 'next/cache'
 import type { OrderStatus } from '@/lib/types'
 import { sendOrderStatusEmail } from '@/lib/notifications'
 import type { OrderForEmail, OrderItemForEmail } from '@/lib/notifications'
+import { sendOrderStatusWhatsApp } from '@/lib/whatsapp'
+import type { OrderForWhatsApp } from '@/lib/whatsapp'
 
 type OrderQueryResult = {
   id: string
   customer_name: string
   customer_email: string | null
   notify_email: boolean
+  customer_phone: string | null
+  notify_whatsapp: boolean
+  delivery_method: string
   maps_link: string | null
   shipping_address: string | null
   shipping_cost: number
@@ -89,6 +94,9 @@ export async function updateOrderStatus(
           customer_name,
           customer_email,
           notify_email,
+          customer_phone,
+          notify_whatsapp,
+          delivery_method,
           maps_link,
           shipping_address,
           shipping_cost,
@@ -129,6 +137,20 @@ export async function updateOrderStatus(
           })),
         }
         await sendOrderStatusEmail(orderForEmail, newStatus)
+
+        const orderForWhatsApp: OrderForWhatsApp = {
+          id: raw.id,
+          customer_name: raw.customer_name,
+          customer_phone: raw.customer_phone,
+          notify_whatsapp: raw.notify_whatsapp ?? false,
+          shipping_address: raw.shipping_address,
+          delivery_method: raw.delivery_method ?? 'delivery',
+        }
+        await sendOrderStatusWhatsApp(
+          orderForWhatsApp,
+          newStatus,
+          cancellationReason
+        ).catch(err => console.error('[whatsapp action] error:', err))
       }
     } catch (emailErr) {
       console.error('[updateOrderStatus] Error al obtener pedido para email:', emailErr)
