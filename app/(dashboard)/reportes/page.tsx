@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserProfile, getDefaultOrgId } from "@/lib/auth";
-import { format, startOfMonth, startOfWeek, subMonths, subDays } from "date-fns";
+import { getCurrentUserProfile } from "@/lib/auth";
+import { format, startOfMonth, subDays } from "date-fns";
 import FiltrosReportes from "@/components/reportes/FiltrosReportes";
 import ReportesVentasClient from "./reports-client";
 
@@ -17,9 +17,10 @@ interface SearchParams {
 
 function getDefaultDateRange(): { desde: string; hasta: string } {
   const today = new Date();
-  const desde = format(startOfMonth(today), "yyyy-MM-dd");
-  const hasta = format(today, "yyyy-MM-dd");
-  return { desde, hasta };
+  return {
+    desde: format(startOfMonth(today), "yyyy-MM-dd"),
+    hasta: format(today, "yyyy-MM-dd"),
+  };
 }
 
 function getPreviousPeriod(desde: string, hasta: string): { desde: string; hasta: string } {
@@ -46,29 +47,23 @@ export default async function ReportesPage({
   if (!profile) redirect("/login");
   if (profile.role === "staff") redirect("/ventas");
 
-  const orgId = (profile.organization_id ?? (await getDefaultOrgId())) as string | null;
-  if (!orgId) redirect("/login");
-
   // Resolve date range
   const defaults = getDefaultDateRange();
   const desde = params.desde ?? defaults.desde;
   const hasta = params.hasta ?? defaults.hasta;
   const canalFilter = params.canal ?? "todos";
 
-  // End of day for "hasta"
   const hastaFull = `${hasta}T23:59:59.999Z`;
   const desdeFull = `${desde}T00:00:00.000Z`;
 
-  // Previous period for comparisons
   const prev = getPreviousPeriod(desde, hasta);
   const prevDesdeFull = `${prev.desde}T00:00:00.000Z`;
   const prevHastaFull = `${prev.hasta}T23:59:59.999Z`;
 
-  // Build current period query
+  // ── Completed orders (current period) ─────────────────────────────────────
   let currentQuery = supabase
     .from("orders")
-    .select("id, total, canal, created_at, status")
-    .eq("organization_id", orgId)
+    .select("id, total, subtotal, discount, canal, created_at, status")
     .eq("status", "completed")
     .gte("created_at", desdeFull)
     .lte("created_at", hastaFull);
@@ -77,19 +72,68 @@ export default async function ReportesPage({
     currentQuery = currentQuery.eq("canal", canalFilter);
   }
 
-  // Previous period query (no canal filter for fair comparison)
+  // ── Completed orders (previous period, no canal filter) ───────────────────
   const prevQuery = supabase
     .from("orders")
     .select("id, total, canal, created_at, status")
-    .eq("organization_id", orgId)
     .eq("status", "completed")
     .gte("created_at", prevDesdeFull)
     .lte("created_at", prevHastaFull);
 
-  const [{ data: currentOrders }, { data: prevOrders }] = await Promise.all([
+  // ── All-status orders (for cancellation rate) ─────────────────────────────
+  let allStatusQuery = supabase
+    .from("orders")
+    .select("id, status")
+    .gte("created_at", desdeFull)
+    .lte("created_at", hastaFull);
+
+  if (canalFilter !== "todos") {
+    allStatusQuery = allStatusQuery.eq("canal", canalFilter);
+  }
+
+  // ── Inventory items with product info ─────────────────────────────────────
+  const inventoryQuery = supabase
+    .from("inventory")
+    .select("product_id, quantity, min_stock, products!inner(id, name, sku)");
+
+  // ── Products sold in last 60 days (dead stock detection) ──────────────────
+  const sixtyDaysAgo = `${format(subDays(new Date(), 60), "yyyy-MM-dd")}T00:00:00.000Z`;
+  const recentSalesQuery = supabase
+    .from("order_items")
+    .select("product_id")
+    .gte("created_at", sixtyDaysAgo);
+
+  // ── Run all independent queries in parallel ────────────────────────────────
+  const [
+    { data: currentOrders },
+    { data: prevOrders },
+    { data: allStatusOrders },
+    { data: inventoryItemsRaw },
+    { data: recentSalesRaw },
+  ] = await Promise.all([
     currentQuery,
     prevQuery,
+    allStatusQuery,
+    inventoryQuery,
+    recentSalesQuery,
   ]);
+
+  // ── Order items (depends on currentOrders IDs) ────────────────────────────
+  const orderIds = (currentOrders ?? []).map((o) => o.id);
+  const { data: orderItemsRaw } =
+    orderIds.length > 0
+      ? await supabase
+          .from("order_items")
+          .select(
+            "product_id, quantity, subtotal, products(id, name, category_id, categories(name))"
+          )
+          .in("order_id", orderIds)
+      : { data: [] };
+
+  // Deduplicate recently sold product IDs
+  const recentlySoldProductIds = [
+    ...new Set((recentSalesRaw ?? []).map((r) => r.product_id as string)),
+  ];
 
   return (
     <div className="space-y-6">
@@ -114,6 +158,10 @@ export default async function ReportesPage({
       <ReportesVentasClient
         orders={currentOrders ?? []}
         prevOrders={prevOrders ?? []}
+        allStatusOrders={allStatusOrders ?? []}
+        orderItems={orderItemsRaw ?? []}
+        inventoryItems={inventoryItemsRaw ?? []}
+        recentlySoldProductIds={recentlySoldProductIds}
         desde={desde}
         hasta={hasta}
         canalFilter={canalFilter}
