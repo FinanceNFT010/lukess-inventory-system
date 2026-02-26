@@ -87,7 +87,8 @@ export default async function VentasPage() {
   return (
     <POSClient
       key={locationId || "all"}
-      initialProducts={products || []}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialProducts={(products || []) as any}
       categories={categories || []}
       profileId={profile.id}
       organizationId={orgId}

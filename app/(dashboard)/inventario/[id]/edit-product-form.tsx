@@ -43,6 +43,11 @@ const productSchema = z.object({
   color: z.string().max(50, "Máximo 50 caracteres").optional().nullable(),
   sizes: z.array(z.string()).optional().default([]),
   low_stock_threshold: z.coerce.number().int().min(1, "Mínimo 1").default(5),
+  discount: z.coerce.number().min(0, "Mínimo 0").optional(),
+  discount_expires_at: z.string().optional().nullable(),
+  is_new: z.boolean().default(false),
+  is_new_until: z.string().optional().nullable(),
+  is_featured: z.boolean().default(false),
 });
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -108,9 +113,9 @@ export default function EditProductForm({
   // Stock por ubicación y talla: { locationId: { size: quantity } }
   const [stockByLocationAndSize, setStockByLocationAndSize] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
-    
+
     console.log('📦 Inventory recibido:', product.inventory);
-    
+
     // Cargar stock real desde inventory
     if (product.inventory && Array.isArray(product.inventory)) {
       product.inventory.forEach((inv: any) => {
@@ -123,11 +128,11 @@ export default function EditProductForm({
         initial[inv.location_id][size] = currentQty + (inv.quantity || 0);
       });
     }
-    
+
     console.log('📦 Stock final cargado:', initial);
     return initial;
   });
-  
+
 
   const form = useForm({
     resolver: zodResolver(productSchema) as any,
@@ -144,6 +149,11 @@ export default function EditProductForm({
       color: product.color || "",
       sizes: product.sizes || [],
       low_stock_threshold: product.low_stock_threshold || 5,
+      discount: product.discount || 0,
+      discount_expires_at: product.discount_expires_at ? product.discount_expires_at.slice(0, 16) : "",
+      is_new: product.is_new || false,
+      is_new_until: product.is_new_until ? product.is_new_until.slice(0, 16) : "",
+      is_featured: product.is_featured || false,
     },
   });
 
@@ -249,6 +259,11 @@ export default function EditProductForm({
         cost: product.cost,
         color: product.color,
         sizes: product.sizes,
+        discount: product.discount,
+        discount_expires_at: product.discount_expires_at,
+        is_new: product.is_new,
+        is_new_until: product.is_new_until,
+        is_featured: product.is_featured,
       };
 
       const { error: productError } = await supabase
@@ -265,6 +280,11 @@ export default function EditProductForm({
           cost: data.cost,
           color: selectedColor || null,
           sizes: selectedSizes,
+          discount: data.discount || null,
+          discount_expires_at: data.discount_expires_at ? new Date(data.discount_expires_at).toISOString() : null,
+          is_new: data.is_new,
+          is_new_until: data.is_new_until ? new Date(data.is_new_until).toISOString() : null,
+          is_featured: data.is_featured,
         })
         .eq("id", product.id)
         .eq("organization_id", organizationId);
@@ -326,6 +346,11 @@ export default function EditProductForm({
           cost: data.cost,
           color: selectedColor,
           sizes: selectedSizes,
+          discount: data.discount || null,
+          discount_expires_at: data.discount_expires_at ? new Date(data.discount_expires_at).toISOString() : null,
+          is_new: data.is_new,
+          is_new_until: data.is_new_until ? new Date(data.is_new_until).toISOString() : null,
+          is_featured: data.is_featured,
           audit_note: auditNote || null,
           ...(stockChanges.length > 0 && {
             stock_edit_summary: {
@@ -548,13 +573,12 @@ export default function EditProductForm({
               />
               <label
                 htmlFor="edit-image-upload"
-                className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-                  uploadingImage
+                className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingImage
                     ? "border-blue-400 bg-blue-50"
                     : watch("image_url")
                       ? "border-green-400 bg-green-50"
                       : "border-gray-300 bg-gray-50 hover:bg-blue-50 hover:border-blue-400"
-                }`}
+                  }`}
               >
                 {uploadingImage ? (
                   <>
@@ -640,26 +664,22 @@ export default function EditProductForm({
 
           {/* Margin preview */}
           {watch("price") > 0 && watch("cost") > 0 && (
-            <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${
-              watch("price") - watch("cost") > 0
+            <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${watch("price") - watch("cost") > 0
                 ? "bg-green-50 border-green-200"
                 : "bg-red-50 border-red-200"
-            }`}>
+              }`}>
               <div className="flex items-center gap-2">
-                <TrendingUp className={`w-5 h-5 ${
-                  watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
-                }`} />
+                <TrendingUp className={`w-5 h-5 ${watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
+                  }`} />
                 <span className="text-sm font-semibold text-gray-700">Margen de ganancia</span>
               </div>
               <div className="text-right">
-                <span className={`text-xl font-bold ${
-                  watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
-                }`}>
+                <span className={`text-xl font-bold ${watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
+                  }`}>
                   +Bs {(watch("price") - watch("cost")).toFixed(2)}
                 </span>
-                <span className={`text-base ml-2 ${
-                  watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
-                }`}>
+                <span className={`text-base ml-2 ${watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
+                  }`}>
                   ({watch("cost") > 0
                     ? (((watch("price") - watch("cost")) / watch("cost")) * 100).toFixed(1)
                     : "∞"}%)
@@ -667,6 +687,88 @@ export default function EditProductForm({
               </div>
             </div>
           )}
+
+          {/* Promociones y Visibilidad */}
+          <div className="bg-white border-2 border-indigo-100 rounded-xl p-5 space-y-5">
+            <h3 className="font-bold text-indigo-900 flex items-center gap-2">
+              <Tag className="w-5 h-5 text-indigo-600" />
+              Promociones y Visibilidad
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Discount */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Descuento (%)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    step="0.01"
+                    {...register("discount")}
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                    placeholder="0"
+                  />
+                  <div className="flex-1">
+                    {watch("discount") > 0 && (
+                      <div className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1.5 rounded-lg inline-block">
+                        Precio final: Bs {(Number(watch("price")) * (1 - Number(watch("discount")) / 100)).toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {watch("discount") > 0 && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 leading-tight">Válido hasta (Opcional)</label>
+                    <input
+                      type="datetime-local"
+                      {...register("discount_expires_at")}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Badges */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col justify-center gap-4">
+                {/* is_new */}
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register("is_new")}
+                      className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    />
+                    <div>
+                      <span className="block text-sm font-semibold text-gray-800">Etiqueta "Nuevo"</span>
+                      <span className="block text-xs text-gray-500">Destaca el producto en la tienda</span>
+                    </div>
+                  </label>
+                  {watch("is_new") && (
+                    <div className="mt-2 pl-8">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Mostrar etiqueta hasta (Opcional)</label>
+                      <input
+                        type="datetime-local"
+                        {...register("is_new_until")}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* is_featured */}
+                <label className="flex items-center gap-3 cursor-pointer pt-3 border-t border-gray-200">
+                  <input
+                    type="checkbox"
+                    {...register("is_featured")}
+                    className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500 border-gray-300"
+                  />
+                  <div>
+                    <span className="block text-sm font-semibold text-gray-800">Producto Destacado</span>
+                    <span className="block text-xs text-gray-500">Muestra el producto en portada</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
 
           {/* Sizes */}
           <div>
@@ -682,11 +784,10 @@ export default function EditProductForm({
                   key={size}
                   type="button"
                   onClick={() => toggleSize(size)}
-                  className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${
-                    selectedSizes.includes(size)
+                  className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${selectedSizes.includes(size)
                       ? "bg-purple-600 border-purple-600 text-white shadow-md transform scale-105"
                       : "bg-white border-gray-300 text-gray-700 hover:border-purple-300 hover:bg-purple-50"
-                  }`}
+                    }`}
                 >
                   {size}
                 </button>
@@ -747,24 +848,23 @@ export default function EditProductForm({
                   key={color}
                   type="button"
                   onClick={() => setSelectedColor(color)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${
-                    selectedColor === color
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${selectedColor === color
                       ? "border-pink-600 bg-pink-50 shadow-md transform scale-105"
                       : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
-                  }`}
+                    }`}
                 >
                   <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" style={{
-                    backgroundColor: color === 'Negro' ? '#000' : 
-                                   color === 'Blanco' ? '#FFF' :
-                                   color === 'Gris' ? '#9CA3AF' :
-                                   color === 'Azul' ? '#3B82F6' :
-                                   color === 'Azul marino' ? '#1E3A8A' :
-                                   color === 'Verde' ? '#22C55E' :
-                                   color === 'Verde militar' ? '#4D7C0F' :
-                                   color === 'Rojo' ? '#EF4444' :
-                                   color === 'Beige' ? '#D4A574' :
-                                   color === 'Café' ? '#92400E' :
-                                   color === 'Celeste' ? '#7DD3FC' : '#CCC'
+                    backgroundColor: color === 'Negro' ? '#000' :
+                      color === 'Blanco' ? '#FFF' :
+                        color === 'Gris' ? '#9CA3AF' :
+                          color === 'Azul' ? '#3B82F6' :
+                            color === 'Azul marino' ? '#1E3A8A' :
+                              color === 'Verde' ? '#22C55E' :
+                                color === 'Verde militar' ? '#4D7C0F' :
+                                  color === 'Rojo' ? '#EF4444' :
+                                    color === 'Beige' ? '#D4A574' :
+                                      color === 'Café' ? '#92400E' :
+                                        color === 'Celeste' ? '#7DD3FC' : '#CCC'
                   }} />
                   <span className="text-sm font-medium text-gray-700">{color}</span>
                 </button>
@@ -860,73 +960,35 @@ export default function EditProductForm({
             const isAccessory = selectedSizes.length === 0 ||
               (selectedSizes.length === 1 && selectedSizes[0] === 'Unitalla');
             return (
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">
-              {isAccessory ? "Stock por Ubicación" : "Stock por Talla y Ubicación"}
-            </label>
-            
-            {isAccessory ? (
-              <div className="space-y-3">
-                <p className="text-xs text-gray-500 italic">
-                  Accesorio sin talla — el stock se registra directamente por ubicación.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {locations.map((loc) => (
-                    <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
-                        {(loc as any).address && <p className="text-xs text-gray-500">{(loc as any).address}</p>}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          min="0"
-                          value={stockByLocationAndSize[loc.id]?.['Unitalla'] ?? 0}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 0;
-                            setStockByLocationAndSize(prev => ({
-                              ...prev,
-                              [loc.id]: {
-                                ...prev[loc.id],
-                                'Unitalla': value
-                              }
-                            }));
-                          }}
-                          className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
-                        />
-                        <span className="text-xs text-gray-600">uds</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
               <div className="space-y-4">
-                {selectedSizes.map((size) => (
-                  <div key={size} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50/30">
-                    <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
-                      <Ruler className="w-4 h-4" />
-                      Talla {size}
-                    </h4>
+                <label className="block text-sm font-medium text-gray-700">
+                  {isAccessory ? "Stock por Ubicación" : "Stock por Talla y Ubicación"}
+                </label>
+
+                {isAccessory ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-500 italic">
+                      Accesorio sin talla — el stock se registra directamente por ubicación.
+                    </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {locations.map((loc) => (
                         <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
                           <div className="flex-1">
                             <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
-                            {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                            {(loc as any).address && <p className="text-xs text-gray-500">{(loc as any).address}</p>}
                           </div>
                           <div className="flex items-center gap-1">
                             <input
                               type="number"
                               min="0"
-                              value={stockByLocationAndSize[loc.id]?.[size] || 0}
+                              value={stockByLocationAndSize[loc.id]?.['Unitalla'] ?? 0}
                               onChange={(e) => {
                                 const value = parseInt(e.target.value) || 0;
                                 setStockByLocationAndSize(prev => ({
                                   ...prev,
                                   [loc.id]: {
                                     ...prev[loc.id],
-                                    [size]: value
+                                    'Unitalla': value
                                   }
                                 }));
                               }}
@@ -938,35 +1000,71 @@ export default function EditProductForm({
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                ) : (
+                  <div className="space-y-4">
+                    {selectedSizes.map((size) => (
+                      <div key={size} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50/30">
+                        <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
+                          <Ruler className="w-4 h-4" />
+                          Talla {size}
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {locations.map((loc) => (
+                            <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
+                                {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={stockByLocationAndSize[loc.id]?.[size] || 0}
+                                  onChange={(e) => {
+                                    const value = parseInt(e.target.value) || 0;
+                                    setStockByLocationAndSize(prev => ({
+                                      ...prev,
+                                      [loc.id]: {
+                                        ...prev[loc.id],
+                                        [size]: value
+                                      }
+                                    }));
+                                  }}
+                                  className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
+                                />
+                                <span className="text-xs text-gray-600">uds</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-            <div className="bg-emerald-50 rounded-lg px-4 py-2.5 flex items-center justify-between border-2 border-emerald-200">
-              <span className="text-sm text-emerald-700 font-medium">
-                Stock total
-              </span>
-              <span className="text-lg font-bold text-emerald-700">
-                {Object.values(stockByLocationAndSize).reduce((total, sizeStock) => 
-                  total + Object.values(sizeStock).reduce((sum, qty) => sum + qty, 0), 0
-                )} unidades
-              </span>
-            </div>
-          </div>
-          );
+                <div className="bg-emerald-50 rounded-lg px-4 py-2.5 flex items-center justify-between border-2 border-emerald-200">
+                  <span className="text-sm text-emerald-700 font-medium">
+                    Stock total
+                  </span>
+                  <span className="text-lg font-bold text-emerald-700">
+                    {Object.values(stockByLocationAndSize).reduce((total, sizeStock) =>
+                      total + Object.values(sizeStock).reduce((sum, qty) => sum + qty, 0), 0
+                    )} unidades
+                  </span>
+                </div>
+              </div>
+            );
           })()}
 
           {/* Tienda Online */}
-          <div className={`rounded-xl border-2 p-5 ${
-            publishedToLanding
+          <div className={`rounded-xl border-2 p-5 ${publishedToLanding
               ? "bg-green-50 border-green-200"
               : "bg-gray-50 border-gray-200"
-          }`}>
+            }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  publishedToLanding ? "bg-green-100" : "bg-gray-100"
-                }`}>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${publishedToLanding ? "bg-green-100" : "bg-gray-100"
+                  }`}>
                   <Globe className={`w-5 h-5 ${publishedToLanding ? "text-green-600" : "text-gray-500"}`} />
                 </div>
                 <div>
@@ -982,17 +1080,15 @@ export default function EditProductForm({
                   !product.is_active && !publishedToLanding
                     ? "Activa el producto primero"
                     : publishedToLanding
-                    ? "Ocultar de la tienda online"
-                    : "Publicar en la tienda online"
+                      ? "Ocultar de la tienda online"
+                      : "Publicar en la tienda online"
                 }
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed ${
-                  publishedToLanding ? "bg-green-500" : "bg-gray-300"
-                }`}
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed ${publishedToLanding ? "bg-green-500" : "bg-gray-300"
+                  }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                    publishedToLanding ? "translate-x-8" : "translate-x-1"
-                  } ${togglingLanding ? "animate-pulse" : ""}`}
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${publishedToLanding ? "translate-x-8" : "translate-x-1"
+                    } ${togglingLanding ? "animate-pulse" : ""}`}
                 />
               </button>
             </div>
@@ -1079,9 +1175,8 @@ export default function EditProductForm({
                     <span className={`text-sm font-bold ${change.diff > 0 ? "text-green-600" : "text-red-600"}`}>
                       {change.after}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                      change.diff > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${change.diff > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                      }`}>
                       {change.diff > 0 ? `+${change.diff}` : `${change.diff}`}
                     </span>
                   </div>
@@ -1089,17 +1184,14 @@ export default function EditProductForm({
               ))}
             </div>
 
-            <div className={`flex items-center gap-2 rounded-xl px-4 py-3 mb-5 ${
-              pendingStockWarning.totalDiff > 0
+            <div className={`flex items-center gap-2 rounded-xl px-4 py-3 mb-5 ${pendingStockWarning.totalDiff > 0
                 ? "bg-amber-50 border border-amber-200"
                 : "bg-red-50 border border-red-200"
-            }`}>
-              <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${
-                pendingStockWarning.totalDiff > 0 ? "text-amber-500" : "text-red-500"
-              }`} />
-              <p className={`text-sm font-medium ${
-                pendingStockWarning.totalDiff > 0 ? "text-amber-700" : "text-red-700"
               }`}>
+              <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${pendingStockWarning.totalDiff > 0 ? "text-amber-500" : "text-red-500"
+                }`} />
+              <p className={`text-sm font-medium ${pendingStockWarning.totalDiff > 0 ? "text-amber-700" : "text-red-700"
+                }`}>
                 {pendingStockWarning.totalDiff > 0
                   ? `Se agregarán ${pendingStockWarning.totalDiff} unidad(es) al stock total. ¿Es correcto? (Ej: ingreso de nueva mercadería)`
                   : `Se eliminarán ${Math.abs(pendingStockWarning.totalDiff)} unidad(es) del stock total. ¿Es correcto? (Ej: producto dañado o pérdida)`

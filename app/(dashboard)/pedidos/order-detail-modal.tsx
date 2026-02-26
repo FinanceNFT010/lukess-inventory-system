@@ -236,8 +236,8 @@ export default function OrderDetailModal({
         if (data) {
           setReservations(
             data.map((r) => ({
-              location_name: (r.locations as { name: string } | null)?.name ?? 'Ubicación',
-              product_name: (r.products as { name: string } | null)?.name ?? 'Producto',
+              location_name: (r.locations as unknown as { name: string } | null)?.name ?? 'Ubicación',
+              product_name: (r.products as unknown as { name: string } | null)?.name ?? 'Producto',
               size: r.size ?? null,
               quantity: r.quantity,
             }))
@@ -311,7 +311,7 @@ export default function OrderDetailModal({
       const result = await getReceiptSignedUrl(order.payment_receipt_url)
       if ('error' in result) {
         setReceiptState('error')
-        setReceiptError(result.error)
+        setReceiptError(result.error ?? null)
       } else {
         setReceiptUrl(result.signedUrl)
         setReceiptState('loaded')
@@ -381,296 +381,296 @@ export default function OrderDetailModal({
 
   return (
     <>
-    <CancelOrderModal
-      isOpen={showCancelModal}
-      orderId={order.id}
-      onConfirm={handleCancelConfirm}
-      onClose={() => setShowCancelModal(false)}
-    />
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+      <CancelOrderModal
+        isOpen={showCancelModal}
+        orderId={order.id}
+        onConfirm={handleCancelConfirm}
+        onClose={() => setShowCancelModal(false)}
+      />
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
 
-        {/* HEADER */}
-        <div className="flex items-start justify-between p-5 border-b border-gray-100 flex-shrink-0">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-bold text-gray-900">
-                🧾 Pedido #{order.id.slice(0, 8).toUpperCase()}
-              </h2>
+          {/* HEADER */}
+          <div className="flex items-start justify-between p-5 border-b border-gray-100 flex-shrink-0">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-bold text-gray-900">
+                  🧾 Pedido #{order.id.slice(0, 8).toUpperCase()}
+                </h2>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">{formatDate(order.created_at)}</p>
+              <div className="mt-2">
+                <StatusDropdown
+                  currentStatus={order.status as OrderStatus}
+                  onSelect={handleStatusChange}
+                  disabled={!canEdit || loadingStatus !== null}
+                />
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">{formatDate(order.created_at)}</p>
-            <div className="mt-2">
-              <StatusDropdown
-                currentStatus={order.status as OrderStatus}
-                onSelect={handleStatusChange}
-                disabled={!canEdit || loadingStatus !== null}
-              />
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="ml-3 p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* SCROLLABLE CONTENT */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
-
-          {/* CUSTOMER */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-1.5">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cliente</h3>
-            <p className="font-semibold text-gray-800">👤 {order.customer_name}</p>
-            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-              <span>📱 {order.customer_phone}</span>
-              {order.customer_email && <span>📧 {order.customer_email}</span>}
-            </div>
+            <button
+              onClick={onClose}
+              className="ml-3 p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {/* PRODUCTS */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Productos ({order.order_items?.length ?? 0})
-            </h3>
-            <div className="space-y-2">
-              {order.order_items?.map((item) => {
-                const product = item.product
-                const name = product?.name ?? 'Producto'
-                const imageUrl = product?.image_url
-                const initial = name.charAt(0).toUpperCase()
+          {/* SCROLLABLE CONTENT */}
+          <div className="overflow-y-auto flex-1 p-5 space-y-5">
 
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl"
-                  >
-                    {/* Image */}
-                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                      {imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={imageUrl}
-                          alt={name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 text-blue-700 font-bold text-lg">
-                          {initial}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm truncate">{name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {item.size ? `Talla: ${item.size} · ` : 'Sin talla · '}
-                        {item.quantity} {item.quantity === 1 ? 'ud' : 'uds'} · Bs {formatCurrency(item.unit_price)} c/u
-                      </p>
-                    </div>
-
-                    {/* Subtotal */}
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-bold text-gray-800 text-sm">Bs {formatCurrency(item.subtotal)}</p>
-                    </div>
-                  </div>
-                )
-              })}
+            {/* CUSTOMER */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-1.5">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cliente</h3>
+              <p className="font-semibold text-gray-800">👤 {order.customer_name}</p>
+              <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                <span>📱 {order.customer_phone}</span>
+                {order.customer_email && <span>📧 {order.customer_email}</span>}
+              </div>
             </div>
-          </div>
 
-          {/* STOCK RESERVADO POR UBICACIÓN */}
-          {reservations.length > 0 && (
+            {/* PRODUCTS */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <Package className="w-3.5 h-3.5" />
-                Stock reservado para este pedido
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                Productos ({order.order_items?.length ?? 0})
               </h3>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl divide-y divide-amber-100 overflow-hidden">
-                {reservations.map((r, idx) => (
-                  <div key={idx} className="flex items-center gap-3 px-4 py-2.5">
-                    <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                    <span className="text-sm font-medium text-gray-700 min-w-[120px]">
-                      {r.location_name}
-                    </span>
-                    <span className="text-gray-400 text-sm">→</span>
-                    <span className="text-sm text-gray-700 flex-1 truncate">
-                      {r.product_name}
-                      {r.size ? ` T.${r.size}` : ''}
-                    </span>
-                    <span className="text-sm font-bold text-amber-700 flex-shrink-0">
-                      × {r.quantity}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+              <div className="space-y-2">
+                {order.order_items?.map((item) => {
+                  const product = item.product
+                  const name = product?.name ?? 'Producto'
+                  const imageUrl = product?.image_url
+                  const initial = name.charAt(0).toUpperCase()
 
-          {/* TOTALS */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Resumen</h3>
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Subtotal</span>
-              <span>Bs {formatCurrency(order.subtotal)}</span>
-            </div>
-            {order.discount > 0 && (() => {
-              const pct = order.subtotal > 0
-                ? Math.round((order.discount / order.subtotal) * 100)
-                : 0
-              return (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Descuento{pct > 0 ? ` (${pct}%)` : ''}</span>
-                  <span>-Bs {formatCurrency(order.discount)}</span>
-                </div>
-              )
-            })()}
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>💳 {order.payment_method}</span>
-            </div>
-            <div className="border-t border-gray-200 pt-2 flex justify-between">
-              <span className="font-bold text-gray-900">TOTAL</span>
-              <span className="text-xl font-bold text-gray-900">Bs {formatCurrency(order.total)}</span>
-            </div>
-          </div>
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl"
+                    >
+                      {/* Image */}
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                        {imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imageUrl}
+                            alt={name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 text-blue-700 font-bold text-lg">
+                            {initial}
+                          </div>
+                        )}
+                      </div>
 
-          {/* PAYMENT RECEIPT */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <Paperclip className="w-3.5 h-3.5" />
-              Comprobante de pago
-            </h3>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 text-sm truncate">{name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {item.size ? `Talla: ${item.size} · ` : 'Sin talla · '}
+                          {item.quantity} {item.quantity === 1 ? 'ud' : 'uds'} · Bs {formatCurrency(item.unit_price)} c/u
+                        </p>
+                      </div>
 
-            {!order.payment_receipt_url ? (
-              <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <span className="text-base flex-shrink-0">⚠️</span>
-                <div>
-                  <p className="text-sm font-medium text-amber-700">El cliente no subió comprobante.</p>
-                  <p className="text-xs text-amber-600 mt-0.5">Verificá el pago en la app del banco.</p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {receiptState === 'idle' && (
-                  <button
-                    onClick={handleViewReceipt}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-blue-200 text-blue-700 font-semibold text-sm rounded-xl hover:bg-blue-50 transition-colors"
-                  >
-                    <Paperclip className="w-4 h-4" />
-                    Ver comprobante
-                  </button>
-                )}
-
-                {receiptState === 'loading' && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-white border border-gray-200 rounded-xl">
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                    Cargando comprobante...
-                  </div>
-                )}
-
-                {receiptState === 'error' && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-                    ❌ {receiptError}
-                  </div>
-                )}
-
-                {receiptState === 'loaded' && receiptUrl && (
-                  <div className="space-y-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={receiptUrl}
-                      alt="Comprobante de pago"
-                      className="w-full rounded-xl border border-gray-200 object-contain bg-white"
-                      style={{ maxHeight: '400px' }}
-                    />
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <a
-                        href={receiptUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 font-medium text-sm rounded-xl hover:bg-gray-50 transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Abrir en tamaño completo
-                      </a>
-                      {(order.status === 'reserved' || order.status === 'pending') && canEdit && (
-                        <button
-                          onClick={() => handleStatusChange('confirmed')}
-                          disabled={loadingStatus !== null}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-sm rounded-xl hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
-                        >
-                          {loadingStatus === 'confirmed' ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <span>✓</span>
-                          )}
-                          Pago verificado → Confirmar
-                        </button>
-                      )}
+                      {/* Subtotal */}
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-bold text-gray-800 text-sm">Bs {formatCurrency(item.subtotal)}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* STOCK RESERVADO POR UBICACIÓN */}
+            {reservations.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5" />
+                  Stock reservado para este pedido
+                </h3>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl divide-y divide-amber-100 overflow-hidden">
+                  {reservations.map((r, idx) => (
+                    <div key={idx} className="flex items-center gap-3 px-4 py-2.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                      <span className="text-sm font-medium text-gray-700 min-w-[120px]">
+                        {r.location_name}
+                      </span>
+                      <span className="text-gray-400 text-sm">→</span>
+                      <span className="text-sm text-gray-700 flex-1 truncate">
+                        {r.product_name}
+                        {r.size ? ` T.${r.size}` : ''}
+                      </span>
+                      <span className="text-sm font-bold text-amber-700 flex-shrink-0">
+                        × {r.quantity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
 
-          {/* INTERNAL NOTES */}
-          {canEdit && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  📝 Nota interna
-                  <span className="ml-1 font-normal text-gray-300">(solo visible para admins)</span>
-                </h3>
-                {noteSaved && (
-                  <span className="text-xs text-green-600 font-medium">Guardado ✓</span>
-                )}
+            {/* TOTALS */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Resumen</h3>
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Subtotal</span>
+                <span>Bs {formatCurrency(order.subtotal)}</span>
               </div>
-              <textarea
-                value={internalNote}
-                onChange={(e) => {
-                  setInternalNote(e.target.value)
-                  setNoteSaved(false)
-                }}
-                onBlur={handleNoteSave}
-                placeholder="Ej: Cliente confirmó pago por WhatsApp, enviar mañana..."
-                rows={3}
-                disabled={savingNote || isTerminal}
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition disabled:bg-gray-50 disabled:cursor-not-allowed"
-              />
+              {order.discount > 0 && (() => {
+                const pct = order.subtotal > 0
+                  ? Math.round((order.discount / order.subtotal) * 100)
+                  : 0
+                return (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Descuento{pct > 0 ? ` (${pct}%)` : ''}</span>
+                    <span>-Bs {formatCurrency(order.discount)}</span>
+                  </div>
+                )
+              })()}
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>💳 {order.payment_method}</span>
+              </div>
+              <div className="border-t border-gray-200 pt-2 flex justify-between">
+                <span className="font-bold text-gray-900">TOTAL</span>
+                <span className="text-xl font-bold text-gray-900">Bs {formatCurrency(order.total)}</span>
+              </div>
             </div>
-          )}
 
-          {/* STATUS FLOW + ACTIONS */}
-          {canEdit && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                  Flujo de estado
-                </h3>
-                <div className="overflow-x-auto pb-1">
-                  <div className="min-w-[320px]">
-                    <StatusStepper status={order.status as OrderStatus} />
+            {/* PAYMENT RECEIPT */}
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Paperclip className="w-3.5 h-3.5" />
+                Comprobante de pago
+              </h3>
+
+              {!order.payment_receipt_url ? (
+                <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <span className="text-base flex-shrink-0">⚠️</span>
+                  <div>
+                    <p className="text-sm font-medium text-amber-700">El cliente no subió comprobante.</p>
+                    <p className="text-xs text-amber-600 mt-0.5">Verificá el pago en la app del banco.</p>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {receiptState === 'idle' && (
+                    <button
+                      onClick={handleViewReceipt}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-blue-200 text-blue-700 font-semibold text-sm rounded-xl hover:bg-blue-50 transition-colors"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                      Ver comprobante
+                    </button>
+                  )}
 
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                  Acciones
-                </h3>
-                {getActionButtons()}
-              </div>
+                  {receiptState === 'loading' && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-white border border-gray-200 rounded-xl">
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                      Cargando comprobante...
+                    </div>
+                  )}
+
+                  {receiptState === 'error' && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                      ❌ {receiptError}
+                    </div>
+                  )}
+
+                  {receiptState === 'loaded' && receiptUrl && (
+                    <div className="space-y-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={receiptUrl}
+                        alt="Comprobante de pago"
+                        className="w-full rounded-xl border border-gray-200 object-contain bg-white"
+                        style={{ maxHeight: '400px' }}
+                      />
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <a
+                          href={receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 font-medium text-sm rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Abrir en tamaño completo
+                        </a>
+                        {(order.status === 'reserved' || order.status === 'pending') && canEdit && (
+                          <button
+                            onClick={() => handleStatusChange('confirmed')}
+                            disabled={loadingStatus !== null}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-sm rounded-xl hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
+                          >
+                            {loadingStatus === 'confirmed' ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <span>✓</span>
+                            )}
+                            Pago verificado → Confirmar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
 
+            {/* INTERNAL NOTES */}
+            {canEdit && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    📝 Nota interna
+                    <span className="ml-1 font-normal text-gray-300">(solo visible para admins)</span>
+                  </h3>
+                  {noteSaved && (
+                    <span className="text-xs text-green-600 font-medium">Guardado ✓</span>
+                  )}
+                </div>
+                <textarea
+                  value={internalNote}
+                  onChange={(e) => {
+                    setInternalNote(e.target.value)
+                    setNoteSaved(false)
+                  }}
+                  onBlur={handleNoteSave}
+                  placeholder="Ej: Cliente confirmó pago por WhatsApp, enviar mañana..."
+                  rows={3}
+                  disabled={savingNote || isTerminal}
+                  className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition disabled:bg-gray-50 disabled:cursor-not-allowed"
+                />
+              </div>
+            )}
+
+            {/* STATUS FLOW + ACTIONS */}
+            {canEdit && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    Flujo de estado
+                  </h3>
+                  <div className="overflow-x-auto pb-1">
+                    <div className="min-w-[320px]">
+                      <StatusStepper status={order.status as OrderStatus} />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    Acciones
+                  </h3>
+                  {getActionButtons()}
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
       </div>
-    </div>
     </>
   )
 }

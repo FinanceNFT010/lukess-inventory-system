@@ -128,11 +128,10 @@ function KPICard({
         </div>
         {change !== null && (
           <div
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
-              change >= 0
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
-            }`}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${change >= 0
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+              }`}
           >
             {change >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
             {Math.abs(change).toFixed(1)}%
@@ -659,7 +658,8 @@ export default function ReportesVentasClient({
                       <Cell key={index} fill={DONUT_COLORS[index % DONUT_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [formatBs(value), name]} />
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <Tooltip formatter={((value: number | undefined, name: string | undefined) => [formatBs(value ?? 0), name ?? '']) as any} />
                 </PieChart>
               </ResponsiveContainer>
 
@@ -736,18 +736,18 @@ export default function ReportesVentasClient({
                     row.pos === 1
                       ? "bg-yellow-50"
                       : row.pos === 2
-                      ? "bg-gray-100"
-                      : row.pos === 3
-                      ? "bg-orange-50"
-                      : "";
+                        ? "bg-gray-100"
+                        : row.pos === 3
+                          ? "bg-orange-50"
+                          : "";
                   const medalColor =
                     row.pos === 1
                       ? "bg-yellow-400 text-white"
                       : row.pos === 2
-                      ? "bg-gray-400 text-white"
-                      : row.pos === 3
-                      ? "bg-orange-400 text-white"
-                      : "bg-gray-100 text-gray-500";
+                        ? "bg-gray-400 text-white"
+                        : row.pos === 3
+                          ? "bg-orange-400 text-white"
+                          : "bg-gray-100 text-gray-500";
                   return (
                     <tr key={row.pid} className={`${medalBg} hover:brightness-95 transition-all`}>
                       <td className="px-4 py-3 text-center">
@@ -850,8 +850,9 @@ export default function ReportesVentasClient({
                 tickFormatter={(v) => `Bs${v}`}
                 width={55}
               />
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <Tooltip
-                formatter={(value: number) => [formatBs(value), "Ingresos"]}
+                formatter={((value: number | undefined) => [formatBs(value ?? 0), "Ingresos"]) as any}
                 labelFormatter={(label) => `Día: ${label}`}
               />
               <Bar dataKey="total" name="Ingresos" radius={[6, 6, 0, 0]}>
@@ -921,9 +922,8 @@ export default function ReportesVentasClient({
                             <div className="text-right hidden sm:block">
                               <p className="text-xs text-gray-500">Agotamiento</p>
                               <p
-                                className={`text-sm font-bold ${
-                                  item.daysToStockout <= 7 ? "text-red-600" : "text-orange-500"
-                                }`}
+                                className={`text-sm font-bold ${item.daysToStockout <= 7 ? "text-red-600" : "text-orange-500"
+                                  }`}
                               >
                                 ~{item.daysToStockout}d
                               </p>
@@ -993,7 +993,8 @@ export default function ReportesVentasClient({
                 tickLine={false}
               />
               <YAxis hide />
-              <Tooltip formatter={(value: number) => [formatBs(value), ""]} />
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              <Tooltip formatter={((value: number | undefined) => [formatBs(value ?? 0), ""]) as any} />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                 {discountChartData.map((entry, index) => (
                   <Cell key={index} fill={entry.fill} />
@@ -1021,9 +1022,8 @@ export default function ReportesVentasClient({
             <div className="flex justify-between items-center pt-1">
               <span className="text-xs font-medium text-gray-500">% descuento promedio</span>
               <span
-                className={`text-sm font-bold ${
-                  descuentoPct > 15 ? "text-red-600" : "text-green-600"
-                }`}
+                className={`text-sm font-bold ${descuentoPct > 15 ? "text-red-600" : "text-green-600"
+                  }`}
               >
                 {descuentoPct.toFixed(1)}%
               </span>

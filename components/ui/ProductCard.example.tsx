@@ -1,6 +1,6 @@
 /**
  * EJEMPLOS DE USO DEL COMPONENTE ProductCard
- * 
+ *
  * Este archivo muestra cómo usar el componente ProductCard
  * en diferentes contextos del sistema.
  */
@@ -18,13 +18,14 @@ export function POSProductExample() {
     organization_id: "org-1",
     category_id: "cat-1",
     sku: "CAM-TH-001",
+    sku_group: null,
     name: "Camisa Oxford Classic Fit",
     description: "Camisa Oxford de algodón 100%",
     price: 320.0,
     cost: 180.0,
     brand: "Tommy Hilfiger",
+    color: "Blanco",
     sizes: ["S", "M", "L", "XL"],
-    colors: ["Blanco", "Celeste", "Rosa"],
     image_url: null,
     is_active: true,
     created_at: "2024-01-01",
@@ -34,7 +35,10 @@ export function POSProductExample() {
         id: "inv-1",
         product_id: "123",
         location_id: "loc-1",
+        size: "M",
+        color: "Blanco",
         quantity: 15,
+        reserved_qty: 0,
         min_stock: 5,
         max_stock: 50,
         updated_at: "2024-01-01",
@@ -48,7 +52,7 @@ export function POSProductExample() {
         product={product}
         variant="compact"
         showStock={true}
-        onSelect={(p) => console.log("Producto seleccionado:", p.name)}
+        onSelect={(p) => { void p.name; }}
       />
     </div>
   );
@@ -67,13 +71,14 @@ export function InventoryListExample() {
     organization_id: "org-1",
     category_id: "cat-1",
     sku: "CAM-TH-001",
+    sku_group: null,
     name: "Camisa Oxford Classic Fit",
     description: "Camisa Oxford de algodón 100%",
     price: 320.0,
     cost: 180.0,
     brand: "Tommy Hilfiger",
+    color: "Celeste",
     sizes: ["S", "M", "L", "XL"],
-    colors: ["Blanco", "Celeste", "Rosa"],
     image_url: null,
     is_active: true,
     created_at: "2024-01-01",
@@ -83,7 +88,10 @@ export function InventoryListExample() {
         id: "inv-1",
         product_id: "123",
         location_id: "loc-1",
-        quantity: 3, // Bajo stock
+        size: "M",
+        color: "Celeste",
+        quantity: 3,
+        reserved_qty: 0,
         min_stock: 5,
         max_stock: 50,
         updated_at: "2024-01-01",
@@ -100,7 +108,7 @@ export function InventoryListExample() {
         product={product}
         variant="default"
         showStock={true}
-        onSelect={(p) => console.log("Editar producto:", p.id)}
+        onSelect={(p) => { void p.id; }}
       />
     </div>
   );
@@ -119,14 +127,15 @@ export function ProductDetailExample() {
     organization_id: "org-1",
     category_id: "cat-1",
     sku: "CAM-TH-001",
+    sku_group: null,
     name: "Camisa Oxford Classic Fit",
     description:
       "Camisa Oxford de algodón 100%, corte clásico. Perfecta para uso formal o casual.",
     price: 320.0,
     cost: 180.0,
     brand: "Tommy Hilfiger",
+    color: "Rosa",
     sizes: ["S", "M", "L", "XL"],
-    colors: ["Blanco", "Celeste", "Rosa"],
     image_url: null,
     is_active: true,
     created_at: "2024-01-01",
@@ -136,7 +145,10 @@ export function ProductDetailExample() {
         id: "inv-1",
         product_id: "123",
         location_id: "loc-1",
+        size: "M",
+        color: "Rosa",
         quantity: 15,
+        reserved_qty: 2,
         min_stock: 5,
         max_stock: 50,
         updated_at: "2024-01-01",
@@ -145,7 +157,10 @@ export function ProductDetailExample() {
         id: "inv-2",
         product_id: "123",
         location_id: "loc-2",
+        size: "L",
+        color: "Rosa",
         quantity: 8,
+        reserved_qty: 0,
         min_stock: 5,
         max_stock: 30,
         updated_at: "2024-01-01",
@@ -179,13 +194,14 @@ export function ProductGridExample() {
       organization_id: "org-1",
       category_id: null,
       sku: "CAM-001",
+      sku_group: null,
       name: "Camisa Blanca",
       description: null,
       price: 250.0,
       cost: 150.0,
       brand: null,
+      color: "Blanco",
       sizes: ["M", "L"],
-      colors: ["Blanco"],
       image_url: null,
       is_active: true,
       created_at: "2024-01-01",
@@ -195,7 +211,10 @@ export function ProductGridExample() {
           id: "inv-1",
           product_id: "1",
           location_id: "loc-1",
+          size: "M",
+          color: "Blanco",
           quantity: 20,
+          reserved_qty: 0,
           min_stock: 5,
           max_stock: 50,
           updated_at: "2024-01-01",
@@ -207,13 +226,14 @@ export function ProductGridExample() {
       organization_id: "org-1",
       category_id: null,
       sku: "PAN-001",
+      sku_group: null,
       name: "Pantalón Jean",
       description: null,
       price: 450.0,
       cost: 280.0,
       brand: "Levi's",
+      color: "Azul",
       sizes: ["30", "32", "34"],
-      colors: ["Azul"],
       image_url: null,
       is_active: true,
       created_at: "2024-01-01",
@@ -223,7 +243,10 @@ export function ProductGridExample() {
           id: "inv-2",
           product_id: "2",
           location_id: "loc-1",
-          quantity: 2, // Bajo stock
+          size: "32",
+          color: "Azul",
+          quantity: 2,
+          reserved_qty: 0,
           min_stock: 5,
           max_stock: 30,
           updated_at: "2024-01-01",
@@ -235,13 +258,14 @@ export function ProductGridExample() {
       organization_id: "org-1",
       category_id: null,
       sku: "ZAP-001",
+      sku_group: null,
       name: "Zapatos Casuales",
       description: null,
       price: 680.0,
       cost: 420.0,
       brand: "Nike",
+      color: "Negro",
       sizes: ["40", "41", "42"],
-      colors: ["Negro", "Blanco"],
       image_url: null,
       is_active: true,
       created_at: "2024-01-01",
@@ -251,7 +275,10 @@ export function ProductGridExample() {
           id: "inv-3",
           product_id: "3",
           location_id: "loc-1",
-          quantity: 0, // Sin stock
+          size: "41",
+          color: "Negro",
+          quantity: 0,
+          reserved_qty: 0,
           min_stock: 3,
           max_stock: 20,
           updated_at: "2024-01-01",
@@ -268,7 +295,7 @@ export function ProductGridExample() {
           product={product}
           variant="default"
           showStock={true}
-          onSelect={(p) => alert(`Seleccionaste: ${p.name}`)}
+          onSelect={(p) => { void p.name; }}
         />
       ))}
     </div>
@@ -282,7 +309,7 @@ export function ProductGridExample() {
 /**
  * Ejemplo de cómo usar ProductCard con datos de Supabase
  */
-export async function ProductsFromSupabaseExample() {
+export async function ProductsFromSupabaseExample(): Promise<null> {
   // Este código iría en un Server Component o en useEffect
   /*
   const supabase = createClient();
@@ -311,4 +338,5 @@ export async function ProductsFromSupabaseExample() {
     </div>
   );
   */
+  return null;
 }

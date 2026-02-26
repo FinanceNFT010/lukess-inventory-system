@@ -190,9 +190,9 @@ export default function SalesHistoryClient({
       .then(({ data }) => {
         setDispatchLocations(
           (data ?? []).map((r) => ({
-            product_name: (r.products as { name: string } | null)?.name ?? "Producto",
+            product_name: (r.products as unknown as { name: string } | null)?.name ?? "Producto",
             size: r.size as string | null,
-            location_name: (r.locations as { name: string } | null)?.name ?? "Ubicación",
+            location_name: (r.locations as unknown as { name: string } | null)?.name ?? "Ubicación",
             quantity: r.quantity as number,
           }))
         );
@@ -465,15 +465,14 @@ export default function SalesHistoryClient({
             <button
               key={c}
               onClick={() => { setCanalFilter(c); setCurrentPage(1); }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                canalFilter === c
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${canalFilter === c
                   ? c === "fisico"
                     ? "bg-blue-600 border-blue-600 text-white shadow-md"
                     : c === "online"
-                    ? "bg-green-600 border-green-600 text-white shadow-md"
-                    : "bg-purple-600 border-purple-600 text-white shadow-md"
+                      ? "bg-green-600 border-green-600 text-white shadow-md"
+                      : "bg-purple-600 border-purple-600 text-white shadow-md"
                   : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-              }`}
+                }`}
             >
               {c === "all" && "Todos"}
               {c === "fisico" && <><span>🏪</span> Físico</>}
@@ -817,11 +816,10 @@ export default function SalesHistoryClient({
                       )}
                       <button
                         onClick={() => handlePageChange(page)}
-                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                          currentPage === page
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${currentPage === page
                             ? "bg-purple-600 text-white"
                             : "hover:bg-gray-100 text-gray-600"
-                        }`}
+                          }`}
                       >
                         {page}
                       </button>
@@ -869,9 +867,8 @@ export default function SalesHistoryClient({
                         )}
                       </p>
                       <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border bg-white ${
-                          paymentConfig[selectedSale.payment_method]?.color
-                        }`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border bg-white ${paymentConfig[selectedSale.payment_method]?.color
+                          }`}
                       >
                         {(() => {
                           const PayIcon =
@@ -1127,13 +1124,13 @@ export default function SalesHistoryClient({
                   {(selectedSale.canal ?? "fisico") === "online" &&
                     selectedSale.order?.shipping_cost != null &&
                     Number(selectedSale.order.shipping_cost) > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-blue-600 font-medium">🚚 Envío</span>
-                      <span className="text-sm font-semibold text-blue-600">
-                        +{formatCurrency(Number(selectedSale.order.shipping_cost))}
-                      </span>
-                    </div>
-                  )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-blue-600 font-medium">🚚 Envío</span>
+                        <span className="text-sm font-semibold text-blue-600">
+                          +{formatCurrency(Number(selectedSale.order.shipping_cost))}
+                        </span>
+                      </div>
+                    )}
                   <div className="flex items-center justify-between pt-2 border-t-2 border-gray-200">
                     <span className="text-lg font-bold text-gray-900">Total</span>
                     <span className="text-2xl font-bold text-purple-600">{formatCurrency(selectedSale.total)}</span>

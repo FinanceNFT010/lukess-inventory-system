@@ -396,7 +396,7 @@ export type Database = {
           subtotal: number;
           discount: number;
           total: number;
-          status: "pending" | "confirmed" | "shipped" | "completed" | "cancelled";
+          status: "pending" | "reserved" | "confirmed" | "shipped" | "completed" | "cancelled";
           payment_method: string;
           payment_proof: string | null;
           notes: string | null;
@@ -420,7 +420,7 @@ export type Database = {
           subtotal: number;
           discount?: number;
           total: number;
-          status?: "pending" | "confirmed" | "shipped" | "completed" | "cancelled";
+          status?: "pending" | "reserved" | "confirmed" | "shipped" | "completed" | "cancelled";
           payment_method?: string;
           payment_proof?: string | null;
           notes?: string | null;
@@ -444,7 +444,7 @@ export type Database = {
           subtotal?: number;
           discount?: number;
           total?: number;
-          status?: "pending" | "confirmed" | "shipped" | "completed" | "cancelled";
+          status?: "pending" | "reserved" | "confirmed" | "shipped" | "completed" | "cancelled";
           payment_method?: string;
           payment_proof?: string | null;
           notes?: string | null;

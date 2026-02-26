@@ -123,11 +123,11 @@ export default async function ReportesPage({
   const { data: orderItemsRaw } =
     orderIds.length > 0
       ? await supabase
-          .from("order_items")
-          .select(
-            "product_id, quantity, subtotal, products(id, name, category_id, categories(name))"
-          )
-          .in("order_id", orderIds)
+        .from("order_items")
+        .select(
+          "product_id, quantity, subtotal, products(id, name, category_id, categories(name))"
+        )
+        .in("order_id", orderIds)
       : { data: [] };
 
   // Deduplicate recently sold product IDs
@@ -156,11 +156,15 @@ export default async function ReportesPage({
 
       {/* Charts + KPIs (Client Component) */}
       <ReportesVentasClient
-        orders={currentOrders ?? []}
-        prevOrders={prevOrders ?? []}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        orders={(currentOrders ?? []) as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        prevOrders={(prevOrders ?? []) as any}
         allStatusOrders={allStatusOrders ?? []}
-        orderItems={orderItemsRaw ?? []}
-        inventoryItems={inventoryItemsRaw ?? []}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        orderItems={(orderItemsRaw ?? []) as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inventoryItems={(inventoryItemsRaw ?? []) as any}
         recentlySoldProductIds={recentlySoldProductIds}
         desde={desde}
         hasta={hasta}

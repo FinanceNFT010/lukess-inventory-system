@@ -56,7 +56,8 @@ export default async function AuditHistoryPage() {
 
   return (
     <AuditHistoryClient
-      auditLogs={auditLogs || []}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      auditLogs={(auditLogs ?? []) as any}
       productsMap={productsMap}
       categoriesMap={categoriesMap}
       locationsMap={locationsMap}

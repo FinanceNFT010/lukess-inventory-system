@@ -87,9 +87,8 @@ export function ProductCard({
             </p>
             {showStock && (
               <p
-                className={`text-sm font-medium ${
-                  isLowStock ? "text-red-600" : "text-green-600"
-                }`}
+                className={`text-sm font-medium ${isLowStock ? "text-red-600" : "text-green-600"
+                  }`}
               >
                 Stock: {totalStock}
               </p>
@@ -160,7 +159,7 @@ export function ProductCard({
         </div>
 
         {/* Tallas y colores */}
-        {(product.sizes.length > 0 || product.colors.length > 0) && (
+        {(product.sizes.length > 0 || product.color) && (
           <div className="mb-4 space-y-2">
             {product.sizes.length > 0 && (
               <div className="flex items-center gap-2">
@@ -180,20 +179,15 @@ export function ProductCard({
               </div>
             )}
 
-            {product.colors.length > 0 && (
+            {product.color && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600 font-medium">
-                  Colores:
+                  Color:
                 </span>
                 <div className="flex flex-wrap gap-1">
-                  {product.colors.map((color) => (
-                    <span
-                      key={color}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded border border-gray-300"
-                    >
-                      {color}
-                    </span>
-                  ))}
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded border border-gray-300">
+                    {product.color}
+                  </span>
                 </div>
               </div>
             )}
@@ -220,13 +214,12 @@ export function ProductCard({
             <div>
               <p className="text-sm text-gray-600 mb-1">Stock Total</p>
               <p
-                className={`text-xl font-bold ${
-                  isLowStock
-                    ? "text-red-600"
-                    : totalStock === 0
-                      ? "text-gray-400"
-                      : "text-green-600"
-                }`}
+                className={`text-xl font-bold ${isLowStock
+                  ? "text-red-600"
+                  : totalStock === 0
+                    ? "text-gray-400"
+                    : "text-green-600"
+                  }`}
               >
                 {totalStock}
               </p>
@@ -273,11 +266,10 @@ export function ProductCard({
                 >
                   <span className="text-gray-700">Ubicación {inv.location_id.slice(0, 8)}...</span>
                   <span
-                    className={`font-semibold ${
-                      inv.quantity <= inv.min_stock
-                        ? "text-red-600"
-                        : "text-green-600"
-                    }`}
+                    className={`font-semibold ${inv.quantity <= inv.min_stock
+                      ? "text-red-600"
+                      : "text-green-600"
+                      }`}
                   >
                     {inv.quantity} unidades
                   </span>
@@ -315,53 +307,52 @@ export function ProductCard({
       )}
 
       <div className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start space-x-3 flex-1">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-900 mb-1 truncate">
-              {product.name}
-            </h3>
-            <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-            {product.category && (
-              <span className="inline-block mt-2 px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full border border-purple-200">
-                {product.category.name}
-              </span>
-            )}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start space-x-3 flex-1">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-gray-900 mb-1 truncate">
+                {product.name}
+              </h3>
+              <p className="text-sm text-gray-600">SKU: {product.sku}</p>
+              {product.category && (
+                <span className="inline-block mt-2 px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full border border-purple-200">
+                  {product.category.name}
+                </span>
+              )}
+            </div>
           </div>
+
+          {isLowStock && (
+            <div className="bg-red-50 p-2 rounded-lg border-2 border-red-200">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+          )}
         </div>
 
-        {isLowStock && (
-          <div className="bg-red-50 p-2 rounded-lg border-2 border-red-200">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
+        <div className="flex items-center justify-between pt-4 border-t-2 border-gray-100">
+          <div>
+            <p className="text-sm text-gray-600">Precio</p>
+            <p className="text-2xl font-bold text-blue-600">
+              Bs {product.price.toFixed(2)}
+            </p>
           </div>
-        )}
-      </div>
 
-      <div className="flex items-center justify-between pt-4 border-t-2 border-gray-100">
-        <div>
-          <p className="text-sm text-gray-600">Precio</p>
-          <p className="text-2xl font-bold text-blue-600">
-            Bs {product.price.toFixed(2)}
-          </p>
-        </div>
-
-        {showStock && (
-          <div className="text-right">
-            <p className="text-sm text-gray-600">Stock</p>
-            <p
-              className={`text-2xl font-bold ${
-                isLowStock
+          {showStock && (
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Stock</p>
+              <p
+                className={`text-2xl font-bold ${isLowStock
                   ? "text-red-600"
                   : totalStock === 0
                     ? "text-gray-400"
                     : "text-green-600"
-              }`}
-            >
-              {totalStock}
-            </p>
-          </div>
-        )}
-      </div>
+                  }`}
+              >
+                {totalStock}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </button>
   );

@@ -193,12 +193,16 @@ export default function AuditHistoryClient({
                 </div>
               </div>
             )}
-            {data.color && (
+            {data.colors?.length > 0 && (
               <div className="bg-pink-50 border border-pink-200 rounded-lg p-3">
-                <p className="text-xs font-semibold text-pink-700 mb-2">Color</p>
-                <span className="inline-flex items-center px-3 py-1 bg-pink-100 text-pink-700 rounded-lg text-sm font-bold border border-pink-300">
-                  {data.color}
-                </span>
+                <p className="text-xs font-semibold text-pink-700 mb-2">Colores</p>
+                <div className="flex flex-wrap gap-1">
+                  {data.colors.map((color: string, idx: number) => (
+                    <span key={idx} className="inline-flex items-center px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs font-bold border border-pink-300">
+                      {color}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
             {data.sku_group && (
@@ -267,88 +271,88 @@ export default function AuditHistoryClient({
 
       // Detectar cambios importantes
       if (before.name !== after.name && (before.name || after.name)) {
-        changes.push({ 
+        changes.push({
           type: "text",
-          field: "Nombre", 
-          before: before.name, 
-          after: after.name, 
-          important: true 
+          field: "Nombre",
+          before: before.name,
+          after: after.name,
+          important: true
         });
       }
-      
+
       if (before.sku !== after.sku && (before.sku || after.sku)) {
-        changes.push({ 
+        changes.push({
           type: "text",
-          field: "SKU", 
-          before: before.sku, 
-          after: after.sku, 
-          important: true 
+          field: "SKU",
+          before: before.sku,
+          after: after.sku,
+          important: true
         });
       }
-      
+
       if (before.price !== after.price && (before.price || after.price)) {
         const percentChange = calculatePercentageChange(before.price, after.price);
-        changes.push({ 
+        changes.push({
           type: "price",
-          field: "Precio", 
-          before: before.price, 
-          after: after.price, 
+          field: "Precio",
+          before: before.price,
+          after: after.price,
           percentChange,
-          important: true, 
-          critical: true 
+          important: true,
+          critical: true
         });
       }
-      
+
       if (before.cost !== after.cost && (before.cost || after.cost)) {
         const percentChange = calculatePercentageChange(before.cost, after.cost);
-        changes.push({ 
+        changes.push({
           type: "price",
-          field: "Costo", 
-          before: before.cost, 
-          after: after.cost, 
+          field: "Costo",
+          before: before.cost,
+          after: after.cost,
           percentChange,
-          important: true, 
-          critical: true 
+          important: true,
+          critical: true
         });
       }
-      
+
       if (before.brand !== after.brand && (before.brand || after.brand)) {
-        changes.push({ 
+        changes.push({
           type: "text",
-          field: "Marca", 
-          before: before.brand || "Sin marca", 
-          after: after.brand || "Sin marca", 
-          important: true 
+          field: "Marca",
+          before: before.brand || "Sin marca",
+          after: after.brand || "Sin marca",
+          important: true
         });
       }
-      
+
       if (before.category_id !== after.category_id && (before.category_id || after.category_id)) {
-        changes.push({ 
+        changes.push({
           type: "text",
-          field: "Categoría", 
-          before: categoriesMap.get(before.category_id) || before.category_id || "Sin categoría", 
-          after: categoriesMap.get(after.category_id) || after.category_id || "Sin categoría", 
-          important: true 
+          field: "Categoría",
+          before: categoriesMap.get(before.category_id) || before.category_id || "Sin categoría",
+          after: categoriesMap.get(after.category_id) || after.category_id || "Sin categoría",
+          important: true
         });
       }
-      
+
       if (before.description !== after.description && (before.description || after.description)) {
-        changes.push({ 
+        changes.push({
           type: "text",
-          field: "Descripción", 
-          before: before.description || "Sin descripción", 
-          after: after.description || "Sin descripción", 
-          important: false 
+          field: "Descripción",
+          before: before.description || "Sin descripción",
+          after: after.description || "Sin descripción",
+          important: false
         });
       }
-      
+
       if (before.image_url !== after.image_url && (before.image_url || after.image_url)) {
-        changes.push({ 
+        changes.push({
           type: "image",
-          field: "Imagen", 
-          before: before.image_url, 
-          after: after.image_url, 
-          important: true 
+          field: "Imagen",
+          before: before.image_url,
+          after: after.image_url,
+          important: true
         });
       }
 
@@ -363,13 +367,13 @@ export default function AuditHistoryClient({
         });
       }
 
-      // Cambios en color único
-      if (before.color !== after.color && (before.color || after.color)) {
+      // Cambios en colores
+      if (!arraysEqual(before.colors || [], after.colors || [])) {
         changes.push({
-          type: "text",
-          field: "Color",
-          before: before.color || "Sin color",
-          after: after.color || "Sin color",
+          type: "array",
+          field: "Colores",
+          before: before.colors || [],
+          after: after.colors || [],
           important: true
         });
       }
@@ -486,11 +490,10 @@ export default function AuditHistoryClient({
                       💰 Cambio de {change.field.toLowerCase()}
                     </span>
                     {percentChange !== null && (
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-                        isIncrease 
-                          ? 'bg-red-100 text-red-700' 
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${isIncrease
+                          ? 'bg-red-100 text-red-700'
                           : 'bg-green-100 text-green-700'
-                      }`}>
+                        }`}>
                         {isIncrease ? '📈' : '📉'} {isIncrease ? '+' : ''}{percentChange.toFixed(1)}%
                       </span>
                     )}
@@ -512,7 +515,7 @@ export default function AuditHistoryClient({
               const added = change.after.filter((item: string) => !change.before.includes(item));
               const isPurpleField = change.field === "Tallas";
               const colorClass = isPurpleField ? "purple" : "pink";
-              
+
               return (
                 <div key={idx} className={`border-2 border-${colorClass}-300 rounded-lg p-4 bg-${colorClass}-50`}>
                   <div className="flex items-center gap-2 mb-3">
@@ -588,16 +591,14 @@ export default function AuditHistoryClient({
                               {stockChange.before}
                             </span>
                             <span className="text-gray-400">→</span>
-                            <span className={`text-sm font-bold ${
-                              stockChange.diff > 0 ? "text-green-600" : "text-red-600"
-                            }`}>
+                            <span className={`text-sm font-bold ${stockChange.diff > 0 ? "text-green-600" : "text-red-600"
+                              }`}>
                               {stockChange.after}
                             </span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                              stockChange.diff > 0
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${stockChange.diff > 0
                                 ? "bg-green-100 text-green-700"
                                 : "bg-red-100 text-red-700"
-                            }`}>
+                              }`}>
                               {stockChange.diff > 0 ? `+${stockChange.diff}` : stockChange.diff}
                             </span>
                           </div>
@@ -618,11 +619,10 @@ export default function AuditHistoryClient({
               return (
                 <div
                   key={idx}
-                  className={`border rounded-lg p-3 ${
-                    change.important
+                  className={`border rounded-lg p-3 ${change.important
                       ? "bg-blue-50 border-blue-200"
                       : "bg-gray-50 border-gray-200"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <p className="text-xs font-bold text-gray-700 uppercase">{change.field}</p>
@@ -718,7 +718,7 @@ export default function AuditHistoryClient({
 
                   return (
                     <React.Fragment key={log.id}>
-                      <tr 
+                      <tr
                         className={`hover:bg-blue-50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-100/50 border-l-4 border-blue-600' : ''}`}
                         onClick={() => toggleExpand(log.id)}
                       >

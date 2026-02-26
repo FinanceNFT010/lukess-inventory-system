@@ -213,7 +213,7 @@ export default function InventoryClient({
 
     // Sorting
     console.log('🔄 Ordenando por:', sortField, sortDirection);
-    
+
     filtered.sort((a, b) => {
       let compareValue = 0;
 
@@ -297,7 +297,7 @@ export default function InventoryClient({
     }
 
     const distribution: Record<string, number> = {};
-    
+
     // Distribución proporcional con variación realista
     // Tallas centrales (M, L) tienen más stock
     const weights: Record<string, number> = {
@@ -319,7 +319,7 @@ export default function InventoryClient({
     sizes.forEach((size, index) => {
       const weight = weights[size] || 1;
       const proportion = weight / totalWeight;
-      
+
       if (index === sizes.length - 1) {
         // Última talla recibe el resto
         distribution[size] = remaining;
@@ -339,10 +339,10 @@ export default function InventoryClient({
 
   const handleReactivate = async (productId: string, productName: string) => {
     const supabase = createClient();
-    
+
     try {
       console.log('🔄 Reactivando producto:', productId);
-      
+
       const { error } = await supabase
         .from("products")
         .update({ is_active: true })
@@ -420,70 +420,70 @@ export default function InventoryClient({
     try {
       const QRCode = (await import("qrcode")).default;
       const { jsPDF } = await import("jspdf");
-      
+
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      
+
       // Layout: 2 etiquetas por página (una arriba, una abajo)
       const labelWidth = 80;
       const labelHeight = 100;
       const marginX = (pageWidth - labelWidth) / 2;
-      
+
       let currentPage = 0;
       let yPosition = 20;
-      
+
       for (let i = 0; i < filteredAndSortedProducts.length; i++) {
         const product = filteredAndSortedProducts[i];
-        
+
         // Nueva página cada 2 productos
         if (i > 0 && i % 2 === 0) {
           pdf.addPage();
           yPosition = 20;
         }
-        
+
         // Generar QR
         const qrDataUrl = await QRCode.toDataURL(
           `https://lukess-inventory-system.vercel.app/ventas?product=${product.id}`,
           { width: 200, margin: 1 }
         );
-        
+
         // Dibujar etiqueta
         pdf.setDrawColor(200, 200, 200);
         pdf.rect(marginX, yPosition, labelWidth, labelHeight);
-        
+
         // Nombre del producto
         pdf.setFontSize(12);
         pdf.setFont("helvetica", "bold");
         const productName = product.name.substring(0, 40);
         pdf.text(productName, marginX + labelWidth / 2, yPosition + 10, { align: "center" });
-        
+
         // SKU
         pdf.setFontSize(10);
         pdf.setFont("helvetica", "normal");
         pdf.text(`SKU: ${product.sku}`, marginX + labelWidth / 2, yPosition + 18, { align: "center" });
-        
+
         // Precio
         pdf.setFontSize(16);
         pdf.setFont("helvetica", "bold");
         pdf.text(`Bs ${product.price.toFixed(2)}`, marginX + labelWidth / 2, yPosition + 28, { align: "center" });
-        
+
         // QR Code
         pdf.addImage(qrDataUrl, "PNG", marginX + 20, yPosition + 35, 40, 40);
-        
+
         // Texto "Escanear para vender"
         pdf.setFontSize(8);
         pdf.setFont("helvetica", "normal");
         pdf.text("Escanear para vender", marginX + labelWidth / 2, yPosition + 82, { align: "center" });
-        
+
         // Stock total
         const stock = getTotalStock(product);
         pdf.setFontSize(9);
         pdf.text(`Stock: ${stock} unidades`, marginX + labelWidth / 2, yPosition + 90, { align: "center" });
-        
+
         yPosition += labelHeight + 20;
       }
-      
+
       pdf.save(`etiquetas-productos-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.success(`${filteredAndSortedProducts.length} etiquetas generadas correctamente`);
     } catch (error) {
@@ -565,11 +565,10 @@ export default function InventoryClient({
           {/* Filter toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              showFilters || categoryFilter || locationFilter
-                ? "bg-blue-50 border-blue-200 text-blue-700"
-                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${showFilters || categoryFilter || locationFilter
+              ? "bg-blue-50 border-blue-200 text-blue-700"
+              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filtros
@@ -846,12 +845,11 @@ export default function InventoryClient({
                             </div>
 
                             {/* Imagen del producto */}
-                            <div 
-                              className={`w-12 h-12 bg-gradient-to-br rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden ${
-                                product.is_active 
-                                  ? 'from-gray-100 to-gray-200 group-hover:from-blue-50 group-hover:to-blue-100' 
-                                  : 'from-orange-100 to-orange-200 opacity-60'
-                              }`}
+                            <div
+                              className={`w-12 h-12 bg-gradient-to-br rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden ${product.is_active
+                                ? 'from-gray-100 to-gray-200 group-hover:from-blue-50 group-hover:to-blue-100'
+                                : 'from-orange-100 to-orange-200 opacity-60'
+                                }`}
                             >
                               {product.image_url ? (
                                 <img
@@ -860,18 +858,16 @@ export default function InventoryClient({
                                   className={`w-full h-full object-cover ${!product.is_active ? 'opacity-50 grayscale' : ''}`}
                                 />
                               ) : (
-                                <Package className={`w-6 h-6 transition ${
-                                  product.is_active 
-                                    ? 'text-gray-400 group-hover:text-blue-500' 
-                                    : 'text-orange-400'
-                                }`} />
+                                <Package className={`w-6 h-6 transition ${product.is_active
+                                  ? 'text-gray-400 group-hover:text-blue-500'
+                                  : 'text-orange-400'
+                                  }`} />
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className={`text-sm font-semibold truncate ${
-                                  product.is_active ? 'text-gray-900' : 'text-gray-500'
-                                }`}>
+                                <p className={`text-sm font-semibold truncate ${product.is_active ? 'text-gray-900' : 'text-gray-500'
+                                  }`}>
                                   {product.name}
                                 </p>
                                 {!product.is_active && (
@@ -967,19 +963,17 @@ export default function InventoryClient({
                                   !product.is_active
                                     ? "Activa el producto primero"
                                     : product.published_to_landing
-                                    ? "Ocultar de la tienda online"
-                                    : "Publicar en la tienda online"
+                                      ? "Ocultar de la tienda online"
+                                      : "Publicar en la tienda online"
                                 }
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed ${
-                                  product.published_to_landing
-                                    ? "bg-green-500"
-                                    : "bg-gray-300"
-                                }`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed ${product.published_to_landing
+                                  ? "bg-green-500"
+                                  : "bg-gray-300"
+                                  }`}
                               >
                                 <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                                    product.published_to_landing ? "translate-x-6" : "translate-x-1"
-                                  } ${togglingLandingId === product.id ? "animate-pulse" : ""}`}
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${product.published_to_landing ? "translate-x-6" : "translate-x-1"
+                                    } ${togglingLandingId === product.id ? "animate-pulse" : ""}`}
                                 />
                               </button>
                             </div>
@@ -1123,9 +1117,11 @@ export default function InventoryClient({
                                     {product.color && (
                                       <div>
                                         <p className="text-xs font-semibold text-gray-700 mb-2">Color</p>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 border border-purple-300">
-                                          {product.color}
-                                        </span>
+                                        <div className="flex flex-wrap gap-2">
+                                          <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 border border-purple-300">
+                                            {product.color}
+                                          </span>
+                                        </div>
                                       </div>
                                     )}
                                     {product.categories && (
@@ -1180,18 +1176,18 @@ export default function InventoryClient({
                                     const locationStock = groupedInv.quantity;
                                     const locationReserved = groupedInv.reserved_qty as number;
                                     const locationAvailable = Math.max(0, locationStock - locationReserved);
-                                    
+
                                     // Agrupar por talla desde los datos reales de inventory
-                                    const sizeDistribution = groupedInv.inventories.reduce((acc: Record<string, { qty: number; reserved: number }>, inv: InventoryItem) => {
+                                    const sizeDistribution = groupedInv.inventories.reduce((acc: Record<string, { qty: number; reserved: number }>, inv: { size: string | null; quantity: number; reserved_qty: number | null }) => {
                                       const size = inv.size || 'Única';
                                       if (!acc[size]) acc[size] = { qty: 0, reserved: 0 };
                                       acc[size].qty += inv.quantity;
                                       acc[size].reserved += (inv.reserved_qty || 0);
                                       return acc;
-                                    }, {});
+                                    }, {} as Record<string, { qty: number; reserved: number }>);
 
                                     return (
-                                      <div 
+                                      <div
                                         key={`${product.id}-location-${groupedInv.location_id}-${locIdx}`}
                                         className="bg-white rounded-xl p-5 border-2 border-blue-200 shadow-md hover:shadow-lg transition-all"
                                       >
@@ -1237,34 +1233,31 @@ export default function InventoryClient({
                                               Distribución por Tallas:
                                             </p>
                                             <div className="flex flex-wrap gap-3">
-                                              {Object.entries(sizeDistribution).map(([size, { qty, reserved }]) => {
+                                              {(Object.entries(sizeDistribution) as [string, { qty: number; reserved: number }][]).map(([size, { qty, reserved }]) => {
                                                 const available = Math.max(0, qty - reserved);
                                                 const isZero = qty === 0;
                                                 const hasReservation = reserved > 0;
                                                 return (
                                                   <div
                                                     key={`${product.id}-${groupedInv.location_id}-${size}`}
-                                                    className={`inline-flex flex-col items-center gap-1 px-4 py-2.5 rounded-lg border-2 transition-all ${
-                                                      isZero
-                                                        ? 'bg-gray-100 border-gray-300 opacity-60'
-                                                        : available < 2
+                                                    className={`inline-flex flex-col items-center gap-1 px-4 py-2.5 rounded-lg border-2 transition-all ${isZero
+                                                      ? 'bg-gray-100 border-gray-300 opacity-60'
+                                                      : available < 2
                                                         ? 'bg-yellow-50 border-yellow-400 hover:bg-yellow-100 hover:shadow-md'
                                                         : 'bg-green-50 border-green-400 hover:bg-green-100 hover:shadow-md'
-                                                    }`}
+                                                      }`}
                                                   >
                                                     <div className="flex items-center gap-2">
-                                                      <span className={`text-sm font-bold ${
-                                                        isZero ? 'text-gray-500 line-through' : 'text-gray-800'
-                                                      }`}>
+                                                      <span className={`text-sm font-bold ${isZero ? 'text-gray-500 line-through' : 'text-gray-800'
+                                                        }`}>
                                                         Talla {size}
                                                       </span>
-                                                      <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 rounded-full text-sm font-bold shadow-sm ${
-                                                        isZero
-                                                          ? 'bg-gray-400 text-white'
-                                                          : available < 2
+                                                      <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 rounded-full text-sm font-bold shadow-sm ${isZero
+                                                        ? 'bg-gray-400 text-white'
+                                                        : available < 2
                                                           ? 'bg-yellow-600 text-white'
                                                           : 'bg-green-600 text-white'
-                                                      }`}>
+                                                        }`}>
                                                         {qty}
                                                       </span>
                                                     </div>
@@ -1385,11 +1378,10 @@ export default function InventoryClient({
                           <button
                             key={`page-${page}`}
                             onClick={() => setCurrentPage(page)}
-                            className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg transition ${
-                              currentPage === page
-                                ? "bg-blue-600 text-white"
-                                : "text-gray-700 hover:bg-gray-100"
-                            }`}
+                            className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg transition ${currentPage === page
+                              ? "bg-blue-600 text-white"
+                              : "text-gray-700 hover:bg-gray-100"
+                              }`}
                           >
                             {page}
                           </button>
@@ -1445,11 +1437,12 @@ export default function InventoryClient({
 
       {/* Quick View Modal */}
       {quickViewProduct && (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         <ProductQuickView
-          product={quickViewProduct}
+          product={quickViewProduct as any}
           isOpen={!!quickViewProduct}
           onClose={() => setQuickViewProduct(null)}
-          onEdit={(product) => {
+          onEdit={(product: { id: string }) => {
             router.push(`/inventario/${product.id}`);
           }}
         />
@@ -1463,10 +1456,10 @@ export default function InventoryClient({
         }
         onConfirm={async () => {
           if (!deleteModal.productId) return;
-          
+
           setIsDeleting(true);
           const supabase = createClient();
-          
+
           try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -1478,7 +1471,7 @@ export default function InventoryClient({
             if (deleteModal.isActive) {
               // DESACTIVAR (soft delete)
               console.log('🗑️ Desactivando producto:', deleteModal.productId);
-              
+
               // Obtener el producto primero para tener su organization_id
               const { data: productData } = await supabase
                 .from("products")
@@ -1491,7 +1484,7 @@ export default function InventoryClient({
                 setIsDeleting(false);
                 return;
               }
-              
+
               const { error: productError } = await supabase
                 .from("products")
                 .update({ is_active: false })
@@ -1512,8 +1505,8 @@ export default function InventoryClient({
                 table_name: "products",
                 record_id: deleteModal.productId,
                 old_data: { is_active: true, product_name: deleteModal.productName },
-                new_data: { 
-                  is_active: false, 
+                new_data: {
+                  is_active: false,
                   product_name: deleteModal.productName,
                   note: deleteNote || null
                 },
@@ -1529,7 +1522,7 @@ export default function InventoryClient({
             } else {
               // ELIMINAR PERMANENTEMENTE
               console.log('💀 Eliminando permanentemente producto:', deleteModal.productId);
-              
+
               // Verificar si tiene ventas
               const { data: sales, error: salesCheckError } = await supabase
                 .from("sale_items")
@@ -1563,7 +1556,7 @@ export default function InventoryClient({
                 setIsDeleting(false);
                 return;
               }
-              
+
               // Eliminar producto
               console.log('🗑️ Eliminando producto...');
               const { error: deleteError } = await supabase
@@ -1585,8 +1578,8 @@ export default function InventoryClient({
                 action: "delete",
                 table_name: "products",
                 record_id: deleteModal.productId,
-                old_data: { 
-                  product_name: deleteModal.productName, 
+                old_data: {
+                  product_name: deleteModal.productName,
                   permanently_deleted: true,
                   note: deleteNote || null
                 },
@@ -1612,7 +1605,7 @@ export default function InventoryClient({
           }
         }}
         title={deleteModal.isActive ? "¿Desactivar producto?" : "⚠️ ¿Eliminar PERMANENTEMENTE?"}
-        message={deleteModal.isActive 
+        message={deleteModal.isActive
           ? `¿Estás seguro de que deseas desactivar "${deleteModal.productName}"? El producto dejará de aparecer en el inventario y en el punto de venta, pero se mantendrá en el historial de ventas.`
           : `⚠️ ADVERTENCIA: Esta acción NO se puede deshacer. ¿Estás seguro de que deseas eliminar PERMANENTEMENTE "${deleteModal.productName}"? Se eliminarán todos los registros de inventory. Las ventas registradas se mantendrán pero sin referencia al producto.`
         }

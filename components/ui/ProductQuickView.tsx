@@ -142,35 +142,32 @@ export function ProductQuickView({
 
             {/* Stock */}
             <div
-              className={`rounded-lg p-4 border-2 ${
-                isLowStock
-                  ? "bg-red-50 border-red-200"
-                  : totalStock === 0
-                    ? "bg-gray-50 border-gray-200"
-                    : "bg-green-50 border-green-200"
-              }`}
+              className={`rounded-lg p-4 border-2 ${isLowStock
+                ? "bg-red-50 border-red-200"
+                : totalStock === 0
+                  ? "bg-gray-50 border-gray-200"
+                  : "bg-green-50 border-green-200"
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p
-                    className={`text-sm font-medium ${
-                      isLowStock
-                        ? "text-red-700"
-                        : totalStock === 0
-                          ? "text-gray-700"
-                          : "text-green-700"
-                    }`}
+                    className={`text-sm font-medium ${isLowStock
+                      ? "text-red-700"
+                      : totalStock === 0
+                        ? "text-gray-700"
+                        : "text-green-700"
+                      }`}
                   >
                     Stock Total
                   </p>
                   <p
-                    className={`text-3xl font-bold mt-1 ${
-                      isLowStock
-                        ? "text-red-600"
-                        : totalStock === 0
-                          ? "text-gray-400"
-                          : "text-green-600"
-                    }`}
+                    className={`text-3xl font-bold mt-1 ${isLowStock
+                      ? "text-red-600"
+                      : totalStock === 0
+                        ? "text-gray-400"
+                        : "text-green-600"
+                      }`}
                   >
                     {totalStock} unidades
                   </p>
@@ -181,13 +178,12 @@ export function ProductQuickView({
                   )}
                 </div>
                 <MapPin
-                  className={`w-8 h-8 ${
-                    isLowStock
-                      ? "text-red-500"
-                      : totalStock === 0
-                        ? "text-gray-400"
-                        : "text-green-500"
-                  }`}
+                  className={`w-8 h-8 ${isLowStock
+                    ? "text-red-500"
+                    : totalStock === 0
+                      ? "text-gray-400"
+                      : "text-green-500"
+                    }`}
                 />
               </div>
             </div>
@@ -210,11 +206,10 @@ export function ProductQuickView({
                       </span>
                       <div className="text-right">
                         <span
-                          className={`text-lg font-bold ${
-                            inv.quantity <= inv.min_stock
-                              ? "text-red-600"
-                              : "text-green-600"
-                          }`}
+                          className={`text-lg font-bold ${inv.quantity <= inv.min_stock
+                            ? "text-red-600"
+                            : "text-green-600"
+                            }`}
                         >
                           {inv.quantity}
                         </span>
@@ -282,21 +277,16 @@ export function ProductQuickView({
               </div>
             )}
 
-            {/* Colores */}
-            {product.colors.length > 0 && (
+            {/* Color */}
+            {product.color && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                  Colores Disponibles
+                  Color Disponible
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.colors.map((color) => (
-                    <span
-                      key={color}
-                      className="px-3 py-1 bg-gray-100 text-gray-700 font-medium rounded-lg border border-gray-300"
-                    >
-                      {color}
-                    </span>
-                  ))}
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 font-medium rounded-lg border border-gray-300">
+                    {product.color}
+                  </span>
                 </div>
               </div>
             )}
@@ -314,9 +304,9 @@ export function ProductQuickView({
                       Escanea este código para agregar el producto directamente al carrito de ventas
                     </p>
                     <div className="bg-white rounded-lg p-3 inline-block border-2 border-blue-300 shadow-lg">
-                      <img 
-                        src={qrCode} 
-                        alt="QR Code" 
+                      <img
+                        src={qrCode}
+                        alt="QR Code"
                         className="w-40 h-40"
                       />
                     </div>
