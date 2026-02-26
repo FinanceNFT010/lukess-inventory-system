@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { togglePublishedToLanding } from "../actions";
+import { ImageUploader } from "@/components/inventory/ImageUploader";
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 
@@ -100,7 +101,10 @@ export default function EditProductForm({
     product.published_to_landing ?? false
   );
   const [togglingLanding, setTogglingLanding] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [productImages, setProductImages] = useState<string[]>(
+    product.images?.length ? product.images :
+      product.image_url ? [product.image_url] : []
+  );
   const [customSize, setCustomSize] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(product.color || "");
   const [customColorInput, setCustomColorInput] = useState<string>("");
@@ -160,47 +164,7 @@ export default function EditProductForm({
   const { register, handleSubmit, setValue, watch, formState: { errors } } = form;
 
 
-  // Upload image to Supabase Storage
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
-    if (!validTypes.includes(file.type)) {
-      toast.error("Solo se permiten imágenes (JPG, PNG, WebP, GIF)");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no puede pesar más de 5MB");
-      return;
-    }
-
-    setUploadingImage(true);
-    try {
-      const supabase = createClient();
-      const fileExt = file.name.split(".").pop()?.toLowerCase();
-      const fileName = `${organizationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      const { data, error } = await supabase.storage
-        .from("product-images")
-        .upload(fileName, file, { cacheControl: "3600", upsert: false });
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(data.path);
-
-      setValue("image_url", urlData.publicUrl);
-      toast.success("Imagen subida correctamente");
-    } catch (error: any) {
-      console.error("Error uploading image:", error);
-      toast.error(`Error al subir imagen: ${error.message}`);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
+  // Image uploading is now handled internally by ImageUploader component
 
   const handleToggleLanding = async () => {
     if (!product.is_active && !publishedToLanding) {
@@ -255,6 +219,7 @@ export default function EditProductForm({
         category_id: product.category_id,
         brand: product.brand,
         image_url: product.image_url,
+        images: product.images || [],
         price: product.price,
         cost: product.cost,
         color: product.color,
@@ -275,7 +240,8 @@ export default function EditProductForm({
           description: data.description || null,
           category_id: data.category_id || null,
           brand: data.brand || null,
-          image_url: data.image_url || null,
+          image_url: productImages.length > 0 ? productImages[0] : null,
+          images: productImages,
           price: data.price,
           cost: data.cost,
           color: selectedColor || null,
@@ -341,7 +307,8 @@ export default function EditProductForm({
           description: data.description,
           category_id: data.category_id,
           brand: data.brand,
-          image_url: data.image_url,
+          image_url: productImages.length > 0 ? productImages[0] : null,
+          images: productImages,
           price: data.price,
           cost: data.cost,
           color: selectedColor,
@@ -557,77 +524,16 @@ export default function EditProductForm({
             <label className="block text-sm font-medium text-gray-700">
               <div className="flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-indigo-600" />
-                Imagen del producto (opcional)
+                Imágenes del producto (opcional)
               </div>
             </label>
-
-            {/* File Upload */}
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                onChange={handleImageUpload}
-                disabled={uploadingImage}
-                className="hidden"
-                id="edit-image-upload"
-              />
-              <label
-                htmlFor="edit-image-upload"
-                className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingImage
-                    ? "border-blue-400 bg-blue-50"
-                    : watch("image_url")
-                      ? "border-green-400 bg-green-50"
-                      : "border-gray-300 bg-gray-50 hover:bg-blue-50 hover:border-blue-400"
-                  }`}
-              >
-                {uploadingImage ? (
-                  <>
-                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2" />
-                    <p className="text-sm font-medium text-blue-700">Subiendo imagen...</p>
-                  </>
-                ) : watch("image_url") ? (
-                  <>
-                    <img
-                      src={watch("image_url")}
-                      alt="Preview"
-                      className="w-24 h-24 object-contain rounded-lg mb-2"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                    <p className="text-xs text-green-700 font-medium">
-                      Clic para cambiar imagen
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="w-10 h-10 text-gray-400 mb-2" />
-                    <p className="text-sm font-medium text-gray-600">
-                      Haz clic o arrastra una imagen aquí
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      JPG, PNG, WebP, GIF — Máx. 5MB
-                    </p>
-                  </>
-                )}
-              </label>
-            </div>
-
-            {/* URL alternativa */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400 font-medium">o pega una URL</span>
-              <div className="flex-1 h-px bg-gray-200" />
-            </div>
-            <input
-              type="url"
-              {...register("image_url")}
-              placeholder="https://ejemplo.com/imagen.jpg"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+            <ImageUploader
+              existingImages={productImages}
+              onImagesChange={setProductImages}
+              maxImages={5}
+              bucketName="product-images"
+              organizationId={organizationId}
             />
-            {errors.image_url && (
-              <p className="text-xs text-red-600 mt-1">{errors.image_url.message as string}</p>
-            )}
           </div>
 
           {/* Price & Cost */}
@@ -665,8 +571,8 @@ export default function EditProductForm({
           {/* Margin preview */}
           {watch("price") > 0 && watch("cost") > 0 && (
             <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${watch("price") - watch("cost") > 0
-                ? "bg-green-50 border-green-200"
-                : "bg-red-50 border-red-200"
+              ? "bg-green-50 border-green-200"
+              : "bg-red-50 border-red-200"
               }`}>
               <div className="flex items-center gap-2">
                 <TrendingUp className={`w-5 h-5 ${watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
@@ -785,8 +691,8 @@ export default function EditProductForm({
                   type="button"
                   onClick={() => toggleSize(size)}
                   className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${selectedSizes.includes(size)
-                      ? "bg-purple-600 border-purple-600 text-white shadow-md transform scale-105"
-                      : "bg-white border-gray-300 text-gray-700 hover:border-purple-300 hover:bg-purple-50"
+                    ? "bg-purple-600 border-purple-600 text-white shadow-md transform scale-105"
+                    : "bg-white border-gray-300 text-gray-700 hover:border-purple-300 hover:bg-purple-50"
                     }`}
                 >
                   {size}
@@ -849,8 +755,8 @@ export default function EditProductForm({
                   type="button"
                   onClick={() => setSelectedColor(color)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${selectedColor === color
-                      ? "border-pink-600 bg-pink-50 shadow-md transform scale-105"
-                      : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
+                    ? "border-pink-600 bg-pink-50 shadow-md transform scale-105"
+                    : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
                     }`}
                 >
                   <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" style={{
@@ -1058,8 +964,8 @@ export default function EditProductForm({
 
           {/* Tienda Online */}
           <div className={`rounded-xl border-2 p-5 ${publishedToLanding
-              ? "bg-green-50 border-green-200"
-              : "bg-gray-50 border-gray-200"
+            ? "bg-green-50 border-green-200"
+            : "bg-gray-50 border-gray-200"
             }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-start gap-3">
@@ -1185,8 +1091,8 @@ export default function EditProductForm({
             </div>
 
             <div className={`flex items-center gap-2 rounded-xl px-4 py-3 mb-5 ${pendingStockWarning.totalDiff > 0
-                ? "bg-amber-50 border border-amber-200"
-                : "bg-red-50 border border-red-200"
+              ? "bg-amber-50 border border-amber-200"
+              : "bg-red-50 border border-red-200"
               }`}>
               <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${pendingStockWarning.totalDiff > 0 ? "text-amber-500" : "text-red-500"
                 }`} />

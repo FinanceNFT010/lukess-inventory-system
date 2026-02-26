@@ -1,38 +1,36 @@
 # activeContext.md — lukess-inventory-system (Admin Dashboard)
-**Last Updated:** 2026-02-26
-**Updated By:** Manual (initial setup)
+**Last Updated:** 2026-02-27
+**Updated By:** Antigravity Agent
 
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 9c-A
-- **Block Name:** Inventario: BD + formulario de producto (descuentos + is_new)
+- **Block Number:** —
+- **Block Name:** —
 - **Status:** PENDING
 - **Started:** —
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 5
-- **Block Name:** Toggle published_to_landing por producto
-- **Completed:** ~2026-02-22
-- **Commit:** (verify via GitHub MCP list_commits)
+- **Block Number:** 9c-B
+- **Block Name:** Inventario: Upload múltiples imágenes
+- **Completed:** 2026-02-27
+- **Commit:** pending...
 
 ---
 
-## FILES CHANGED THIS SESSION
-_(none yet — updated by agent on block completion)_
+## FILES CHANGED THIS SESSION (Block 9c-B)
+- `components/inventory/ImageUploader.tsx` — [NEW] Client component for drag & drop multi-image upload with Supabase Storage integration limit checking
+- `app/(dashboard)/inventario/[id]/edit-product-form.tsx` — [MODIFY] Replaced single `image_url` text input with `ImageUploader` component, updated form state (`productImages`) and Supabase `performSave` API call to handle `images` array properly.
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
-- **Total Tables:** 17 (as of 2026-02-26 per MCP audit)
-- **Last Known Migration:** ~2026-02-21 (verify with `list_migrations`)
-- **Types Regenerated:** UNKNOWN — run `generate_typescript_types` at start of next DB block
-- **Pending Migrations (REQUIRED before 9c-A):**
-  - `add_discount_and_new_fields_to_products`: ADD COLUMN `discount_expires_at timestamptz`, ADD COLUMN `is_new_until timestamptz`
-  - `create_discount_codes_table`: new table with code, discount_type (enum: percent/fixed), amount, min_order, max_uses, used_count, expires_at, is_active, created_at
+- **Total Tables:** 18+
+- **Migrations Applied (9c-B):** None (Schema already supported `images` array field).
+- **Types Regenerated:** N/A
 
 ---
 
@@ -40,20 +38,19 @@ _(none yet — updated by agent on block completion)_
 - [ ] SECURITY: 10 functions with mutable search_path (flagged by get_advisors): log_inventory_transaction, reserve_order_inventory, handle_order_status_change, cancel_expired_orders, apply_order_allocation, handle_new_user, update_updated_at_column, get_user_org_id, get_user_role, get_user_location_id
 - [ ] SECURITY: Overly permissive RLS on: access_requests (INSERT), customers (INSERT/UPDATE), inventory_reservations (ALL), order_items (INSERT), orders (INSERT/UPDATE), subscribers (INSERT)
 - [ ] SECURITY: Leaked Password Protection disabled in Supabase Auth
-- [ ] UI: `products.discount` field exists in DB but NOT in product form (nuevo/edición)
-- [ ] UI: `products.images[]` field exists in DB but form only handles `image_url` (single image)
-- [ ] UI: `products.is_new` exists in DB but no toggle in form
-- [ ] UI: `products.is_featured` exists in DB but no toggle in form
+- [ ] UI: `products.discount` field exists in DB but NOT in product form (nuevo)
+- [ ] UI: `products.is_new` exists in DB but no toggle in form (nuevo)
+- [ ] UI: `products.is_featured` exists in DB but no toggle in form (nuevo/edicion)
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
 - [ ] TODO: WhatsApp templates (pago_confirmado, pedido_en_camino, pedido_entregado, pedido_cancelado) must be approved in Meta Business for notifications to work
 
 ---
 
 ## NEXT BLOCK
-- **Block:** 9c-A
-- **Name:** Inventario: BD + formulario de producto
-- **Dependencies:** None — this is the starting block
-- **Scope:** Migration for discount_expires_at + is_new_until + create discount_codes table + UI in product form for discount %, expiry date, is_new toggle, is_new_until, is_featured toggle + preview precio tachado/final
+- **Block:** TBD
+- **Name:** TBD
+- **Dependencies:** 9c-B complete ✅
+- **Scope:** Defines next goal with Adrian.
 
 ---
 
@@ -77,5 +74,5 @@ _(none yet — updated by agent on block completion)_
 | 6b | Resend: email notificación admin + estados | ✅ DONE | ~2026-02-22 | — |
 | 8a | Reportes: ventas online vs físico + gráficos | ✅ DONE | ~2026-02-22 | — |
 | 8b | Reportes: exportar CSV + métricas avanzadas | ✅ DONE | ~2026-02-22 | — |
-| 9c-A | Inventario: BD + formulario descuentos/is_new | ⬜ PENDING | — | — |
-| 9c-B | Inventario: Upload múltiples imágenes | ⬜ PENDING | — | — |
+| 9c-A | Inventario: BD + formulario descuentos/is_new | ✅ DONE | 2026-02-27 | 4001f88 |
+| 9c-B | Inventario: Upload múltiples imágenes | ✅ DONE | 2026-02-27 | pending |
