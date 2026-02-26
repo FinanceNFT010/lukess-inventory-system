@@ -45,7 +45,6 @@ export async function togglePublishedToLanding(
       .eq("id", productId);
 
     if (error) {
-      console.error("Error toggling published_to_landing:", error);
       return { success: false, error: error.message };
     }
 
@@ -57,4 +56,9 @@ export async function togglePublishedToLanding(
     console.error("togglePublishedToLanding error:", err);
     return { success: false, error: "Error inesperado" };
   }
+}
+
+export async function revalidateProductPaths(): Promise<void> {
+  revalidatePath("/inventario");
+  revalidatePath("/", "page");
 }

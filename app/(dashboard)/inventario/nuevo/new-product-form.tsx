@@ -26,6 +26,8 @@ import {
   Globe,
 } from "lucide-react";
 import Link from "next/link";
+import { ImageUploader } from "@/components/inventory/ImageUploader";
+import { revalidateProductPaths } from "../actions";
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +45,11 @@ const productSchema = z.object({
   sizes: z.array(z.string()).optional().default([]),
   low_stock_threshold: z.coerce.number().int().min(1, "Mínimo 1").default(5),
   initial_stock: z.record(z.string(), z.coerce.number().int().min(0)).optional(),
+  discount: z.coerce.number().min(0, "Mínimo 0").optional(),
+  discount_expires_at: z.string().optional().nullable(),
+  is_new: z.boolean().default(false),
+  is_new_until: z.string().optional().nullable(),
+  is_featured: z.boolean().default(false),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -63,7 +70,7 @@ const ALLOWED_SIZES = ["S", "M", "L", "XL", "38", "40", "42", "44"];
 
 const COMMON_COLORS = [
   "Negro",
-  "Blanco", 
+  "Blanco",
   "Gris",
   "Azul",
   "Azul marino",
@@ -89,10 +96,10 @@ export default function NewProductForm({
   const [customSize, setCustomSize] = useState("");
   const [recentBrands, setRecentBrands] = useState<string[]>([]);
   const [auditNote, setAuditNote] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [customColorInput, setCustomColorInput] = useState<string>("");
   const [publishedToLanding, setPublishedToLanding] = useState(false);
+  const [productImages, setProductImages] = useState<string[]>([]);
   // Stock por ubicación y talla: { locationId: { size: quantity } }
   const [stockByLocationAndSize, setStockByLocationAndSize] = useState<Record<string, Record<string, number>>>({});
 
@@ -119,58 +126,17 @@ export default function NewProductForm({
       sizes: [],
       low_stock_threshold: 5,
       initial_stock: {},
+      discount: 0,
+      discount_expires_at: "",
+      is_new: false,
+      is_new_until: "",
+      is_featured: false,
     },
   });
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = form;
 
-  // Upload image to Supabase Storage
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
-    if (!validTypes.includes(file.type)) {
-      toast.error("Solo se permiten imágenes (JPG, PNG, WebP, GIF)");
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no puede pesar más de 5MB");
-      return;
-    }
-
-    setUploadingImage(true);
-    try {
-      const supabase = createClient();
-      const fileExt = file.name.split(".").pop()?.toLowerCase();
-      const fileName = `${organizationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      const { data, error } = await supabase.storage
-        .from("product-images")
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(data.path);
-
-      setValue("image_url", urlData.publicUrl);
-      toast.success("Imagen subida correctamente");
-    } catch (error: any) {
-      console.error("Error uploading image:", error);
-      toast.error(`Error al subir imagen: ${error.message}`);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
+  // Image uploading is now handled internally by ImageUploader component
 
   // ── Auto-generate SKU ──────────────────────────────────────────────────────
 
@@ -237,13 +203,19 @@ export default function NewProductForm({
           description: data.description || null,
           category_id: data.category_id || null,
           brand: data.brand || null,
-          image_url: data.image_url || null,
+          image_url: productImages.length > 0 ? productImages[0] : (data.image_url || null),
+          images: productImages,
           price: data.price,
           cost: data.cost ?? 0,
           color: selectedColor || null,
           sizes: selectedSizes,
           is_active: true,
           published_to_landing: publishedToLanding,
+          discount: data.discount || null,
+          discount_expires_at: data.discount_expires_at ? new Date(data.discount_expires_at).toISOString() : null,
+          is_new: data.is_new,
+          is_new_until: data.is_new_until ? new Date(data.is_new_until).toISOString() : null,
+          is_featured: data.is_featured,
         })
         .select()
         .single();
@@ -262,7 +234,7 @@ export default function NewProductForm({
       const inventoryInserts: any[] = [];
       // Accesorios sin tallas → guardar con size='Unitalla'
       const sizesToUse = selectedSizes.length > 0 ? selectedSizes : ['Unitalla'];
-      
+
       locations.forEach((loc) => {
         sizesToUse.forEach((size) => {
           const quantity = stockByLocationAndSize[loc.id]?.[size] || 0;
@@ -313,11 +285,12 @@ export default function NewProductForm({
       });
 
       toast.success("Producto creado exitosamente");
+      await revalidateProductPaths();
       router.push("/inventario");
       router.refresh();
-    } catch (error: any) {
-      console.error("Error al crear producto:", error);
-      toast.error(error.message || "Error inesperado al guardar");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error inesperado al guardar";
+      toast.error(message);
       setSaving(false);
     }
   };
@@ -465,85 +438,100 @@ export default function NewProductForm({
           </div>
         </div>
 
-        {/* ── Imagen del producto ──────────────────────────────────────── */}
+        {/* ── Imágenes del producto ─────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
             <ImageIcon className="w-4 h-4 text-indigo-600" />
-            Imagen del producto
+            Imágenes del producto (opcional)
           </div>
+          <ImageUploader
+            existingImages={productImages}
+            onImagesChange={setProductImages}
+            maxImages={5}
+            bucketName="product-images"
+            organizationId={organizationId}
+          />
+        </div>
 
-          {/* Upload de archivo */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Subir imagen desde tu dispositivo
-            </label>
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                onChange={handleImageUpload}
-                disabled={uploadingImage}
-                className="hidden"
-                id="image-upload"
-              />
-              <label
-                htmlFor="image-upload"
-                className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-                  uploadingImage
-                    ? "border-blue-400 bg-blue-50"
-                    : watch("image_url")
-                      ? "border-green-400 bg-green-50"
-                      : "border-gray-300 bg-gray-50 hover:bg-blue-50 hover:border-blue-400"
-                }`}
-              >
-                {uploadingImage ? (
-                  <>
-                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2" />
-                    <p className="text-sm font-medium text-blue-700">Subiendo imagen...</p>
-                  </>
-                ) : watch("image_url") ? (
-                  <>
-                    <img
-                      src={watch("image_url")}
-                      alt="Preview"
-                      className="w-24 h-24 object-contain rounded-lg mb-2"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
+        {/* ── Promociones y Visibilidad ─────────────────────────────────── */}
+        <div className="bg-white border-2 border-indigo-100 rounded-xl p-5 space-y-5">
+          <h3 className="font-bold text-indigo-900 flex items-center gap-2">
+            <Tag className="w-5 h-5 text-indigo-600" />
+            Promociones y Visibilidad
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Discount */}
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">Descuento (%)</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  step="0.01"
+                  {...register("discount")}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  placeholder="0"
+                />
+                <div className="flex-1">
+                  {(watch("discount") ?? 0) > 0 && (
+                    <div className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1.5 rounded-lg inline-block">
+                      Precio final: Bs {(Number(watch("price")) * (1 - Number(watch("discount")) / 100)).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {(watch("discount") ?? 0) > 0 && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 leading-tight">Válido hasta (Opcional)</label>
+                  <input
+                    type="datetime-local"
+                    {...register("discount_expires_at")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Badges */}
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col justify-center gap-4">
+              {/* is_new */}
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...register("is_new")}
+                    className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  />
+                  <div>
+                    <span className="block text-sm font-semibold text-gray-800">Etiqueta &quot;Nuevo&quot;</span>
+                    <span className="block text-xs text-gray-500">Destaca el producto en la tienda</span>
+                  </div>
+                </label>
+                {watch("is_new") && (
+                  <div className="mt-2 pl-8">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Mostrar etiqueta hasta (Opcional)</label>
+                    <input
+                      type="datetime-local"
+                      {...register("is_new_until")}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
                     />
-                    <p className="text-xs text-green-700 font-medium">
-                      Clic para cambiar imagen
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="w-10 h-10 text-gray-400 mb-2" />
-                    <p className="text-sm font-medium text-gray-600">
-                      Haz clic o arrastra una imagen aquí
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      JPG, PNG, WebP, GIF — Máx. 5MB
-                    </p>
-                  </>
+                  </div>
                 )}
+              </div>
+
+              {/* is_featured */}
+              <label className="flex items-center gap-3 cursor-pointer pt-3 border-t border-gray-200">
+                <input
+                  type="checkbox"
+                  {...register("is_featured")}
+                  className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500 border-gray-300"
+                />
+                <div>
+                  <span className="block text-sm font-semibold text-gray-800">Producto Destacado</span>
+                  <span className="block text-xs text-gray-500">Muestra el producto en portada</span>
+                </div>
               </label>
             </div>
-
-            {/* URL alternativa */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400 font-medium">o pega una URL</span>
-              <div className="flex-1 h-px bg-gray-200" />
-            </div>
-            <input
-              type="url"
-              {...register("image_url")}
-              placeholder="https://ejemplo.com/imagen.jpg"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
-            />
-            {errors.image_url && (
-              <p className="text-xs text-red-600">{errors.image_url.message}</p>
-            )}
           </div>
         </div>
 
@@ -590,33 +578,30 @@ export default function NewProductForm({
 
           {/* Margin preview */}
           {watch("price") > 0 && watch("cost") >= 0 && (
-            <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${
-              watch("price") - watch("cost") > 0
+            <div className={`rounded-xl px-6 py-4 flex items-center justify-between border-2 transition-all duration-300 ${watch("price") - watch("cost") > 0
                 ? "bg-green-50 border-green-200"
                 : "bg-red-50 border-red-200"
-            }`}>
+              }`}>
               <div className="flex items-center gap-2">
-                <TrendingUp className={`w-5 h-5 ${
-                  watch("price") - watch("cost") > 0
+                <TrendingUp className={`w-5 h-5 ${watch("price") - watch("cost") > 0
                     ? "text-green-600"
                     : "text-red-600"
-                }`} />
+                  }`} />
                 <span className="text-sm font-semibold text-gray-700">Margen de ganancia</span>
               </div>
               <span
-                className={`text-xl font-bold flex items-center gap-2 ${
-                  watch("price") - watch("cost") > 0
+                className={`text-xl font-bold flex items-center gap-2 ${watch("price") - watch("cost") > 0
                     ? "text-green-600"
                     : "text-red-600"
-                }`}
+                  }`}
               >
                 Bs {(watch("price") - watch("cost")).toFixed(2)}
                 <span className="text-base">
                   ({watch("cost") > 0
                     ? (
-                        ((watch("price") - watch("cost")) / watch("cost")) *
-                        100
-                      ).toFixed(1)
+                      ((watch("price") - watch("cost")) / watch("cost")) *
+                      100
+                    ).toFixed(1)
                     : "∞"}%)
                 </span>
               </span>
@@ -657,11 +642,10 @@ export default function NewProductForm({
                   key={size}
                   type="button"
                   onClick={() => toggleSize(size)}
-                  className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${
-                    selectedSizes.includes(size)
+                  className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${selectedSizes.includes(size)
                       ? "bg-purple-600 border-purple-600 text-white shadow-md transform scale-105"
                       : "bg-white border-gray-300 text-gray-700 hover:border-purple-300 hover:bg-purple-50"
-                  }`}
+                    }`}
                 >
                   {size}
                 </button>
@@ -734,24 +718,23 @@ export default function NewProductForm({
                   key={color}
                   type="button"
                   onClick={() => setSelectedColor(color)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${
-                    selectedColor === color
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${selectedColor === color
                       ? "border-pink-600 bg-pink-50 shadow-md transform scale-105"
                       : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
-                  }`}
+                    }`}
                 >
                   <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" style={{
-                    backgroundColor: color === 'Negro' ? '#000' : 
-                                   color === 'Blanco' ? '#FFF' :
-                                   color === 'Gris' ? '#9CA3AF' :
-                                   color === 'Azul' ? '#3B82F6' :
-                                   color === 'Azul marino' ? '#1E3A8A' :
-                                   color === 'Verde' ? '#22C55E' :
-                                   color === 'Verde militar' ? '#4D7C0F' :
-                                   color === 'Rojo' ? '#EF4444' :
-                                   color === 'Beige' ? '#D4A574' :
-                                   color === 'Café' ? '#92400E' :
-                                   color === 'Celeste' ? '#7DD3FC' : '#CCC'
+                    backgroundColor: color === 'Negro' ? '#000' :
+                      color === 'Blanco' ? '#FFF' :
+                        color === 'Gris' ? '#9CA3AF' :
+                          color === 'Azul' ? '#3B82F6' :
+                            color === 'Azul marino' ? '#1E3A8A' :
+                              color === 'Verde' ? '#22C55E' :
+                                color === 'Verde militar' ? '#4D7C0F' :
+                                  color === 'Rojo' ? '#EF4444' :
+                                    color === 'Beige' ? '#D4A574' :
+                                      color === 'Café' ? '#92400E' :
+                                        color === 'Celeste' ? '#7DD3FC' : '#CCC'
                   }} />
                   <span className="text-sm font-medium text-gray-700">{color}</span>
                 </button>
@@ -958,7 +941,7 @@ export default function NewProductForm({
               Stock total inicial
             </span>
             <span className="text-lg font-bold text-emerald-700">
-              {Object.values(stockByLocationAndSize).reduce((total, sizeStock) => 
+              {Object.values(stockByLocationAndSize).reduce((total, sizeStock) =>
                 total + Object.values(sizeStock).reduce((sum, qty) => sum + qty, 0), 0
               )} unidades
             </span>
@@ -966,14 +949,12 @@ export default function NewProductForm({
         </div>
 
         {/* ── Tienda Online ─────────────────────────────────────────────── */}
-        <div className={`rounded-xl border-2 p-5 ${
-          publishedToLanding ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
-        }`}>
+        <div className={`rounded-xl border-2 p-5 ${publishedToLanding ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+          }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                publishedToLanding ? "bg-green-100" : "bg-gray-100"
-              }`}>
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${publishedToLanding ? "bg-green-100" : "bg-gray-100"
+                }`}>
                 <Globe className={`w-5 h-5 ${publishedToLanding ? "text-green-600" : "text-gray-500"}`} />
               </div>
               <div>
@@ -985,14 +966,12 @@ export default function NewProductForm({
               type="button"
               onClick={() => setPublishedToLanding((v) => !v)}
               title={publishedToLanding ? "Ocultar de la tienda online" : "Publicar en la tienda online"}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
-                publishedToLanding ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${publishedToLanding ? "bg-green-500" : "bg-gray-300"
+                }`}
             >
               <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                  publishedToLanding ? "translate-x-8" : "translate-x-1"
-                }`}
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${publishedToLanding ? "translate-x-8" : "translate-x-1"
+                  }`}
               />
             </button>
           </div>

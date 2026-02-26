@@ -26,7 +26,7 @@ import {
   Globe,
 } from "lucide-react";
 import Link from "next/link";
-import { togglePublishedToLanding } from "../actions";
+import { togglePublishedToLanding, revalidateProductPaths } from "../actions";
 import { ImageUploader } from "@/components/inventory/ImageUploader";
 
 // ── Schema ───────────────────────────────────────────────────────────────────
@@ -118,12 +118,9 @@ export default function EditProductForm({
   const [stockByLocationAndSize, setStockByLocationAndSize] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
 
-    console.log('📦 Inventory recibido:', product.inventory);
-
     // Cargar stock real desde inventory
     if (product.inventory && Array.isArray(product.inventory)) {
       product.inventory.forEach((inv: any) => {
-        console.log('  - Procesando inv:', inv);
         if (!initial[inv.location_id]) {
           initial[inv.location_id] = {};
         }
@@ -133,7 +130,6 @@ export default function EditProductForm({
       });
     }
 
-    console.log('📦 Stock final cargado:', initial);
     return initial;
   });
 
@@ -263,7 +259,6 @@ export default function EditProductForm({
         .eq("product_id", product.id);
 
       if (deleteError) {
-        console.error("Error al eliminar inventory:", deleteError);
         throw deleteError;
       }
 
@@ -332,11 +327,12 @@ export default function EditProductForm({
       });
 
       toast.success("Producto actualizado correctamente");
+      await revalidateProductPaths();
       router.push("/inventario");
       router.refresh();
-    } catch (error: any) {
-      console.error("Error al actualizar producto:", error);
-      toast.error(error.message || "Error al actualizar el producto");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al actualizar el producto";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
