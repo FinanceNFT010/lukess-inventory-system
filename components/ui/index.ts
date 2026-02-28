@@ -2,9 +2,15 @@
 // UI Components - Lukess Inventory System
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ── Design System (BLOCK 11-A) ─────────────────────────────────────────────
+export { Button } from "./Button";
+export { Badge } from "./Badge";
+export { Input } from "./Input";
+export { Select } from "./Select";
+export { Label } from "./Label";
+
 // ── Componentes existentes ─────────────────────────────────────────────────
 export { ConfirmModal } from "./ConfirmModal";
-export { Input } from "./Input";
 export { LoadingButton } from "./LoadingButton";
 export { SkeletonCard } from "./SkeletonCard";
 
