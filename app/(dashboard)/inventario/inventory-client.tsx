@@ -1086,15 +1086,15 @@ export default function InventoryClient({
                                     </div>
                                     <div className="bg-zinc-50 rounded-lg p-4 border border-zinc-200">
                                       <p className="text-xs text-zinc-500 font-medium mb-1">Costo</p>
-                                      <p className="text-xl font-bold text-zinc-900">Bs {product.cost.toFixed(2)}</p>
+                                      <p className="text-xl font-bold text-zinc-900">Bs {(product.cost ?? 0).toFixed(2)}</p>
                                     </div>
                                     <div className="bg-zinc-50 rounded-lg p-4 border border-zinc-200">
                                       <p className="text-xs text-zinc-500 font-medium mb-1">Margen de Ganancia</p>
                                       <p className="text-xl font-bold text-zinc-900">
-                                        {((product.price - product.cost) / product.cost * 100).toFixed(1)}%
+                                        {(product.cost ?? 0) > 0 ? `${((product.price - product.cost) / product.cost * 100).toFixed(1)}%` : '—'}
                                       </p>
                                       <p className="text-xs text-zinc-500 mt-1">
-                                        +Bs {(product.price - product.cost).toFixed(2)} por unidad
+                                        +Bs {(product.price - (product.cost ?? 0)).toFixed(2)} por unidad
                                       </p>
                                     </div>
                                   </div>
@@ -1272,7 +1272,7 @@ export default function InventoryClient({
                                           </div>
                                         ) : (
                                           <div className="text-center py-2">
-                                            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-blue-100 text-blue-700 border-2 border-blue-300">
+                                            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-zinc-100 text-zinc-700 border-2 border-zinc-300">
                                               <Package className="w-4 h-4" />
                                               Producto sin variantes de talla
                                             </span>
@@ -1619,3 +1619,4 @@ export default function InventoryClient({
     </div>
   );
 }
+
