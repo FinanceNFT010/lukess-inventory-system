@@ -1,37 +1,39 @@
 # activeContext.md — lukess-inventory-system (Admin Dashboard)
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-02-28
 **Updated By:** Antigravity Agent
 
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 11-E
-- **Block Name:** POS Rebrand and Order Allocation Bug Fix
+- **Block Number:** 12
+- **Block Name:** Marketing CMS (Banners & Discount Codes)
 - **Status:** DONE
 - **Started:** 2026-02-28
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 11-E
-- **Block Name:** POS Rebrand and Order Allocation Bug Fix
+- **Block Number:** 12
+- **Block Name:** Marketing CMS (Banners & Discount Codes)
 - **Completed:** 2026-02-28
 - **Commit:** TBD
 
 ---
 
-## FILES CHANGED THIS SESSION (Block 11-E)
-- `app/(dashboard)/ventas/pos-client.tsx`
-- `app/(dashboard)/pedidos/pedidos-client.tsx`
-- `app/layout.tsx`
+## FILES CHANGED THIS SESSION (Block 12)
+- `app/(dashboard)/marketing/page.tsx` (NEW)
+- `components/marketing/BannersManager.tsx` (NEW)
+- `components/marketing/DiscountsManager.tsx` (NEW)
+- `components/dashboard/Sidebar.tsx` (MODIFIED - Added Marketing link)
+- `supabase/migrations/20260228133300_marketing_schema.sql` (NEW - Migration script)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
-- **Total Tables:** 18+
-- **Migrations Applied (11-E):** None
-- **Types Regenerated:** No (no DB changes)
+- **Total Tables:** 19+ (Added `banners`)
+- **Migrations Applied (12):** Created `20260228133300_marketing_schema.sql` but requires `npm run db:push` or manual `npx supabase db push`.
+- **Types Regenerated:** No (User must run `npx supabase gen types typescript --local > types/database.types.ts` after migrating).
 
 ---
 
@@ -42,13 +44,14 @@
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
 - [ ] TODO: WhatsApp templates (pago_confirmado, pedido_en_camino, pedido_entregado, pedido_cancelado) must be approved in Meta Business for notifications to work
 - [ ] TODO: is_featured sorting on landing page (lukess-home repo) — not implemented yet
+- [ ] TODO: User must push the `marketing_schema.sql` migration to Supabase and regenerate typescript types.
 
 ---
 
 ## NEXT BLOCK
-- **Block:** 11-F
+- **Block:** 13
 - **Name:** TBD
-- **Dependencies:** 11-E complete ✅
+- **Dependencies:** 12 complete ✅
 - **Scope:** TBD
 
 ---
@@ -68,3 +71,4 @@
 | 11-C | Dashboard + Inventario Redesign | ✅ DONE | 2026-02-28 | TBD |
 | 11-D | Orders + Reports Plugins (Monochrome Branding Updates) | ✅ DONE | 2026-02-28 | TBD |
 | 11-E | POS Rebrand and Order Allocation Bug Fix | ✅ DONE | 2026-02-28 | TBD |
+| 12 | Marketing CMS (Banners & Discount Codes) | ✅ DONE | 2026-02-28 | TBD |

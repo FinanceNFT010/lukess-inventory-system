@@ -17,6 +17,7 @@ import {
   Store,
   X,
   Users,
+  Megaphone,
 } from "lucide-react";
 import { PendingOrdersBadge } from "./PendingOrdersBadge";
 import { useState, useEffect } from "react";
@@ -78,6 +79,12 @@ const navLinks: NavLink[] = [
     href: "/configuracion/usuarios",
     icon: Users,
     roles: ["admin"],
+  },
+  {
+    label: "Marketing",
+    href: "/marketing",
+    icon: Megaphone,
+    roles: ["admin", "manager"],
   },
 ];
 
