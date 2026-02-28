@@ -5,28 +5,28 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 11-C
-- **Block Name:** Dashboard + Inventario (Data-heavy modules)
+- **Block Number:** 11-D
+- **Block Name:** Orders + Reports Plugins (Monochrome Branding Updates)
 - **Status:** DONE
 - **Started:** 2026-02-28
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 11-C
-- **Block Name:** Dashboard + Inventario Redesign — Monochrome cards, tables, badges, modals
+- **Block Number:** 11-D
+- **Block Name:** Orders + Reports Plugins (Monochrome Branding Updates)
 - **Completed:** 2026-02-28
 - **Commit:** TBD
 
 ---
 
-## FILES CHANGED THIS SESSION (Block 11-C)
-- `app/(dashboard)/page.tsx` — [MODIFY] Replaced colorful stat cards and borders with monochrome styling
-- `components/dashboard/StatsCard.tsx` — [MODIFY] Removed colorMap logic, unified styling manually via zinc classes
-- `app/(dashboard)/inventario/inventory-client.tsx` — [MODIFY] Refactored headers, tables, badges, and expanded view to new monochrome design
-- `app/(dashboard)/inventario/nuevo/new-product-form.tsx` — [MODIFY] Swapped all generic colors with zinc styling
-- `app/(dashboard)/inventario/[id]/edit-product-form.tsx` — [MODIFY] Swapped all generic colors with zinc styling
-- `replaceColors.js` — [NEW] Script created temporarily to standardize colors
+## FILES CHANGED THIS SESSION (Block 11-D)
+- `app/(dashboard)/pedidos/pedidos-client.tsx`
+- `app/(dashboard)/pedidos/order-detail-modal.tsx`
+- `app/(dashboard)/reportes/reports-client.tsx`
+- `components/reportes/FiltrosReportes.tsx`
+- `C:\Users\diego\.gemini\antigravity\brain\0206510e-8e17-48c7-ba6e-9822f93a46d5\task.md`
+- `C:\Users\diego\.gemini\antigravity\brain\0206510e-8e17-48c7-ba6e-9822f93a46d5\implementation_plan.md`
 
 ---
 
@@ -70,3 +70,4 @@
 | 11-A | Design System Foundation — Zinc/Gold | ✅ DONE | 2026-02-27 | b68d188 |
 | 11-B | Layout Shell Rebrand — Login/Sidebar/TopBar | ✅ DONE | 2026-02-27 | ad93be5 |
 | 11-C | Dashboard + Inventario Redesign | ✅ DONE | 2026-02-28 | TBD |
+| 11-D | Orders + Reports Plugins (Monochrome Branding) | ✅ DONE | 2026-02-28 | TBD |

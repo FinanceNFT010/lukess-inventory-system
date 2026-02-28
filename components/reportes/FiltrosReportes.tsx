@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Calendar, Globe, Store, Filter } from "lucide-react";
 import { format, startOfWeek, startOfMonth, subMonths } from "date-fns";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface FiltrosReportesProps {
   desdeActual: string;
@@ -92,13 +94,13 @@ export default function FiltrosReportes({
   }
 
   return (
-    <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 space-y-4">
+    <div className="bg-white rounded-2xl border border-zinc-200 p-5 space-y-4 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         {/* Período rápido */}
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-4 h-4 text-blue-600" />
-            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+            <Calendar className="w-4 h-4 text-zinc-600" />
+            <span className="text-xs font-bold text-zinc-600 uppercase tracking-wider">
               Período
             </span>
           </div>
@@ -107,11 +109,10 @@ export default function FiltrosReportes({
               <button
                 key={p.id}
                 onClick={() => handlePeriodo(p.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  periodoActivo === p.id
-                    ? "bg-blue-600 text-white shadow-md scale-105"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${periodoActivo === p.id
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                  }`}
               >
                 {p.label}
               </button>
@@ -120,13 +121,13 @@ export default function FiltrosReportes({
         </div>
 
         {/* Separador vertical */}
-        <div className="hidden lg:block w-px h-14 bg-gray-200" />
+        <div className="hidden lg:block w-px h-14 bg-zinc-200" />
 
         {/* Canal */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-purple-600" />
-            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+            <Filter className="w-4 h-4 text-zinc-600" />
+            <span className="text-xs font-bold text-zinc-600 uppercase tracking-wider">
               Fuente
             </span>
           </div>
@@ -137,15 +138,10 @@ export default function FiltrosReportes({
                 <button
                   key={c.value}
                   onClick={() => handleCanal(c.value)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                    canalActual === c.value
-                      ? c.value === "online"
-                        ? "bg-blue-600 text-white shadow-md scale-105"
-                        : c.value === "fisico"
-                        ? "bg-orange-500 text-white shadow-md scale-105"
-                        : "bg-gray-700 text-white shadow-md scale-105"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${canalActual === c.value
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {c.label}
@@ -158,37 +154,35 @@ export default function FiltrosReportes({
 
       {/* Rango custom */}
       {periodoActivo === "custom" && (
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t-2 border-gray-100">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-zinc-100">
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label className="block text-xs font-semibold text-zinc-600 mb-1">
               Desde
             </label>
-            <input
+            <Input
               type="date"
               value={customDesde}
               onChange={(e) => setCustomDesde(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label className="block text-xs font-semibold text-zinc-600 mb-1">
               Hasta
             </label>
-            <input
+            <Input
               type="date"
               value={customHasta}
               onChange={(e) => setCustomHasta(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
           <div className="flex items-end">
-            <button
+            <Button
               onClick={handleCustomApply}
               disabled={!customDesde || !customHasta}
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+              variant="primary"
             >
               Aplicar
-            </button>
+            </Button>
           </div>
         </div>
       )}

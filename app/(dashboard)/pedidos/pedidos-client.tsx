@@ -15,6 +15,10 @@ import {
   MapPin,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import type { OrderWithItems, OrderStatus } from "@/lib/types";
 import { ORDER_STATUS_CONFIG } from "@/lib/types";
 import { updateOrderStatus } from "./actions";
@@ -62,14 +66,24 @@ const STATUS_TABS: { key: "all" | OrderStatus; label: string; icon?: string }[] 
   { key: "cancelled", label: "Cancelados", icon: "❌" },
 ];
 
-const STATUS_BORDER: Record<OrderStatus, string> = {
-  pending: "border-l-amber-400",
-  reserved: "border-l-orange-400",
-  confirmed: "border-l-blue-400",
-  shipped: "border-l-purple-400",
-  completed: "border-l-green-400",
-  cancelled: "border-l-red-300",
-};
+function getBadgeVariant(status: OrderStatus): "success" | "warning" | "danger" | "neutral" | "gold" {
+  switch (status) {
+    case "pending":
+    case "reserved":
+      return "warning";
+    case "confirmed":
+    case "shipped":
+      return "gold";
+    case "completed":
+      return "success";
+    case "cancelled":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
+
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -598,45 +612,45 @@ export default function PedidosClient({
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 z-10" />
+            <Input
               type="text"
               placeholder="Buscar por nombre, teléfono o ID del pedido..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 z-10"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          <select
+          <Select
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-            className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
+            className="min-w-[160px]"
           >
             <option value="all">📅 Todas las fechas</option>
             <option value="today">Hoy</option>
             <option value="7days">Últimos 7 días</option>
             <option value="30days">Últimos 30 días</option>
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value as PaymentFilter)}
-            className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[140px]"
+            className="min-w-[140px]"
           >
             <option value="all">💳 Todos los pagos</option>
             <option value="qr">QR / Transfer</option>
             <option value="efectivo">Efectivo</option>
             <option value="tarjeta">Tarjeta</option>
-          </select>
+          </Select>
 
           {hasActiveFilters && (
             <button
@@ -694,42 +708,25 @@ export default function PedidosClient({
                 className={`
                   flex items-center gap-2 px-4 py-3.5 text-sm font-medium whitespace-nowrap transition-all border-b-2
                   ${isActive
-                    ? "bg-gradient-to-b from-white to-blue-50 border-blue-500 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    ? "border-gold-500 text-gold-600 font-medium"
+                    : "border-transparent text-zinc-500 hover:text-zinc-700"
                   }
                 `}
-                style={
-                  isActive
-                    ? { WebkitTextFillColor: "transparent", backgroundClip: "text" }
-                    : {}
-                }
               >
                 {tab.icon && <span className="text-base">{tab.icon}</span>}
-                <span
-                  style={
-                    isActive
-                      ? {
-                        background: "linear-gradient(to right, #2563eb, #9333ea)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        backgroundClip: "text",
-                      }
-                      : {}
-                  }
-                >
+                <span>
                   {tab.label}
                 </span>
                 <span
                   className={`
                     inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold
                     ${isActive
-                      ? "bg-blue-600 text-white"
+                      ? "bg-gold-500 text-white"
                       : isPending && count > 0
                         ? "bg-amber-100 text-amber-700"
-                        : "bg-gray-100 text-gray-600"
+                        : "bg-zinc-100 text-zinc-600"
                     }
                   `}
-                  style={isActive ? { WebkitTextFillColor: "white" } : {}}
                 >
                   {count}
                 </span>
@@ -761,7 +758,6 @@ export default function PedidosClient({
           ) : (
             filteredOrders.map((order) => {
               const config = ORDER_STATUS_CONFIG[order.status as OrderStatus];
-              const borderColor = STATUS_BORDER[order.status as OrderStatus];
               const isPending = order.status === "pending" || order.status === "reserved";
               const itemsCount = order.order_items?.length ?? 0;
               const itemsSummary = getItemsSummary(order);
@@ -771,89 +767,82 @@ export default function PedidosClient({
               return (
                 <div
                   key={order.id}
-                  className={`
-                    border border-gray-200 rounded-xl border-l-4 ${borderColor} overflow-hidden transition-shadow hover:shadow-md
-                    ${isPending ? "bg-amber-50/40" : "bg-white"}
-                  `}
+                  className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="p-4">
-                    {/* Top row */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`
-                            inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
-                            ${config.bgColor} ${config.color} border ${config.borderColor}
-                          `}
-                        >
-                          <span>{config.icon}</span>
-                          {config.label}
-                        </span>
+                  <div className="flex justify-between items-start border-b border-zinc-100 pb-3 mb-3">
+                    <div>
+                      <span className="text-xs font-mono text-zinc-500">
+                        #{order.id.slice(0, 8).toUpperCase()}
+                      </span>
+                      <h3 className="font-medium text-zinc-900 mt-1">
+                        {order.customer_name}
+                      </h3>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        📱 {order.customer_phone}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <div className="flex items-center gap-2">
                         {isPending && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
                             ⚠ Requiere atención
                           </span>
                         )}
+                        <Badge variant={getBadgeVariant(order.status as OrderStatus)} icon>
+                          {config.label}
+                        </Badge>
                       </div>
-                      <span className="text-xs text-gray-400 font-medium">
+                      <span className="text-xs text-zinc-400 font-medium">
                         {formatRelativeTime(order.created_at)}
                       </span>
                     </div>
+                  </div>
 
-                    {/* Order ID */}
-                    <p className="font-mono text-xs text-gray-400 mb-3">
-                      #{order.id.slice(0, 8).toUpperCase()}
-                    </p>
-
-                    {/* Customer */}
-                    <div className="flex items-center gap-4 mb-2">
-                      <span className="text-sm font-semibold text-gray-800">
-                        👤 {order.customer_name}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        📱 {order.customer_phone}
+                  <div className="space-y-2 mb-4 text-sm text-zinc-600">
+                    <div className="flex justify-between">
+                      <span>Artículos:</span>
+                      <span className="font-medium text-zinc-900 line-clamp-1 flex-1 text-right ml-4">
+                        {itemsCount} {itemsCount === 1 ? "producto" : "productos"}
+                        <span className="text-zinc-400 font-normal ml-1">({itemsSummary})</span>
                       </span>
                     </div>
+                    <div className="flex justify-between">
+                      <span>Fecha:</span>
+                      <span>{new Date(order.created_at).toLocaleDateString("es-BO")}</span>
+                    </div>
+                  </div>
 
-                    {/* Items */}
-                    <p className="text-sm text-gray-600 mb-4">
-                      <span className="font-medium">
-                        📦 {itemsCount} {itemsCount === 1 ? "producto" : "productos"}:
-                      </span>{" "}
-                      <span className="text-gray-500">{itemsSummary}</span>
-                    </p>
-
-                    {/* Bottom row */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
-                      <span className="text-lg font-bold text-gray-900">
-                        Bs {formatCurrency(order.total)}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {/* Quick action button for non-terminal orders */}
-                        {quickAction && canChangeStatus && (
-                          <button
-                            onClick={(e) => handleQuickAction(order, quickAction.nextStatus, e)}
-                            disabled={isConfirming}
-                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            {isConfirming ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <span>{quickAction.icon}</span>
-                            )}
-                            {quickAction.label}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setIsModalOpen(true);
-                          }}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+                  <div className="flex justify-between items-center pt-3 border-t border-zinc-100">
+                    <span className="text-lg font-bold text-zinc-900">
+                      Bs. {formatCurrency(order.total)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {quickAction && canChangeStatus && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleQuickAction(order, quickAction.nextStatus, e)}
+                          disabled={isConfirming}
+                          className="bg-zinc-50 hover:bg-zinc-100"
                         >
-                          Ver detalle →
-                        </button>
-                      </div>
+                          {isConfirming ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                          ) : (
+                            <span className="mr-1.5">{quickAction.icon}</span>
+                          )}
+                          {quickAction.label}
+                        </Button>
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        Ver detalle →
+                      </Button>
                     </div>
                   </div>
                 </div>

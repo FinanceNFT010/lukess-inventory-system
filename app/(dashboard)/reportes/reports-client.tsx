@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { format, eachDayOfInterval, parseISO, differenceInDays, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { Button } from "@/components/ui/Button";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,37 +101,28 @@ function KPICard({
   label,
   value,
   change,
-  color,
   subtitle,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   change: number | null;
-  color: "blue" | "green" | "purple" | "orange" | "red";
+  color?: string; // Kept for backwards compatibility, not used visually
   subtitle?: string;
 }) {
-  const gradients = {
-    blue: "from-blue-500 to-blue-700",
-    green: "from-green-500 to-green-700",
-    purple: "from-purple-500 to-purple-700",
-    orange: "from-orange-400 to-orange-600",
-    red: "from-red-500 to-red-700",
-  };
-
   return (
-    <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div
-          className={`w-11 h-11 bg-gradient-to-br ${gradients[color]} rounded-xl flex items-center justify-center shadow-md`}
+          className="w-11 h-11 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-center shadow-sm"
         >
-          <Icon className="w-5 h-5 text-white" />
+          <Icon className="w-5 h-5 text-zinc-900" />
         </div>
         {change !== null && (
           <div
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${change >= 0
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
+              ? "bg-zinc-100 text-zinc-700"
+              : "bg-red-50 text-red-700"
               }`}
           >
             {change >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
@@ -138,9 +130,9 @@ function KPICard({
           </div>
         )}
       </div>
-      <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-      <p className="text-xl font-bold text-gray-900 leading-tight">{value}</p>
-      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+      <p className="text-xs font-medium text-zinc-500 mb-1">{label}</p>
+      <p className="text-xl font-bold text-zinc-900 leading-tight">{value}</p>
+      {subtitle && <p className="text-xs text-zinc-400 mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -157,22 +149,22 @@ function BarTooltip({
   if (!active || !payload?.length) return null;
   const total = payload.reduce((s, p) => s + (p.value ?? 0), 0);
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-xl shadow-xl p-4 min-w-[200px]">
-      <p className="text-sm font-bold text-gray-800 mb-2 border-b border-gray-100 pb-2">
+    <div className="bg-zinc-950 border-none rounded-xl shadow-xl p-4 min-w-[200px] text-zinc-50">
+      <p className="text-sm font-bold text-zinc-50 mb-2 border-b border-zinc-800 pb-2">
         {label}
       </p>
       {payload.map((p, i) => (
         <div key={i} className="flex items-center justify-between gap-4 mb-1">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.fill }} />
-            <span className="text-xs font-medium text-gray-600">{p.name}</span>
+            <span className="text-xs font-medium text-zinc-300">{p.name}</span>
           </div>
-          <span className="text-xs font-bold text-gray-900">{formatBs(p.value)}</span>
+          <span className="text-xs font-bold text-gold-500">{formatBs(p.value)}</span>
         </div>
       ))}
-      <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between">
-        <span className="text-xs text-gray-500">Total</span>
-        <span className="text-xs font-bold text-gray-900">{formatBs(total)}</span>
+      <div className="mt-2 pt-2 border-t border-zinc-800 flex justify-between">
+        <span className="text-xs text-zinc-400">Total</span>
+        <span className="text-xs font-bold text-gold-500">{formatBs(total)}</span>
       </div>
     </div>
   );
@@ -189,12 +181,12 @@ function SimpleTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-xl shadow-xl p-3">
-      <p className="text-xs font-bold text-gray-800 mb-1">{label}</p>
+    <div className="bg-zinc-950 border-none rounded-xl shadow-xl p-3 text-zinc-50">
+      <p className="text-xs font-bold text-zinc-50 mb-1">{label}</p>
       {payload.map((p, i) => (
-        <div key={i} className="text-xs text-gray-700">
+        <div key={i} className="text-xs text-zinc-300">
           <span className="font-medium">{p.name}: </span>
-          {formatBs(p.value)}
+          <span className="font-bold text-gold-500">{formatBs(p.value)}</span>
         </div>
       ))}
     </div>
@@ -292,7 +284,13 @@ export default function ReportesVentasClient({
     return data;
   }, [onlineRevenue, fisicoRevenue]);
 
-  const DONUT_COLORS = ["#3B82F6", "#F97316"];
+  const DONUT_COLORS = [
+    'var(--color-zinc-900)',
+    'var(--color-zinc-700)',
+    'var(--color-zinc-500)',
+    'var(--color-zinc-300)',
+    'var(--color-gold-500)'
+  ];
 
   // ── Daily table ────────────────────────────────────────────────────────────
 
@@ -589,55 +587,59 @@ export default function ReportesVentasClient({
       {/* ── Charts row: bar + donut ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Stacked Bar chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-zinc-900" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Ingresos por día</h2>
-              <p className="text-xs text-gray-500">Barras apiladas online vs físico</p>
+              <h2 className="text-base font-bold text-zinc-900">Ingresos por día</h2>
+              <p className="text-xs text-zinc-500">Barras apiladas online vs físico</p>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={barData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="4 4" stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-zinc-200)" />
               <XAxis
                 dataKey="fecha"
-                tick={{ fontSize: 11, fill: "#6B7280" }}
-                axisLine={{ stroke: "#D1D5DB" }}
+                tick={{ fontSize: 11, fill: 'var(--color-zinc-500)' }}
+                axisLine={false}
                 tickLine={false}
                 interval={Math.max(0, Math.floor(barData.length / 8) - 1)}
+                dy={10}
               />
               <YAxis
-                tick={{ fontSize: 11, fill: "#6B7280" }}
+                tick={{ fontSize: 11, fill: 'var(--color-zinc-500)' }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `Bs${v}`}
                 width={60}
               />
-              <Tooltip content={<BarTooltip />} />
+              <Tooltip
+                cursor={{ fill: 'var(--color-zinc-50)' }}
+                content={<BarTooltip />}
+              />
               <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
-              <Bar dataKey="Online" stackId="a" fill="#3B82F6" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Físico" stackId="a" fill="#F97316" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Online" stackId="a" fill="var(--color-zinc-800)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="Físico" stackId="a" fill="var(--color-gold-500)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Donut chart */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm flex flex-col">
+        <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center">
-              <Globe className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-center">
+              <Globe className="w-5 h-5 text-zinc-900" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Proporción</h2>
-              <p className="text-xs text-gray-500">Online vs Físico</p>
+              <h2 className="text-base font-bold text-zinc-900">Proporción</h2>
+              <p className="text-xs text-zinc-500">Online vs Físico</p>
             </div>
           </div>
 
           {donutData.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+            <div className="flex-1 flex items-center justify-center text-sm text-zinc-400">
               Sin datos
             </div>
           ) : (
@@ -697,59 +699,58 @@ export default function ReportesVentasClient({
         </div>
       </div>
 
-      {/* ── Top 10 productos ─────────────────────────────────────────────── */}
       {top10.length > 0 && (
-        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center">
-              <Award className="w-5 h-5 text-white" />
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-100">
+            <div className="w-10 h-10 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-center">
+              <Award className="w-5 h-5 text-zinc-900" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Top 10 productos más vendidos</h2>
-              <p className="text-xs text-gray-500">Por unidades · período seleccionado</p>
+              <h2 className="text-base font-bold text-zinc-900">Top 10 productos más vendidos</h2>
+              <p className="text-xs text-zinc-500">Por unidades · período seleccionado</p>
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-zinc-50">
                 <tr>
-                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-10">
+                  <th className="text-center px-4 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider w-10">
                     #
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                     Producto
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                  <th className="text-left px-4 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider hidden sm:table-cell">
                     Categoría
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th className="text-right px-4 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                     Unidades
                   </th>
-                  <th className="text-right px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th className="text-right px-6 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                     Ingresos
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-zinc-100">
                 {top10.map((row) => {
                   const medalBg =
                     row.pos === 1
-                      ? "bg-yellow-50"
+                      ? "bg-zinc-50"
                       : row.pos === 2
-                        ? "bg-gray-100"
+                        ? "bg-zinc-50/50"
                         : row.pos === 3
-                          ? "bg-orange-50"
+                          ? "bg-zinc-50/30"
                           : "";
                   const medalColor =
                     row.pos === 1
-                      ? "bg-yellow-400 text-white"
+                      ? "bg-gold-500 text-white"
                       : row.pos === 2
-                        ? "bg-gray-400 text-white"
+                        ? "bg-zinc-400 text-white"
                         : row.pos === 3
-                          ? "bg-orange-400 text-white"
-                          : "bg-gray-100 text-gray-500";
+                          ? "bg-zinc-300 text-zinc-700"
+                          : "bg-zinc-100 text-zinc-500";
                   return (
-                    <tr key={row.pid} className={`${medalBg} hover:brightness-95 transition-all`}>
+                    <tr key={row.pid} className={`${medalBg} hover:bg-zinc-50 transition-all`}>
                       <td className="px-4 py-3 text-center">
                         <span
                           className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${medalColor}`}
@@ -757,18 +758,18 @@ export default function ReportesVentasClient({
                           {row.pos}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-semibold text-gray-900 max-w-[200px] truncate">
+                      <td className="px-4 py-3 font-semibold text-zinc-900 max-w-[200px] truncate">
                         {row.name}
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+                        <span className="px-2 py-0.5 bg-zinc-100 text-zinc-700 text-xs font-medium rounded-full border border-zinc-200">
                           {row.categoria}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-gray-900">
+                      <td className="px-4 py-3 text-right font-bold text-zinc-900">
                         {row.units.toLocaleString()}
                       </td>
-                      <td className="px-6 py-3 text-right font-bold text-green-700">
+                      <td className="px-6 py-3 text-right font-bold text-gold-600">
                         {formatBs(row.revenue)}
                       </td>
                     </tr>
@@ -782,16 +783,15 @@ export default function ReportesVentasClient({
 
       {/* ── Ventas por categoría + Actividad por día de semana ───────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Ventas por categoría — horizontal bar chart */}
         {catData.length > 0 && (
-          <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm">
+          <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-700 rounded-xl flex items-center justify-center">
-                <Tag className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-center">
+                <Tag className="w-5 h-5 text-zinc-900" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-gray-900">Ventas por categoría</h2>
-                <p className="text-xs text-gray-500">Ingresos totales por categoría</p>
+                <h2 className="text-base font-bold text-zinc-900">Ventas por categoría</h2>
+                <p className="text-xs text-zinc-500">Ingresos totales por categoría</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={Math.max(180, catData.length * 44)}>
@@ -800,10 +800,10 @@ export default function ReportesVentasClient({
                 layout="vertical"
                 margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="4 4" stroke="#E5E7EB" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-zinc-200)" />
                 <XAxis
                   type="number"
-                  tick={{ fontSize: 10, fill: "#6B7280" }}
+                  tick={{ fontSize: 10, fill: "var(--color-zinc-500)" }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => `Bs${v}`}
@@ -811,40 +811,43 @@ export default function ReportesVentasClient({
                 <YAxis
                   type="category"
                   dataKey="categoria"
-                  tick={{ fontSize: 12, fill: "#374151" }}
+                  tick={{ fontSize: 12, fill: "var(--color-zinc-600)" }}
                   axisLine={false}
                   tickLine={false}
                   width={100}
                 />
-                <Tooltip content={<SimpleTooltip />} />
-                <Bar dataKey="ingresos" name="Ingresos" fill="#8B5CF6" radius={[0, 6, 6, 0]} />
+                <Tooltip
+                  cursor={{ fill: 'var(--color-zinc-50)' }}
+                  content={<SimpleTooltip />}
+                />
+                <Bar dataKey="ingresos" name="Ingresos" fill="var(--color-gold-500)" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* Actividad por día de semana */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-700 rounded-xl flex items-center justify-center">
-              <Activity className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-center">
+              <Activity className="w-5 h-5 text-zinc-900" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Actividad por día de semana</h2>
-              <p className="text-xs text-gray-500">Ingresos acumulados · barra máxima resaltada</p>
+              <h2 className="text-base font-bold text-zinc-900">Actividad por día de semana</h2>
+              <p className="text-xs text-zinc-500">Ingresos acumulados · barra máxima resaltada</p>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={dowData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="4 4" stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-zinc-200)" />
               <XAxis
                 dataKey="dia"
-                tick={{ fontSize: 12, fill: "#6B7280" }}
-                axisLine={{ stroke: "#D1D5DB" }}
+                tick={{ fontSize: 12, fill: "var(--color-zinc-500)" }}
+                axisLine={false}
                 tickLine={false}
+                dy={10}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: "#6B7280" }}
+                tick={{ fontSize: 10, fill: "var(--color-zinc-500)" }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `Bs${v}`}
@@ -852,6 +855,7 @@ export default function ReportesVentasClient({
               />
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <Tooltip
+                cursor={{ fill: 'var(--color-zinc-50)' }}
                 formatter={((value: number | undefined) => [formatBs(value ?? 0), "Ingresos"]) as any}
                 labelFormatter={(label) => `Día: ${label}`}
               />
@@ -859,7 +863,7 @@ export default function ReportesVentasClient({
                 {dowData.map((entry, index) => (
                   <Cell
                     key={index}
-                    fill={entry.total === dowMax && dowMax > 0 ? "#3B82F6" : "#BFDBFE"}
+                    fill={entry.total === dowMax && dowMax > 0 ? "var(--color-gold-500)" : "var(--color-zinc-300)"}
                   />
                 ))}
               </Bar>
@@ -871,14 +875,14 @@ export default function ReportesVentasClient({
       {/* ── Alertas de inventario + Impacto de descuentos ────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Alertas de inventario */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-white" />
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-100">
+            <div className="w-10 h-10 bg-red-50 border border-red-100 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Alertas de inventario</h2>
-              <p className="text-xs text-gray-500">
+              <h2 className="text-base font-bold text-zinc-900">Alertas de inventario</h2>
+              <p className="text-xs text-zinc-500">
                 Stock crítico · Dead stock (+60 días sin movimiento)
               </p>
             </div>
@@ -888,10 +892,10 @@ export default function ReportesVentasClient({
             <div className="p-8 text-center">
               <Package className="w-10 h-10 text-green-400 mx-auto mb-3" />
               <p className="text-sm font-semibold text-green-700">Inventario en buen estado</p>
-              <p className="text-xs text-gray-400 mt-1">Sin alertas de stock crítico ni dead stock.</p>
+              <p className="text-xs text-zinc-400 mt-1">Sin alertas de stock crítico ni dead stock.</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-zinc-100">
               {/* Stock crítico */}
               {criticalStockItems.length > 0 && (
                 <div className="p-4">
@@ -903,26 +907,26 @@ export default function ReportesVentasClient({
                     {criticalStockItems.map((item) => (
                       <div
                         key={item.pid}
-                        className="flex items-center justify-between bg-red-50 border border-red-100 rounded-xl px-4 py-2.5"
+                        className="flex items-center justify-between bg-red-50/50 border border-red-100 rounded-xl px-4 py-2.5 hover:bg-red-50 transition-colors"
                       >
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
-                          <p className="text-xs text-gray-400">{item.sku}</p>
+                          <p className="text-sm font-semibold text-zinc-900 truncate">{item.name}</p>
+                          <p className="text-xs text-zinc-500">{item.sku}</p>
                         </div>
                         <div className="flex items-center gap-4 shrink-0 ml-4">
                           <div className="text-right">
-                            <p className="text-xs text-gray-500">Stock actual</p>
+                            <p className="text-xs text-zinc-500">Stock actual</p>
                             <p className="text-sm font-bold text-red-600">{item.quantity} u.</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-gray-500">Mínimo</p>
-                            <p className="text-sm font-bold text-gray-700">{item.min_stock} u.</p>
+                            <p className="text-xs text-zinc-500">Mínimo</p>
+                            <p className="text-sm font-medium text-zinc-700">{item.min_stock} u.</p>
                           </div>
                           {item.daysToStockout !== null && (
                             <div className="text-right hidden sm:block">
-                              <p className="text-xs text-gray-500">Agotamiento</p>
+                              <p className="text-xs text-zinc-500">Agotamiento</p>
                               <p
-                                className={`text-sm font-bold ${item.daysToStockout <= 7 ? "text-red-600" : "text-orange-500"
+                                className={`text-sm font-bold ${item.daysToStockout <= 7 ? "text-red-600" : "text-amber-600"
                                   }`}
                               >
                                 ~{item.daysToStockout}d
@@ -939,7 +943,7 @@ export default function ReportesVentasClient({
               {/* Dead stock */}
               {deadStockItems.length > 0 && (
                 <div className="p-4">
-                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                     <TrendingDown className="w-3.5 h-3.5" />
                     Dead stock — sin movimiento 60 días ({deadStockItems.length})
                   </p>
@@ -1033,24 +1037,24 @@ export default function ReportesVentasClient({
       </div>
 
       {/* ── Detalle por día (existing) ───────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-gray-600 to-gray-800 rounded-xl flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4 text-white" />
+            <div className="w-10 h-10 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-zinc-900" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Detalle por día</h2>
-              <p className="text-xs text-gray-500">Máximo 30 días · ordenado descendente</p>
+              <h2 className="text-base font-bold text-zinc-900">Detalle por día</h2>
+              <p className="text-xs text-zinc-500">Máximo 30 días · ordenado descendente</p>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-4 text-xs font-semibold">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
+            <span className="flex items-center gap-1.5 text-zinc-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-zinc-800 inline-block" />
               Online
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
+            <span className="flex items-center gap-1.5 text-zinc-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-gold-500 inline-block" />
               Físico
             </span>
           </div>
@@ -1058,42 +1062,42 @@ export default function ReportesVentasClient({
 
         <div className="overflow-y-auto max-h-80">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 sticky top-0">
+            <thead className="bg-zinc-50 sticky top-0">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   Fecha
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-blue-600 uppercase tracking-wider">
+                <th className="text-right px-4 py-3 text-xs font-bold text-zinc-700 uppercase tracking-wider">
                   Online (Bs.)
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-orange-500 uppercase tracking-wider">
+                <th className="text-right px-4 py-3 text-xs font-bold text-gold-600 uppercase tracking-wider">
                   Físico (Bs.)
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="text-right px-4 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   Total (Bs.)
                 </th>
-                <th className="text-right px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                <th className="text-right px-6 py-3 text-xs font-bold text-zinc-400 uppercase tracking-wider hidden sm:table-cell">
                   Pedidos
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-zinc-100">
               {tableData.map((row) => (
-                <tr key={row.date} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-3.5 font-medium text-gray-900">{row.dateFormatted}</td>
-                  <td className="px-4 py-3.5 text-right font-semibold text-blue-700">
+                <tr key={row.date} className="hover:bg-zinc-50 transition-colors">
+                  <td className="px-6 py-3.5 font-medium text-zinc-900">{row.dateFormatted}</td>
+                  <td className="px-4 py-3.5 text-right font-semibold text-zinc-700">
                     {row.online > 0 ? formatBs(row.online) : "—"}
                   </td>
-                  <td className="px-4 py-3.5 text-right font-semibold text-orange-600">
+                  <td className="px-4 py-3.5 text-right font-semibold text-gold-600">
                     {row.fisico > 0 ? formatBs(row.fisico) : "—"}
                   </td>
-                  <td className="px-4 py-3.5 text-right font-bold text-gray-900">
+                  <td className="px-4 py-3.5 text-right font-bold text-zinc-900">
                     {formatBs(row.total)}
                   </td>
-                  <td className="px-6 py-3.5 text-right text-gray-400 hidden sm:table-cell">
-                    <span className="text-blue-500 font-medium">{row.onlineCount}</span>
+                  <td className="px-6 py-3.5 text-right text-zinc-400 hidden sm:table-cell">
+                    <span className="text-zinc-500 font-medium">{row.onlineCount}</span>
                     {" + "}
-                    <span className="text-orange-400 font-medium">{row.fisicoCount}</span>
+                    <span className="text-gold-500 font-medium">{row.fisicoCount}</span>
                   </td>
                 </tr>
               ))}

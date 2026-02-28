@@ -362,10 +362,10 @@ export default function OrderDetailModal({
             onClick={() => handleStatusChange(status)}
             disabled={loadingStatus !== null}
             className={`
-              flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed
+              flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all shadow-sm focus:outline-hidden focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none
               ${variant === 'primary'
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 shadow-md'
-                : 'border-2 border-red-300 text-red-600 hover:bg-red-50 sm:flex-none sm:px-4'
+                ? 'bg-gold-500 text-white hover:bg-gold-600 focus:ring-gold-500'
+                : 'bg-zinc-900 text-white hover:bg-black focus:ring-zinc-900 border-transparent sm:flex-none sm:px-4'
               }
             `}
           >
@@ -601,7 +601,7 @@ export default function OrderDetailModal({
                           <button
                             onClick={() => handleStatusChange('confirmed')}
                             disabled={loadingStatus !== null}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-sm rounded-xl hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gold-500 text-white font-semibold text-sm rounded-xl hover:bg-gold-600 transition-all disabled:opacity-50 disabled:pointer-events-none shadow-sm"
                           >
                             {loadingStatus === 'confirmed' ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
