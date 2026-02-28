@@ -53,9 +53,9 @@ export default async function DashboardLayout({
 
   return (
     <DashboardWrapper>
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar 
-          profile={profile as Profile} 
+      <div className="min-h-screen bg-zinc-50 flex">
+        <Sidebar
+          profile={profile as Profile}
           lowStockCount={lowStockCount}
           pendingOrdersCount={pendingOrdersCount ?? 0}
         />

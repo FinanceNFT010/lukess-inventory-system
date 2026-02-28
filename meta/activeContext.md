@@ -1,5 +1,5 @@
 # activeContext.md — lukess-inventory-system (Admin Dashboard)
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-02-27
 **Updated By:** Antigravity Agent
 
 ---
@@ -13,23 +13,30 @@
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 10-E.3
-- **Block Name:** Database Structure for Categories & Colors
+- **Block Number:** 11-A
+- **Block Name:** Design System Foundation — Zinc/Gold Migration
 - **Completed:** 2026-02-27
-- **Commit:** 6aab07d
+- **Commit:** b68d188
 
 ---
 
-## FILES CHANGED THIS SESSION (Block 10-E.3)
-- `types/database.types.ts` — [MODIFY] Regenerated types after database updates.
+## FILES CHANGED THIS SESSION (Block 11-A)
+- `app/globals.css` — [MODIFY] Full design system rewrite: zinc scale, gold accent, semantic colors via `@theme`
+- `components/ui/Button.tsx` — [NEW] Primary (gold), secondary, danger, ghost variants with loading state
+- `components/ui/Badge.tsx` — [NEW] Status badges: success, warning, danger, neutral, gold with icon support
+- `components/ui/Input.tsx` — [MODIFY] Replaced old brand-token Input with gold focus ring + zinc borders
+- `components/ui/Select.tsx` — [NEW] Select matching Input styling
+- `components/ui/Label.tsx` — [NEW] Label with optional required asterisk
+- `components/ui/index.ts` — [MODIFY] Added barrel exports for new components
+- `tailwind.config.ts` — [DELETE] Removed v3-style JS config (v4 uses CSS-first `@theme`)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 18+
-- **Migrations Applied (10-E.3):** None (DDL), executed single DML script to formalize categories. Data formally migrated and unused categories deleted.
-- **Types Regenerated:** Yes
+- **Migrations Applied (11-A):** None (CSS/component only)
+- **Types Regenerated:** No (no DB changes)
 
 ---
 
@@ -40,14 +47,15 @@
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
 - [ ] TODO: WhatsApp templates (pago_confirmado, pedido_en_camino, pedido_entregado, pedido_cancelado) must be approved in Meta Business for notifications to work
 - [ ] TODO: is_featured sorting on landing page (lukess-home repo) — not implemented yet
+- [ ] TODO: Existing components (Sidebar, TopBar, StatsCard, POS, orders, reports, etc.) still use blue color classes — needs migration in subsequent blocks
 
 ---
 
 ## NEXT BLOCK
-- **Block:** TBD
-- **Name:** TBD
-- **Dependencies:** 10-E.3 complete ✅
-- **Scope:** Define next sprint goals with Adrian.
+- **Block:** 11-B
+- **Name:** TBD — Migrate existing dashboard components to zinc/gold palette
+- **Dependencies:** 11-A complete ✅
+- **Scope:** Replace all blue-* decorative usage across dashboard components with zinc/gold tokens
 
 ---
 
@@ -61,3 +69,4 @@
 | 10-E.1| Brand Foundation & Global Constants | ✅ DONE | 2026-02-27 | 100ac34 |
 | 10-E.2| Navbar & Footer Redesign | ✅ DONE | 2026-02-27 | 888acdf |
 | 10-E.3| Database Structure for Categories & Colors | ✅ DONE | 2026-02-27 | 6aab07d |
+| 11-A | Design System Foundation — Zinc/Gold | ✅ DONE | 2026-02-27 | b68d188 |
