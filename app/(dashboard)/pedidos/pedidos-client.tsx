@@ -176,37 +176,50 @@ export default function PedidosClient({
       ]);
 
       const allocations: ProductAllocation[] = (order.order_items ?? []).map((item) => {
-        const rows: AllocationRow[] = ((invData ?? []) as unknown as Array<{
+        const productInv = ((invData ?? []) as unknown as Array<{
           id: string; product_id: string; location_id: string; size: string | null;
           quantity: number; reserved_qty: number | null;
           locations: { name: string } | null;
-        }>)
-          .filter((inv) => {
-            if (inv.product_id !== item.product_id) return false;
-            // Removed inv.size as the current table has no size column. Note: this might need a deeper look later if sizes are actually expected in this query.
-            return true;
-          })
+        }>).filter((inv) => inv.product_id === item.product_id);
+
+        const locationGroups = new Map<string, any>();
+        productInv.forEach(inv => {
+          if (!locationGroups.has(inv.location_id)) {
+            locationGroups.set(inv.location_id, {
+              location_id: inv.location_id,
+              location_name: inv.locations?.name ?? "Ubicación",
+              inventory_id: inv.id,
+              quantity: 0,
+              reserved_qty: 0
+            });
+          }
+          const group = locationGroups.get(inv.location_id);
+          group.quantity += inv.quantity;
+          group.reserved_qty += (inv.reserved_qty ?? 0);
+        });
+
+        const rows: AllocationRow[] = Array.from(locationGroups.values())
           .sort((a, b) => {
-            const aB = a.locations?.name?.toLowerCase().includes("bodega") ? 1 : 0;
-            const bB = b.locations?.name?.toLowerCase().includes("bodega") ? 1 : 0;
+            const aB = a.location_name.toLowerCase().includes("bodega") ? 1 : 0;
+            const bB = b.location_name.toLowerCase().includes("bodega") ? 1 : 0;
             if (aB !== bB) return aB - bB;
-            return (a.locations?.name ?? "").localeCompare(b.locations?.name ?? "");
+            return a.location_name.localeCompare(b.location_name);
           })
-          .map((inv) => {
+          .map((group) => {
             const orderCurrent =
               (resData ?? []).find(
                 (r) =>
                   r.product_id === item.product_id &&
-                  r.location_id === inv.location_id &&
+                  r.location_id === group.location_id &&
                   r.size === item.size
               )?.quantity ?? 0;
-            const totalReserved = inv.reserved_qty ?? 0;
-            const available = Math.max(0, inv.quantity - totalReserved + orderCurrent);
+            const totalReserved = group.reserved_qty ?? 0;
+            const available = Math.max(0, group.quantity - totalReserved + orderCurrent);
             return {
-              location_id: inv.location_id,
-              location_name: inv.locations?.name ?? "Ubicación",
-              inventory_id: inv.id,
-              total_qty: inv.quantity,
+              location_id: group.location_id,
+              location_name: group.location_name,
+              inventory_id: group.inventory_id,
+              total_qty: group.quantity,
               total_reserved: totalReserved,
               order_current: orderCurrent,
               available,
@@ -739,11 +752,11 @@ export default function PedidosClient({
         <div className="p-4 space-y-3">
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <PackageSearch className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg font-medium">
+              <PackageSearch className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
+              <p className="text-zinc-500 text-lg font-medium">
                 No se encontraron pedidos
               </p>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-zinc-400 text-sm mt-1">
                 Intenta con otros filtros
               </p>
               {hasActiveFilters && (
@@ -904,7 +917,7 @@ export default function PedidosClient({
 
               <div className="px-6 py-5 space-y-5">
                 {/* Resumen del pedido */}
-                <div className="flex items-center justify-between bg-blue-50 rounded-xl p-4">
+                <div className="flex items-center justify-between bg-zinc-50 border border-zinc-200 rounded-xl p-4">
                   <div>
                     <p className="font-semibold text-gray-900">
                       👤 {confirmModalOrder.customer_name}
@@ -914,7 +927,7 @@ export default function PedidosClient({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold text-blue-700">
+                    <p className="text-xl font-bold text-zinc-900">
                       Bs {formatCurrency(confirmModalOrder.total)}
                     </p>
                     <p className="text-xs text-gray-500">
@@ -926,7 +939,7 @@ export default function PedidosClient({
                 {/* Asignación de stock por puesto */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <Package className="w-4 h-4 text-green-600" />
+                    <Package className="w-4 h-4 text-zinc-600" />
                     <p className="text-sm font-semibold text-gray-800">
                       Asignación de stock por puesto
                     </p>
@@ -939,9 +952,9 @@ export default function PedidosClient({
                       <span className="text-sm">Cargando stock...</span>
                     </div>
                   ) : productAllocations.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                      <p className="text-sm text-amber-700 font-medium">⚠ Sin stock disponible</p>
-                      <p className="text-xs text-amber-600 mt-1">
+                    <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-center">
+                      <p className="text-sm text-zinc-500 font-medium">⚠ Sin stock disponible</p>
+                      <p className="text-xs text-zinc-400 mt-1">
                         No hay inventario registrado para los productos de este pedido.
                       </p>
                     </div>
@@ -964,7 +977,7 @@ export default function PedidosClient({
                                   {prod.product_name}
                                 </span>
                                 {prod.size && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-700 border border-zinc-200">
                                     Talla {prod.size}
                                   </span>
                                 )}
@@ -1035,18 +1048,18 @@ export default function PedidosClient({
                             {/* Footer: total asignado */}
                             <div
                               className={`flex items-center justify-between px-4 py-2 border-t ${prodValid
-                                ? "bg-green-50 border-green-100"
+                                ? "bg-zinc-50 border-zinc-200"
                                 : "bg-red-50 border-red-100"
                                 }`}
                             >
                               <span
-                                className={`text-xs font-semibold ${prodValid ? "text-green-700" : "text-red-600"
+                                className={`text-xs font-semibold ${prodValid ? "text-zinc-600" : "text-red-600"
                                   }`}
                               >
                                 Total asignado
                               </span>
                               <span
-                                className={`text-sm font-bold ${prodValid ? "text-green-700" : "text-red-600"
+                                className={`text-sm font-bold ${prodValid ? "text-zinc-900" : "text-red-600"
                                   }`}
                               >
                                 {assigned} / {prod.order_qty}
@@ -1089,17 +1102,18 @@ export default function PedidosClient({
                 >
                   Cancelar
                 </button>
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleConfirmOrder}
                   disabled={isConfirming || (!allValid && productAllocations.length > 0)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1"
                 >
                   {isConfirming ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     "✅ Confirmar pago"
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

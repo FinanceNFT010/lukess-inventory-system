@@ -5,35 +5,32 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 11-D
-- **Block Name:** Orders + Reports Plugins (Monochrome Branding Updates)
+- **Block Number:** 11-E
+- **Block Name:** POS Rebrand and Order Allocation Bug Fix
 - **Status:** DONE
 - **Started:** 2026-02-28
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 11-D
-- **Block Name:** Orders + Reports Plugins (Monochrome Branding Updates)
+- **Block Number:** 11-E
+- **Block Name:** POS Rebrand and Order Allocation Bug Fix
 - **Completed:** 2026-02-28
 - **Commit:** TBD
 
 ---
 
-## FILES CHANGED THIS SESSION (Block 11-D)
+## FILES CHANGED THIS SESSION (Block 11-E)
+- `app/(dashboard)/ventas/pos-client.tsx`
 - `app/(dashboard)/pedidos/pedidos-client.tsx`
-- `app/(dashboard)/pedidos/order-detail-modal.tsx`
-- `app/(dashboard)/reportes/reports-client.tsx`
-- `components/reportes/FiltrosReportes.tsx`
-- `C:\Users\diego\.gemini\antigravity\brain\0206510e-8e17-48c7-ba6e-9822f93a46d5\task.md`
-- `C:\Users\diego\.gemini\antigravity\brain\0206510e-8e17-48c7-ba6e-9822f93a46d5\implementation_plan.md`
+- `app/layout.tsx`
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 18+
-- **Migrations Applied (11-C):** None (CSS/component only)
+- **Migrations Applied (11-E):** None
 - **Types Regenerated:** No (no DB changes)
 
 ---
@@ -45,14 +42,13 @@
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
 - [ ] TODO: WhatsApp templates (pago_confirmado, pedido_en_camino, pedido_entregado, pedido_cancelado) must be approved in Meta Business for notifications to work
 - [ ] TODO: is_featured sorting on landing page (lukess-home repo) — not implemented yet
-- [ ] TODO: Remaining dashboard components (POS, orders, reports) still use old styling — needs migration in subsequent blocks
 
 ---
 
 ## NEXT BLOCK
-- **Block:** TBD
+- **Block:** 11-F
 - **Name:** TBD
-- **Dependencies:** 11-C complete ✅
+- **Dependencies:** 11-E complete ✅
 - **Scope:** TBD
 
 ---
@@ -70,4 +66,5 @@
 | 11-A | Design System Foundation — Zinc/Gold | ✅ DONE | 2026-02-27 | b68d188 |
 | 11-B | Layout Shell Rebrand — Login/Sidebar/TopBar | ✅ DONE | 2026-02-27 | ad93be5 |
 | 11-C | Dashboard + Inventario Redesign | ✅ DONE | 2026-02-28 | TBD |
-| 11-D | Orders + Reports Plugins (Monochrome Branding) | ✅ DONE | 2026-02-28 | TBD |
+| 11-D | Orders + Reports Plugins (Monochrome Branding Updates) | ✅ DONE | 2026-02-28 | TBD |
+| 11-E | POS Rebrand and Order Allocation Bug Fix | ✅ DONE | 2026-02-28 | TBD |
