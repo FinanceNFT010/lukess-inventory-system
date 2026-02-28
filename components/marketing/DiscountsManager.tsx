@@ -65,7 +65,8 @@ export function DiscountsManager(): React.JSX.Element {
         const { error } = await supabase.from("discount_codes").insert([payload]);
 
         if (error) {
-            toast.error("Error al crear código. Tal vez ya existe.");
+            console.error("Supabase Insert Error (Discounts):", error);
+            toast.error(`Error DB: ${error.message}`);
         } else {
             toast.success("Código creado exitosamente");
             setShowForm(false);

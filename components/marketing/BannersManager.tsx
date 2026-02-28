@@ -70,7 +70,8 @@ export function BannersManager(): React.JSX.Element {
         });
 
         if (dbError) {
-            toast.error("Error al guardar banner", { id: "upload" });
+            console.error("Supabase Insert Error (Banners):", dbError);
+            toast.error(`Error DB: ${dbError.message}`, { id: "upload" });
         } else {
             toast.success("Banner subido", { id: "upload" });
             fetchBanners();

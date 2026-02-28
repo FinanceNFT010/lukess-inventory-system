@@ -21,8 +21,8 @@
 ---
 
 ## FILES CHANGED THIS SESSION (Block 13)
-- `components/marketing/BannersManager.tsx` (MODIFIED - text info)
-- `components/marketing/DiscountsManager.tsx` (MODIFIED - placeholder)
+- `components/marketing/BannersManager.tsx` (MODIFIED - text info + DB logging)
+- `components/marketing/DiscountsManager.tsx` (MODIFIED - placeholder + DB logging)
 - `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED - Variant allocation bug fix)
 - `app/(dashboard)/reportes/page.tsx` (MODIFIED - POS Sales inclusion)
 - `app/(dashboard)/pedidos/actions.ts` (MODIFIED - Discount usage increment logic)
@@ -32,7 +32,7 @@
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 19+ 
-- **Migrations Applied (13):** Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`).
+- **Migrations Applied (13):** Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners.
 - **Types Regenerated:** Yes (Generated locally via Supabase MCP `generate_typescript_types`).
 
 ---
