@@ -32,7 +32,7 @@
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 19+ 
-- **Migrations Applied (13):** Created `banners` bucket policies and added `max_uses`, `usage_count` columns to `discount_codes` via MCP `apply_migration`.
+- **Migrations Applied (13):** Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`).
 - **Types Regenerated:** Yes (Generated locally via Supabase MCP `generate_typescript_types`).
 
 ---
