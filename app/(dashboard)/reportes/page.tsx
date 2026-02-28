@@ -68,8 +68,15 @@ export default async function ReportesPage({
     .gte("created_at", desdeFull)
     .lte("created_at", hastaFull);
 
+  let currentSalesQuery = supabase
+    .from("sales")
+    .select("id, total, subtotal, discount, canal, created_at, customer_name")
+    .gte("created_at", desdeFull)
+    .lte("created_at", hastaFull);
+
   if (canalFilter !== "todos") {
     currentQuery = currentQuery.eq("canal", canalFilter);
+    currentSalesQuery = currentSalesQuery.eq("canal", canalFilter);
   }
 
   // ── Completed orders (previous period, no canal filter) ───────────────────
@@ -80,6 +87,12 @@ export default async function ReportesPage({
     .gte("created_at", prevDesdeFull)
     .lte("created_at", prevHastaFull);
 
+  const prevSalesQuery = supabase
+    .from("sales")
+    .select("id, total, canal, created_at")
+    .gte("created_at", prevDesdeFull)
+    .lte("created_at", prevHastaFull);
+
   // ── All-status orders (for cancellation rate) ─────────────────────────────
   let allStatusQuery = supabase
     .from("orders")
@@ -87,8 +100,15 @@ export default async function ReportesPage({
     .gte("created_at", desdeFull)
     .lte("created_at", hastaFull);
 
+  let allStatusSalesQuery = supabase
+    .from("sales")
+    .select("id")
+    .gte("created_at", desdeFull)
+    .lte("created_at", hastaFull);
+
   if (canalFilter !== "todos") {
     allStatusQuery = allStatusQuery.eq("canal", canalFilter);
+    allStatusSalesQuery = allStatusSalesQuery.eq("canal", canalFilter);
   }
 
   // ── Inventory items with product info ─────────────────────────────────────
@@ -103,36 +123,73 @@ export default async function ReportesPage({
     .select("product_id")
     .gte("created_at", sixtyDaysAgo);
 
+  const recentPosSalesQuery = supabase
+    .from("sale_items")
+    .select("product_id")
+    .gte("created_at", sixtyDaysAgo);
+
   // ── Run all independent queries in parallel ────────────────────────────────
   const [
-    { data: currentOrders },
-    { data: prevOrders },
-    { data: allStatusOrders },
+    { data: currentOrdersRaw },
+    { data: currentSalesRaw },
+    { data: prevOrdersRaw },
+    { data: prevSalesRaw },
+    { data: allStatusOrdersRaw },
+    { data: allStatusSalesRaw },
     { data: inventoryItemsRaw },
     { data: recentSalesRaw },
+    { data: recentPosSalesRaw },
   ] = await Promise.all([
     currentQuery,
+    currentSalesQuery,
     prevQuery,
+    prevSalesQuery,
     allStatusQuery,
+    allStatusSalesQuery,
     inventoryQuery,
     recentSalesQuery,
+    recentPosSalesQuery,
   ]);
 
-  // ── Order items (depends on currentOrders IDs) ────────────────────────────
-  const orderIds = (currentOrders ?? []).map((o) => o.id);
-  const { data: orderItemsRaw } =
+  // Combine Orders + Sales (Mapping sales to have status="completed")
+  const currentSalesMapped = (currentSalesRaw ?? []).map((s) => ({ ...s, status: "completed" }));
+  const prevSalesMapped = (prevSalesRaw ?? []).map((s) => ({ ...s, status: "completed" }));
+  const allStatusSalesMapped = (allStatusSalesRaw ?? []).map((s) => ({ ...s, status: "completed" }));
+
+  const currentOrders = [...(currentOrdersRaw ?? []), ...currentSalesMapped];
+  const prevOrders = [...(prevOrdersRaw ?? []), ...prevSalesMapped];
+  const allStatusOrders = [...(allStatusOrdersRaw ?? []), ...allStatusSalesMapped];
+
+  // ── Order items & Sale Items (depends on current IDs) ──────────────────────
+  const orderIds = (currentOrdersRaw ?? []).map((o) => o.id);
+  const salesIds = (currentSalesRaw ?? []).map((s) => s.id);
+
+  const [
+    { data: orderItemsRaw },
+    { data: saleItemsRaw }
+  ] = await Promise.all([
     orderIds.length > 0
-      ? await supabase
+      ? supabase
         .from("order_items")
-        .select(
-          "product_id, quantity, subtotal, products(id, name, category_id, categories(name))"
-        )
+        .select("product_id, quantity, subtotal, products(id, name, category_id, categories(name))")
         .in("order_id", orderIds)
-      : { data: [] };
+      : Promise.resolve({ data: [] }),
+    salesIds.length > 0
+      ? supabase
+        .from("sale_items")
+        .select("product_id, quantity, subtotal, products(id, name, category_id, categories(name))")
+        .in("sale_id", salesIds)
+      : Promise.resolve({ data: [] })
+  ]);
+
+  const combinedItems = [...(orderItemsRaw ?? []), ...(saleItemsRaw ?? [])];
 
   // Deduplicate recently sold product IDs
   const recentlySoldProductIds = [
-    ...new Set((recentSalesRaw ?? []).map((r) => r.product_id as string)),
+    ...new Set([
+      ...(recentSalesRaw ?? []).map((r) => r.product_id as string),
+      ...(recentPosSalesRaw ?? []).map((r) => r.product_id as string),
+    ]),
   ];
 
   return (
@@ -157,12 +214,12 @@ export default async function ReportesPage({
       {/* Charts + KPIs (Client Component) */}
       <ReportesVentasClient
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        orders={(currentOrders ?? []) as any}
+        orders={currentOrders as any}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        prevOrders={(prevOrders ?? []) as any}
-        allStatusOrders={allStatusOrders ?? []}
+        prevOrders={prevOrders as any}
+        allStatusOrders={allStatusOrders}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        orderItems={(orderItemsRaw ?? []) as any}
+        orderItems={combinedItems as any}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         inventoryItems={(inventoryItemsRaw ?? []) as any}
         recentlySoldProductIds={recentlySoldProductIds}

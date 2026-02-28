@@ -180,7 +180,10 @@ export default function PedidosClient({
           id: string; product_id: string; location_id: string; size: string | null;
           quantity: number; reserved_qty: number | null;
           locations: { name: string } | null;
-        }>).filter((inv) => inv.product_id === item.product_id);
+        }>).filter((inv) =>
+          inv.product_id === item.product_id &&
+          (item.size ? inv.size === item.size : true)
+        );
 
         const locationGroups = new Map<string, any>();
         productInv.forEach(inv => {

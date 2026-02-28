@@ -181,7 +181,7 @@ export function DiscountsManager(): React.JSX.Element {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-zinc-700 mb-1">Usos Máximos (Opcional)</label>
+                            <label className="block text-sm font-bold text-zinc-700 mb-1">Usos Máximos (Dejar en blanco para ilimitado, '1' para un solo uso)</label>
                             <input
                                 type="number"
                                 min="1"

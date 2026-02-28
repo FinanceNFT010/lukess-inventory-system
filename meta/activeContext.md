@@ -5,35 +5,35 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 12
-- **Block Name:** Marketing CMS (Banners & Discount Codes)
+- **Block Number:** 13
+- **Block Name:** BUGFIX SPRINT (Marketing, Allocations, Reports)
 - **Status:** DONE
 - **Started:** 2026-02-28
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 12
-- **Block Name:** Marketing CMS (Banners & Discount Codes)
+- **Block Number:** 13
+- **Block Name:** BUGFIX SPRINT (Marketing, Allocations, Reports)
 - **Completed:** 2026-02-28
 - **Commit:** TBD
 
 ---
 
-## FILES CHANGED THIS SESSION (Block 12)
-- `app/(dashboard)/marketing/page.tsx` (NEW)
-- `components/marketing/BannersManager.tsx` (NEW)
-- `components/marketing/DiscountsManager.tsx` (NEW)
-- `components/dashboard/Sidebar.tsx` (MODIFIED - Added Marketing link)
-- `supabase/migrations/20260228133300_marketing_schema.sql` (NEW - Migration script)
+## FILES CHANGED THIS SESSION (Block 13)
+- `components/marketing/BannersManager.tsx` (MODIFIED - text info)
+- `components/marketing/DiscountsManager.tsx` (MODIFIED - placeholder)
+- `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED - Variant allocation bug fix)
+- `app/(dashboard)/reportes/page.tsx` (MODIFIED - POS Sales inclusion)
+- `app/(dashboard)/pedidos/actions.ts` (MODIFIED - Discount usage increment logic)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
-- **Total Tables:** 19+ (Added `banners`)
-- **Migrations Applied (12):** Created `20260228133300_marketing_schema.sql` but requires `npm run db:push` or manual `npx supabase db push`.
-- **Types Regenerated:** No (User must run `npx supabase gen types typescript --local > types/database.types.ts` after migrating).
+- **Total Tables:** 19+ 
+- **Migrations Applied (13):** Created `banners` bucket policies and added `max_uses`, `usage_count` columns to `discount_codes` via MCP `apply_migration`.
+- **Types Regenerated:** Yes (Generated locally via Supabase MCP `generate_typescript_types`).
 
 ---
 
@@ -44,14 +44,14 @@
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
 - [ ] TODO: WhatsApp templates (pago_confirmado, pedido_en_camino, pedido_entregado, pedido_cancelado) must be approved in Meta Business for notifications to work
 - [ ] TODO: is_featured sorting on landing page (lukess-home repo) — not implemented yet
-- [ ] TODO: User must push the `marketing_schema.sql` migration to Supabase and regenerate typescript types.
+- [ ] TODO: User must push the `marketing_schema.sql` migration to Supabase and regenerate typescript types (From Block 12, though types were regenerated this sprint).
 
 ---
 
 ## NEXT BLOCK
-- **Block:** 13
+- **Block:** 14
 - **Name:** TBD
-- **Dependencies:** 12 complete ✅
+- **Dependencies:** 13 complete ✅
 - **Scope:** TBD
 
 ---
@@ -68,7 +68,8 @@
 | 10-E.3| Database Structure for Categories & Colors | ✅ DONE | 2026-02-27 | 6aab07d |
 | 11-A | Design System Foundation — Zinc/Gold | ✅ DONE | 2026-02-27 | b68d188 |
 | 11-B | Layout Shell Rebrand — Login/Sidebar/TopBar | ✅ DONE | 2026-02-27 | ad93be5 |
-| 11-C | Dashboard + Inventario Redesign | ✅ DONE | 2026-02-28 | TBD |
-| 11-D | Orders + Reports Plugins (Monochrome Branding Updates) | ✅ DONE | 2026-02-28 | TBD |
-| 11-E | POS Rebrand and Order Allocation Bug Fix | ✅ DONE | 2026-02-28 | TBD |
-| 12 | Marketing CMS (Banners & Discount Codes) | ✅ DONE | 2026-02-28 | TBD |
+| 11-C | Dashboard + Inventario Redesign | ✅ DONE | 2026-02-28 | 6492283 |
+| 11-D | Orders + Reports Plugins (Monochrome Branding Updates) | ✅ DONE | 2026-02-28 | 6492283 |
+| 11-E | POS Rebrand and Order Allocation Bug Fix | ✅ DONE | 2026-02-28 | 6492283 |
+| 12 | Marketing CMS (Banners & Discount Codes) | ✅ DONE | 2026-02-28 | 6492283 |
+| 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | TBD |

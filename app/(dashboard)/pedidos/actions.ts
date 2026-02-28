@@ -78,12 +78,32 @@ export async function updateOrderStatus(
       .from('orders')
       .update(updateData)
       .eq('id', orderId)
-      .select('id')
+      .select('id, discount_code_id')
 
     if (error) return { error: error.message }
 
     if (!updated || updated.length === 0) {
       return { error: 'Pedido no encontrado o no se pudo actualizar.' }
+    }
+
+    // Increment discount usage if transitioning to confirmed/completed
+    if (newStatus === 'confirmed' || newStatus === 'completed') {
+      const orderRecord = updated[0] as { id: string; discount_code_id: string | null };
+      if (orderRecord.discount_code_id) {
+        // Fetch current usage and increment
+        const { data: codeData } = await supabaseAdmin
+          .from('discount_codes')
+          .select('usage_count')
+          .eq('id', orderRecord.discount_code_id)
+          .single();
+
+        if (codeData) {
+          await supabaseAdmin
+            .from('discount_codes')
+            .update({ usage_count: (codeData.usage_count || 0) + 1 })
+            .eq('id', orderRecord.discount_code_id);
+        }
+      }
     }
 
     try {

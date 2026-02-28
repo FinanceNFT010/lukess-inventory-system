@@ -114,8 +114,11 @@ export function BannersManager(): React.JSX.Element {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-zinc-900">Banners Activos</h2>
+            <div className="flex justify-between items-start mb-6">
+                <div>
+                    <h2 className="text-xl font-bold text-zinc-900 mb-1">Banners Activos</h2>
+                    <p className="text-xs text-zinc-500">Dimensiones recomendadas: Desktop (1920x800px, 21:9) | Mobile (800x1000px, 4:5). Máximo 2MB.</p>
+                </div>
                 <label className="cursor-pointer bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2 px-4 rounded-xl flex items-center gap-2 transition-colors">
                     <Plus className="w-4 h-4" />
                     Subir Banner
@@ -152,8 +155,8 @@ export function BannersManager(): React.JSX.Element {
                                     <button
                                         onClick={() => toggleActive(banner.id, banner.is_active)}
                                         className={`px-2 py-1 text-xs font-bold rounded-full ${banner.is_active
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-zinc-200 text-zinc-600"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-zinc-200 text-zinc-600"
                                             }`}
                                     >
                                         {banner.is_active ? "Activo" : "Inactivo"}
