@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 interface DiscountCode {
     id: string;
     code: string;
+    discount_type: string;
     discount_percentage: number;
     expires_at: string | null;
     is_active: boolean;
@@ -55,6 +56,7 @@ export function DiscountsManager(): React.JSX.Element {
 
         const payload = {
             code: newCode.toUpperCase(),
+            discount_type: "percentage",
             discount_percentage: Number(newDiscount),
             expires_at: newExpires ? new Date(newExpires).toISOString() : null,
             max_uses: newMaxUses ? Number(newMaxUses) : null,

@@ -16,7 +16,7 @@
 - **Block Number:** 13
 - **Block Name:** BUGFIX SPRINT (Marketing, Allocations, Reports)
 - **Completed:** 2026-02-28
-- **Commit:** d8a7199
+- **Commit:** 7e0ffee
 
 ---
 
