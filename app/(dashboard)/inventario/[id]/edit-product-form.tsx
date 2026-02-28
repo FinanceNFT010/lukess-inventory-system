@@ -421,21 +421,21 @@ export default function EditProductForm({
       <div className="mb-6">
         <Link
           href="/inventario"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition"
+          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver al inventario
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-zinc-600 rounded-xl flex items-center justify-center">
             <Package className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Editar Producto</h1>
-            <p className="text-sm text-gray-500">Actualiza la información del producto</p>
+            <h1 className="text-2xl font-bold text-zinc-900">Editar Producto</h1>
+            <p className="text-sm text-zinc-500">Actualiza la información del producto</p>
           </div>
         </div>
 
@@ -443,12 +443,12 @@ export default function EditProductForm({
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 SKU <span className="text-red-500">*</span>
               </label>
               <input
                 {...register("sku")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
                 placeholder="Ej: LH-0001"
               />
               {errors.sku && (
@@ -457,12 +457,12 @@ export default function EditProductForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Nombre <span className="text-red-500">*</span>
               </label>
               <input
                 {...register("name")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
                 placeholder="Ej: Camisa Columbia Azul"
               />
               {errors.name && (
@@ -473,13 +473,13 @@ export default function EditProductForm({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
               Descripción
             </label>
             <textarea
               {...register("description")}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none text-gray-900 placeholder:text-gray-400"
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition resize-none text-zinc-900 placeholder:text-zinc-400"
               placeholder="Descripción detallada del producto..."
             />
           </div>
@@ -487,12 +487,12 @@ export default function EditProductForm({
           {/* Category & Brand */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Categoría
               </label>
               <select
                 {...register("category_id")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-700"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-700"
               >
                 <option value="">Sin categoría</option>
                 {categories.map((cat) => (
@@ -504,12 +504,12 @@ export default function EditProductForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Marca
               </label>
               <input
                 {...register("brand")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
                 placeholder="Ej: Columbia, Nike, Adidas"
               />
             </div>
@@ -517,9 +517,9 @@ export default function EditProductForm({
 
           {/* Image Upload */}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-zinc-700">
               <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-indigo-600" />
+                <ImageIcon className="w-4 h-4 text-zinc-600" />
                 Imágenes del producto (opcional)
               </div>
             </label>
@@ -535,14 +535,14 @@ export default function EditProductForm({
           {/* Price & Cost */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Precio de Venta (Bs) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register("price")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
                 placeholder="0.00"
               />
               {errors.price && (
@@ -551,14 +551,14 @@ export default function EditProductForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Costo (Bs)
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register("cost")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
                 placeholder="0.00"
               />
             </div>
@@ -573,7 +573,7 @@ export default function EditProductForm({
               <div className="flex items-center gap-2">
                 <TrendingUp className={`w-5 h-5 ${watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
                   }`} />
-                <span className="text-sm font-semibold text-gray-700">Margen de ganancia</span>
+                <span className="text-sm font-semibold text-zinc-700">Margen de ganancia</span>
               </div>
               <div className="text-right">
                 <span className={`text-xl font-bold ${watch("price") - watch("cost") > 0 ? "text-green-600" : "text-red-600"
@@ -591,22 +591,22 @@ export default function EditProductForm({
           )}
 
           {/* Promociones y Visibilidad */}
-          <div className="bg-white border-2 border-indigo-100 rounded-xl p-5 space-y-5">
-            <h3 className="font-bold text-indigo-900 flex items-center gap-2">
-              <Tag className="w-5 h-5 text-indigo-600" />
+          <div className="bg-white border-2 border-zinc-100 rounded-xl p-5 space-y-5">
+            <h3 className="font-bold text-zinc-900 flex items-center gap-2">
+              <Tag className="w-5 h-5 text-zinc-600" />
               Promociones y Visibilidad
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Discount */}
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Descuento (%)</label>
+              <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
+                <label className="block text-sm font-semibold text-zinc-800 mb-2">Descuento (%)</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="number"
                     step="0.01"
                     {...register("discount")}
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                    className="w-24 px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 outline-none transition"
                     placeholder="0"
                   />
                   <div className="flex-1">
@@ -619,53 +619,53 @@ export default function EditProductForm({
                 </div>
                 {watch("discount") > 0 && (
                   <div className="mt-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1 leading-tight">Válido hasta (Opcional)</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1 leading-tight">Válido hasta (Opcional)</label>
                     <input
                       type="datetime-local"
                       {...register("discount_expires_at")}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                      className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 outline-none transition"
                     />
                   </div>
                 )}
               </div>
 
               {/* Badges */}
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col justify-center gap-4">
+              <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 flex flex-col justify-center gap-4">
                 {/* is_new */}
                 <div>
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       {...register("is_new")}
-                      className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                      className="w-5 h-5 rounded text-zinc-600 focus:ring-zinc-500 border-zinc-300"
                     />
                     <div>
-                      <span className="block text-sm font-semibold text-gray-800">Etiqueta "Nuevo"</span>
-                      <span className="block text-xs text-gray-500">Destaca el producto en la tienda</span>
+                      <span className="block text-sm font-semibold text-zinc-800">Etiqueta "Nuevo"</span>
+                      <span className="block text-xs text-zinc-500">Destaca el producto en la tienda</span>
                     </div>
                   </label>
                   {watch("is_new") && (
                     <div className="mt-2 pl-8">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Mostrar etiqueta hasta (Opcional)</label>
+                      <label className="block text-xs font-medium text-zinc-700 mb-1">Mostrar etiqueta hasta (Opcional)</label>
                       <input
                         type="datetime-local"
                         {...register("is_new_until")}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 outline-none transition"
                       />
                     </div>
                   )}
                 </div>
 
                 {/* is_featured */}
-                <label className="flex items-center gap-3 cursor-pointer pt-3 border-t border-gray-200">
+                <label className="flex items-center gap-3 cursor-pointer pt-3 border-t border-zinc-200">
                   <input
                     type="checkbox"
                     {...register("is_featured")}
-                    className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500 border-gray-300"
+                    className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500 border-zinc-300"
                   />
                   <div>
-                    <span className="block text-sm font-semibold text-gray-800">Producto Destacado</span>
-                    <span className="block text-xs text-gray-500">Muestra el producto en portada</span>
+                    <span className="block text-sm font-semibold text-zinc-800">Producto Destacado</span>
+                    <span className="block text-xs text-zinc-500">Muestra el producto en portada</span>
                   </div>
                 </label>
               </div>
@@ -674,10 +674,10 @@ export default function EditProductForm({
 
           {/* Sizes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
               Tallas disponibles
             </label>
-            <p className="text-xs text-gray-600 mb-3">
+            <p className="text-xs text-zinc-600 mb-3">
               Selecciona las tallas disponibles para este producto:
             </p>
             <div className="grid grid-cols-4 gap-3 mb-3">
@@ -687,15 +687,15 @@ export default function EditProductForm({
                   type="button"
                   onClick={() => toggleSize(size)}
                   className={`px-4 py-3 rounded-lg text-sm font-bold border-2 transition-all ${selectedSizes.includes(size)
-                    ? "bg-purple-600 border-purple-600 text-white shadow-md transform scale-105"
-                    : "bg-white border-gray-300 text-gray-700 hover:border-purple-300 hover:bg-purple-50"
+                    ? "bg-zinc-600 border-zinc-600 text-white shadow-md transform scale-105"
+                    : "bg-white border-zinc-300 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
                     }`}
                 >
                   {size}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-zinc-500">
               S, M, L, XL → para ropa superior | 38, 40, 42, 44 → para pantalones y calzado
             </p>
             <div className="flex gap-2">
@@ -704,13 +704,13 @@ export default function EditProductForm({
                 value={customSize}
                 onChange={(e) => setCustomSize(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomSize(); } }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                className="flex-1 px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
                 placeholder="Talla personalizada"
               />
               <button
                 type="button"
                 onClick={addCustomSize}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg transition"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -720,13 +720,13 @@ export default function EditProductForm({
                 {selectedSizes.map((size) => (
                   <span
                     key={size}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-100 text-zinc-700 text-xs font-medium rounded"
                   >
                     {size}
                     <button
                       type="button"
                       onClick={() => removeSize(size)}
-                      className="hover:text-blue-900"
+                      className="hover:text-zinc-900"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -741,7 +741,7 @@ export default function EditProductForm({
 
           {/* Color */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
               Color de este producto <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-3">
@@ -751,11 +751,11 @@ export default function EditProductForm({
                   type="button"
                   onClick={() => setSelectedColor(color)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all ${selectedColor === color
-                    ? "border-pink-600 bg-pink-50 shadow-md transform scale-105"
-                    : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
+                    ? "border-zinc-600 bg-zinc-50 shadow-md transform scale-105"
+                    : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
                     }`}
                 >
-                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" style={{
+                  <div className="w-5 h-5 rounded-full border-2 border-zinc-300 flex-shrink-0" style={{
                     backgroundColor: color === 'Negro' ? '#000' :
                       color === 'Blanco' ? '#FFF' :
                         color === 'Gris' ? '#9CA3AF' :
@@ -768,14 +768,14 @@ export default function EditProductForm({
                                       color === 'Café' ? '#92400E' :
                                         color === 'Celeste' ? '#7DD3FC' : '#CCC'
                   }} />
-                  <span className="text-sm font-medium text-gray-700">{color}</span>
+                  <span className="text-sm font-medium text-zinc-700">{color}</span>
                 </button>
               ))}
             </div>
 
             {/* Color personalizado */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-600">
+              <label className="text-xs font-medium text-zinc-600">
                 ¿No encuentras el color? Escríbelo aquí:
               </label>
               <div className="flex gap-2">
@@ -793,7 +793,7 @@ export default function EditProductForm({
                     }
                   }}
                   placeholder="Ej: Gris Oxford, Verde esmeralda..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+                  className="flex-1 px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
                 />
                 <button
                   type="button"
@@ -803,7 +803,7 @@ export default function EditProductForm({
                       setCustomColorInput("");
                     }
                   }}
-                  className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg text-sm transition"
+                  className="px-4 py-2 bg-zinc-600 hover:bg-zinc-700 text-white font-semibold rounded-lg text-sm transition"
                 >
                   Usar
                 </button>
@@ -812,17 +812,17 @@ export default function EditProductForm({
 
             {/* Color seleccionado */}
             {selectedColor && (
-              <div className="bg-pink-50 border-2 border-pink-200 rounded-lg p-3 flex items-center justify-between">
+              <div className="bg-zinc-50 border-2 border-zinc-200 rounded-lg p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-pink-900">Color actual:</span>
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-bold bg-pink-100 text-pink-700 border border-pink-300">
+                  <span className="text-sm font-medium text-zinc-900">Color actual:</span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-bold bg-zinc-100 text-zinc-700 border border-zinc-300">
                     {selectedColor}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedColor("")}
-                  className="text-pink-600 hover:text-pink-800 font-semibold text-sm"
+                  className="text-zinc-600 hover:text-zinc-800 font-semibold text-sm"
                 >
                   Cambiar
                 </button>
@@ -832,26 +832,26 @@ export default function EditProductForm({
 
           {/* SKU Group */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
               Grupo de variantes (Opcional)
             </label>
             <input
               type="text"
               {...register("sku_group")}
               placeholder="Ej: JEAN-LEV-501"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-gray-900 placeholder:text-gray-400 font-mono uppercase"
+              className="w-full px-4 py-3 border-2 border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400 font-mono uppercase"
             />
           </div>
 
           {/* Low Stock Threshold */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
               Umbral de Stock Bajo
             </label>
             <input
               type="number"
               {...register("low_stock_threshold")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
               placeholder="5"
             />
           </div>
@@ -863,21 +863,21 @@ export default function EditProductForm({
               (selectedSizes.length === 1 && selectedSizes[0] === 'Unitalla');
             return (
               <div className="space-y-4">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-zinc-700">
                   {isAccessory ? "Stock por Ubicación" : "Stock por Talla y Ubicación"}
                 </label>
 
                 {isAccessory ? (
                   <div className="space-y-3">
-                    <p className="text-xs text-gray-500 italic">
+                    <p className="text-xs text-zinc-500 italic">
                       Accesorio sin talla — el stock se registra directamente por ubicación.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {locations.map((loc) => (
-                        <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                        <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-zinc-200">
                           <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
-                            {(loc as any).address && <p className="text-xs text-gray-500">{(loc as any).address}</p>}
+                            <p className="text-sm font-semibold text-zinc-900">{loc.name}</p>
+                            {(loc as any).address && <p className="text-xs text-zinc-500">{(loc as any).address}</p>}
                           </div>
                           <div className="flex items-center gap-1">
                             <input
@@ -894,9 +894,9 @@ export default function EditProductForm({
                                   }
                                 }));
                               }}
-                              className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
+                              className="w-20 px-2 py-1.5 border-2 border-zinc-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-zinc-900"
                             />
-                            <span className="text-xs text-gray-600">uds</span>
+                            <span className="text-xs text-zinc-600">uds</span>
                           </div>
                         </div>
                       ))}
@@ -905,17 +905,17 @@ export default function EditProductForm({
                 ) : (
                   <div className="space-y-4">
                     {selectedSizes.map((size) => (
-                      <div key={size} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50/30">
-                        <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
+                      <div key={size} className="border-2 border-zinc-200 rounded-lg p-4 bg-zinc-50/30">
+                        <h4 className="text-sm font-bold text-zinc-900 mb-3 flex items-center gap-2">
                           <Ruler className="w-4 h-4" />
                           Talla {size}
                         </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {locations.map((loc) => (
-                            <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                            <div key={loc.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-zinc-200">
                               <div className="flex-1">
-                                <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
-                                {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                                <p className="text-sm font-semibold text-zinc-900">{loc.name}</p>
+                                {loc.address && <p className="text-xs text-zinc-500">{loc.address}</p>}
                               </div>
                               <div className="flex items-center gap-1">
                                 <input
@@ -932,9 +932,9 @@ export default function EditProductForm({
                                       }
                                     }));
                                   }}
-                                  className="w-20 px-2 py-1.5 border-2 border-gray-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-gray-900"
+                                  className="w-20 px-2 py-1.5 border-2 border-zinc-300 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-zinc-900"
                                 />
-                                <span className="text-xs text-gray-600">uds</span>
+                                <span className="text-xs text-zinc-600">uds</span>
                               </div>
                             </div>
                           ))}
@@ -961,17 +961,17 @@ export default function EditProductForm({
           {/* Tienda Online */}
           <div className={`rounded-xl border-2 p-5 ${publishedToLanding
             ? "bg-green-50 border-green-200"
-            : "bg-gray-50 border-gray-200"
+            : "bg-zinc-50 border-zinc-200"
             }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${publishedToLanding ? "bg-green-100" : "bg-gray-100"
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${publishedToLanding ? "bg-green-100" : "bg-zinc-100"
                   }`}>
-                  <Globe className={`w-5 h-5 ${publishedToLanding ? "text-green-600" : "text-gray-500"}`} />
+                  <Globe className={`w-5 h-5 ${publishedToLanding ? "text-green-600" : "text-zinc-500"}`} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">Tienda Online</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Publicar en la landing page</p>
+                  <p className="text-sm font-semibold text-zinc-900">Tienda Online</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">Publicar en la landing page</p>
                 </div>
               </div>
               <button
@@ -985,7 +985,7 @@ export default function EditProductForm({
                       ? "Ocultar de la tienda online"
                       : "Publicar en la tienda online"
                 }
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed ${publishedToLanding ? "bg-green-500" : "bg-gray-300"
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed ${publishedToLanding ? "bg-green-500" : "bg-zinc-300"
                   }`}
               >
                 <span
@@ -1012,7 +1012,7 @@ export default function EditProductForm({
               onChange={(e) => setAuditNote(e.target.value)}
               rows={3}
               placeholder="Ej: Bajé el precio porque es cliente fiel, envío de stock al puesto 2..."
-              className="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition resize-none text-gray-900 placeholder:text-gray-400 bg-white"
+              className="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition resize-none text-zinc-900 placeholder:text-zinc-400 bg-white"
             />
             <p className="text-xs text-yellow-700">
               Esta nota aparecerá en el historial de cambios para explicar el motivo de la modificación.
@@ -1020,10 +1020,10 @@ export default function EditProductForm({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200">
             <Link
               href="/inventario"
-              className="px-6 py-3 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-xl transition"
+              className="px-6 py-3 text-sm font-bold text-zinc-700 hover:bg-zinc-100 rounded-xl transition"
             >
               Cancelar
             </Link>
@@ -1050,10 +1050,10 @@ export default function EditProductForm({
                 <AlertTriangle className="w-6 h-6 text-amber-500" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 text-lg">
+                <h3 className="font-bold text-zinc-900 text-lg">
                   Cambio de stock detectado
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-zinc-500">
                   Revisa los movimientos antes de guardar
                 </p>
               </div>
@@ -1063,17 +1063,17 @@ export default function EditProductForm({
               {pendingStockWarning.stockChanges.map((change) => (
                 <div
                   key={`${change.location_name}-${change.size}`}
-                  className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5"
+                  className="flex items-center justify-between bg-zinc-50 rounded-xl px-4 py-2.5"
                 >
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-zinc-700">
                     📍 {change.location_name}
                     {change.size && change.size !== "Única" ? ` · Talla ${change.size}` : ""}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400 line-through">
+                    <span className="text-sm text-zinc-400 line-through">
                       {change.before}
                     </span>
-                    <span className="text-gray-400 text-xs">→</span>
+                    <span className="text-zinc-400 text-xs">→</span>
                     <span className={`text-sm font-bold ${change.diff > 0 ? "text-green-600" : "text-red-600"}`}>
                       {change.after}
                     </span>
@@ -1105,14 +1105,14 @@ export default function EditProductForm({
               <button
                 type="button"
                 onClick={() => setPendingStockWarning(null)}
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl border border-zinc-200 text-zinc-600 font-medium hover:bg-zinc-50 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={pendingStockWarning.onConfirm}
-                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold hover:opacity-90 transition-opacity"
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-zinc-600 to-zinc-600 text-white font-bold hover:opacity-90 transition-opacity"
               >
                 Sí, guardar cambios
               </button>

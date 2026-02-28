@@ -31,6 +31,8 @@ import {
   Lock,
 } from "lucide-react";
 import { togglePublishedToLanding } from "./actions";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -500,7 +502,7 @@ export default function InventoryClient({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
+            <h1 className="text-2xl font-bold text-zinc-900">Inventario</h1>
             {userRole === "staff" && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-full">
                 <EyeOff className="w-3 h-3" />
@@ -508,7 +510,7 @@ export default function InventoryClient({
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-zinc-500 mt-1">
             {filteredAndSortedProducts.length} producto
             {filteredAndSortedProducts.length !== 1 ? "s" : ""}
             {search || categoryFilter || locationFilter || onlyLowStock
@@ -518,47 +520,47 @@ export default function InventoryClient({
         </div>
         {(userRole === "admin" || userRole === "manager") && (
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="secondary"
               onClick={printLabels}
               disabled={generatingLabels || filteredAndSortedProducts.length === 0}
-              className="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               title="Imprimir etiquetas con código QR"
             >
               {generatingLabels ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                   Generando...
                 </>
               ) : (
                 <>
-                  <Printer className="w-5 h-5" />
+                  <Printer className="w-4 h-4 mr-2" />
                   Imprimir Etiquetas
                 </>
               )}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={() => router.push("/inventario/nuevo")}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 mr-2" />
               Nuevo Producto
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
       {/* Search + Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+      <div className="bg-white rounded-xl border border-zinc-200 p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
               type="text"
               placeholder="Buscar por SKU, nombre o marca..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder:text-gray-400"
+              className="w-full pl-9 pr-4 py-2.5 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-900 placeholder:text-zinc-400"
             />
           </div>
 
@@ -566,14 +568,14 @@ export default function InventoryClient({
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${showFilters || categoryFilter || locationFilter
-              ? "bg-blue-50 border-blue-200 text-blue-700"
-              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              ? "bg-zinc-100 border-zinc-300 text-zinc-900"
+              : "bg-white border-zinc-300 text-zinc-700 hover:bg-zinc-50"
               }`}
           >
             <Filter className="w-4 h-4" />
             Filtros
             {(categoryFilter || locationFilter) && (
-              <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <span className="bg-zinc-900 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {(categoryFilter ? 1 : 0) + (locationFilter ? 1 : 0)}
               </span>
             )}
@@ -582,17 +584,17 @@ export default function InventoryClient({
 
         {/* Filter dropdowns */}
         {showFilters && (
-          <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-100">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-zinc-100">
             {/* Category */}
             <div className="relative flex-1">
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">
                 Categoría
               </label>
               <div className="relative">
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-700"
+                  className="w-full appearance-none pl-3 pr-8 py-2 border border-zinc-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-700"
                 >
                   <option value="">Todas las categorías</option>
                   {categories.map((cat) => (
@@ -601,21 +603,21 @@ export default function InventoryClient({
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
               </div>
             </div>
 
             {/* Location */}
             {(userRole === "admin" || userRole === "manager") && (
               <div className="relative flex-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-zinc-500 mb-1">
                   Ubicación
                 </label>
                 <div className="relative">
                   <select
                     value={locationFilter}
                     onChange={(e) => setLocationFilter(e.target.value)}
-                    className="w-full appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-700"
+                    className="w-full appearance-none pl-3 pr-8 py-2 border border-zinc-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition text-zinc-700"
                   >
                     <option value="">Todas las ubicaciones</option>
                     {locations.map((loc) => (
@@ -624,21 +626,21 @@ export default function InventoryClient({
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 </div>
               </div>
             )}
 
             {/* Low Stock Toggle */}
             <div className="flex items-end">
-              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg hover:bg-gray-50 transition">
+              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg hover:bg-zinc-50 transition">
                 <input
                   type="checkbox"
                   checked={onlyLowStock}
                   onChange={(e) => setOnlyLowStock(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-500"
                 />
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-zinc-700">
                   Solo bajo stock
                 </span>
               </label>
@@ -646,14 +648,14 @@ export default function InventoryClient({
 
             {/* Show Inactive Toggle */}
             <div className="flex items-end">
-              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg hover:bg-gray-50 transition">
+              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg hover:bg-zinc-50 transition">
                 <input
                   type="checkbox"
                   checked={showInactive}
                   onChange={(e) => setShowInactive(e.target.checked)}
-                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  className="w-4 h-4 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-500"
                 />
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-zinc-700">
                   Mostrar inactivos
                 </span>
               </label>
@@ -686,11 +688,11 @@ export default function InventoryClient({
         {(activeCategoryFilter || activeLocationFilter) && !showFilters && (
           <div className="flex flex-wrap gap-2">
             {activeCategoryFilter && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-100 text-zinc-700">
                 {activeCategoryFilter.name}
                 <button
                   onClick={() => setCategoryFilter("")}
-                  className="hover:text-blue-900"
+                  className="hover:text-zinc-900"
                 >
                   ×
                 </button>
@@ -719,101 +721,101 @@ export default function InventoryClient({
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
         {filteredAndSortedProducts.length === 0 ? (
           <div className="p-16 text-center">
-            <PackageX className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-lg font-semibold text-gray-900 mb-2">
+            <PackageX className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
+            <p className="text-lg font-semibold text-zinc-900 mb-2">
               {products.length === 0
                 ? "No hay productos registrados"
                 : "No se encontraron productos"}
             </p>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-zinc-500 mb-6">
               {products.length === 0
                 ? "Agrega tu primer producto para comenzar"
                 : "Intenta con otro término de búsqueda o ajusta los filtros"}
             </p>
             {products.length === 0 && (
-              <button
+              <Button
+                variant="primary"
                 onClick={() => router.push("/inventario/nuevo")}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4 mr-2" />
                 Agregar Primer Producto
-              </button>
+              </Button>
             )}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-4">
+                <tr className="bg-zinc-50 border-b border-zinc-200">
+                  <th className="text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider px-6 py-4">
                     <button
                       onClick={() => handleSort("name")}
-                      className="flex items-center gap-1 hover:text-gray-900 transition"
+                      className="flex items-center gap-1 hover:text-zinc-900 transition"
                     >
                       Producto
                       {sortField === "name" && (
-                        <span className="text-blue-600">
+                        <span className="text-zinc-600">
                           {sortDirection === "asc" ? "↑" : "↓"}
                         </span>
                       )}
                     </button>
                   </th>
-                  <th className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-4">
+                  <th className="text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider px-6 py-4">
                     <button
                       onClick={() => handleSort("sku")}
-                      className="flex items-center gap-1 hover:text-gray-900 transition"
+                      className="flex items-center gap-1 hover:text-zinc-900 transition"
                     >
                       SKU
                       {sortField === "sku" && (
-                        <span className="text-blue-600">
+                        <span className="text-zinc-600">
                           {sortDirection === "asc" ? "↑" : "↓"}
                         </span>
                       )}
                     </button>
                   </th>
-                  <th className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-4">
+                  <th className="text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider px-6 py-4">
                     Categoría
                   </th>
-                  <th className="text-right text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-4">
+                  <th className="text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider px-6 py-4">
                     <button
                       onClick={() => handleSort("price")}
-                      className="flex items-center gap-1 ml-auto hover:text-gray-900 transition"
+                      className="flex items-center gap-1 ml-auto hover:text-zinc-900 transition"
                     >
                       Precio
                       {sortField === "price" && (
-                        <span className="text-blue-600">
+                        <span className="text-zinc-600">
                           {sortDirection === "asc" ? "↑" : "↓"}
                         </span>
                       )}
                     </button>
                   </th>
-                  <th className="text-right text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-4">
+                  <th className="text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider px-6 py-4">
                     <button
                       onClick={() => handleSort("stock")}
-                      className="flex items-center gap-1 ml-auto hover:text-gray-900 transition"
+                      className="flex items-center gap-1 ml-auto hover:text-zinc-900 transition"
                     >
                       {locationFilter ? "Stock" : "Stock Total"}
                       {sortField === "stock" && (
-                        <span className="text-blue-600">
+                        <span className="text-zinc-600">
                           {sortDirection === "asc" ? "↑" : "↓"}
                         </span>
                       )}
                     </button>
                   </th>
                   {(userRole === "admin" || userRole === "manager") && (
-                    <th className="text-center text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 py-4">
+                    <th className="text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider px-4 py-4">
                       Landing
                     </th>
                   )}
-                  <th className="text-center text-xs font-semibold text-gray-600 uppercase tracking-wider px-6 py-4">
+                  <th className="text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider px-6 py-4">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-zinc-200">
                 {paginatedProducts.map((product) => {
                   const stock = locationFilter
                     ? getStockForLocation(product, locationFilter)
@@ -822,15 +824,13 @@ export default function InventoryClient({
                     (s, inv) => s + (inv.reserved_qty ?? 0), 0
                   );
                   const lowStock = isLowStock(product);
-                  const minStock = product.inventory[0]?.min_stock || 10;
-                  const badgeColor = getStockBadgeColor(stock, minStock);
 
                   const isExpanded = expandedProductId === product.id;
 
                   return (
                     <React.Fragment key={product.id}>
                       <tr
-                        className={`hover:bg-blue-50 transition-colors group cursor-pointer ${!product.is_active ? 'bg-orange-50/30' : ''} ${isExpanded ? 'bg-blue-100/50 border-l-4 border-blue-600' : ''}`}
+                        className={`hover:bg-zinc-50 transition-colors group cursor-pointer ${!product.is_active ? 'bg-zinc-50/50' : ''}`}
                         onClick={() => toggleExpanded(product.id)}
                       >
                         <td className="px-6 py-4">
@@ -838,17 +838,17 @@ export default function InventoryClient({
                             {/* Indicador de expandible */}
                             <div className="flex-shrink-0">
                               {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-blue-600" />
+                                <ChevronUp className="w-5 h-5 text-zinc-900" />
                               ) : (
-                                <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition" />
+                                <ChevronDown className="w-5 h-5 text-zinc-400 group-hover:text-zinc-600 transition" />
                               )}
                             </div>
 
                             {/* Imagen del producto */}
                             <div
                               className={`w-12 h-12 bg-gradient-to-br rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden ${product.is_active
-                                ? 'from-gray-100 to-gray-200 group-hover:from-blue-50 group-hover:to-blue-100'
-                                : 'from-orange-100 to-orange-200 opacity-60'
+                                ? 'from-zinc-100 to-zinc-200 group-hover:from-zinc-200 group-hover:to-zinc-300'
+                                : 'from-zinc-100 to-zinc-200 opacity-60'
                                 }`}
                             >
                               {product.image_url ? (
@@ -859,19 +859,19 @@ export default function InventoryClient({
                                 />
                               ) : (
                                 <Package className={`w-6 h-6 transition ${product.is_active
-                                  ? 'text-gray-400 group-hover:text-blue-500'
-                                  : 'text-orange-400'
+                                  ? 'text-zinc-400 group-hover:text-zinc-500'
+                                  : 'text-zinc-300'
                                   }`} />
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className={`text-sm font-semibold truncate ${product.is_active ? 'text-gray-900' : 'text-gray-500'
+                                <p className={`text-sm font-semibold truncate ${product.is_active ? 'text-zinc-900' : 'text-zinc-500'
                                   }`}>
                                   {product.name}
                                 </p>
                                 {!product.is_active && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-300">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-zinc-100 text-zinc-500 border border-zinc-300">
                                     Inactivo
                                   </span>
                                 )}
@@ -881,7 +881,7 @@ export default function InventoryClient({
                                     Online
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-500 border border-zinc-200">
                                     <Lock className="w-3 h-3" />
                                     Oculto
                                   </span>
@@ -891,14 +891,14 @@ export default function InventoryClient({
                                   const now = new Date();
                                   const hoursDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
                                   return hoursDiff <= 24 ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md animate-pulse border border-blue-400">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gold-500 text-white shadow-sm border border-gold-400">
                                       ✨ NUEVO
                                     </span>
                                   ) : null;
                                 })()}
                               </div>
                               {product.brand && (
-                                <p className="text-xs text-gray-500 mt-0.5">
+                                <p className="text-xs text-zinc-500 mt-0.5">
                                   {product.brand}
                                 </p>
                               )}
@@ -906,44 +906,37 @@ export default function InventoryClient({
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm text-gray-600 font-mono font-medium">
+                          <span className="text-sm text-zinc-600 font-mono font-medium">
                             {product.sku}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           {product.categories ? (
-                            <span className="inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">
+                            <span className="inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold bg-zinc-100 text-zinc-700">
                               {product.categories.name}
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">—</span>
+                            <span className="text-xs text-zinc-400">—</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <span className="text-sm font-bold text-gray-900">
+                          <span className="text-sm font-bold text-zinc-900">
                             Bs {product.price.toFixed(2)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {lowStock && (
-                              <AlertTriangle className="w-4 h-4 text-amber-500" />
-                            )}
                             <div className="flex flex-col items-end gap-1">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${badgeColor}`}
-                              >
-                                {stock === 0 ? (
-                                  <AlertTriangle className="w-3.5 h-3.5" />
-                                ) : stock < minStock ? (
-                                  <AlertTriangle className="w-3.5 h-3.5" />
-                                ) : (
-                                  <Package className="w-3.5 h-3.5" />
-                                )}
-                                {stock} {stock === 1 ? 'disponible' : 'disponibles'}
-                              </span>
+                              {stock === 0 ? (
+                                <Badge variant="danger" icon>Sin stock</Badge>
+                              ) : lowStock ? (
+                                <Badge variant="warning" icon>Stock bajo</Badge>
+                              ) : (
+                                <Badge variant="success" icon>{stock} disponibles</Badge>
+                              )}
+
                               {totalReserved > 0 && (
-                                <span className="text-xs text-amber-600 font-medium">
+                                <span className="text-xs text-zinc-500 font-medium mt-1">
                                   🔒 {totalReserved} reservado{totalReserved !== 1 ? 's' : ''}
                                 </span>
                               )}
@@ -966,9 +959,9 @@ export default function InventoryClient({
                                       ? "Ocultar de la tienda online"
                                       : "Publicar en la tienda online"
                                 }
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed ${product.published_to_landing
-                                  ? "bg-green-500"
-                                  : "bg-gray-300"
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed ${product.published_to_landing
+                                  ? "bg-zinc-900"
+                                  : "bg-zinc-300"
                                   }`}
                               >
                                 <span
@@ -984,17 +977,20 @@ export default function InventoryClient({
                             {(userRole === "admin" || userRole === "manager") ? (
                               product.is_active ? (
                                 <>
-                                  <button
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       router.push(`/inventario/${product.id}`);
                                     }}
-                                    className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
                                     title="Editar producto"
                                   >
-                                    <Pencil className="w-5 h-5" />
-                                  </button>
-                                  <button
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setDeleteModal({
@@ -1004,27 +1000,30 @@ export default function InventoryClient({
                                         isActive: true,
                                       });
                                     }}
-                                    className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                     title="Desactivar producto"
                                   >
-                                    <Trash2 className="w-5 h-5" />
-                                  </button>
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </>
                               ) : (
                                 <div className="flex items-center gap-2">
-                                  <button
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleReactivate(product.id, product.name);
                                     }}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-colors font-medium text-sm"
                                     title="Reactivar producto"
                                   >
-                                    <RotateCcw className="w-4 h-4" />
+                                    <RotateCcw className="w-4 h-4 mr-2" />
                                     Reactivar
-                                  </button>
+                                  </Button>
                                   {userRole === "admin" && (
-                                    <button
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setDeleteModal({
@@ -1034,16 +1033,16 @@ export default function InventoryClient({
                                           isActive: false,
                                         });
                                       }}
-                                      className="p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                       title="Eliminar permanentemente"
                                     >
-                                      <Trash2 className="w-5 h-5" />
-                                    </button>
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
                                   )}
                                 </div>
                               )
                             ) : (
-                              <span className="text-xs text-gray-400 italic">Vista</span>
+                              <span className="text-xs text-zinc-500 italic">Vista</span>
                             )}
                           </div>
                         </td>
@@ -1051,15 +1050,15 @@ export default function InventoryClient({
 
                       {/* Fila expandible con detalles completos del producto */}
                       {isExpanded && (
-                        <tr key={`${product.id}-details`} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600">
+                        <tr key={`${product.id}-details`} className="bg-zinc-50">
                           <td colSpan={(userRole === "admin" || userRole === "manager") ? 7 : 6} className="px-8 py-6">
                             <div className="space-y-6">
                               {/* Header con información del producto */}
-                              <div className="bg-white rounded-xl p-6 border-2 border-blue-300 shadow-md">
+                              <div className="bg-white rounded-xl p-6 border border-zinc-200 shadow-sm">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                   {/* Columna 1: Imagen y datos básicos */}
                                   <div className="flex flex-col items-center gap-4">
-                                    <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center overflow-hidden shadow-lg">
+                                    <div className="w-32 h-32 bg-zinc-100 rounded-xl flex items-center justify-center overflow-hidden border border-zinc-200">
                                       {product.image_url ? (
                                         <img
                                           src={product.image_url}
@@ -1067,34 +1066,34 @@ export default function InventoryClient({
                                           className="w-full h-full object-cover"
                                         />
                                       ) : (
-                                        <Package className="w-16 h-16 text-gray-400" />
+                                        <Package className="w-16 h-16 text-zinc-300" />
                                       )}
                                     </div>
                                     <div className="text-center">
-                                      <p className="font-bold text-gray-900 text-lg">{product.name}</p>
-                                      <p className="text-sm text-gray-600 font-mono mt-1">SKU: {product.sku}</p>
+                                      <p className="font-bold text-zinc-900 text-lg">{product.name}</p>
+                                      <p className="text-sm text-zinc-500 font-mono mt-1">SKU: {product.sku}</p>
                                       {product.brand && (
-                                        <p className="text-sm text-gray-500 mt-1">{product.brand}</p>
+                                        <p className="text-sm text-zinc-500 mt-1">{product.brand}</p>
                                       )}
                                     </div>
                                   </div>
 
                                   {/* Columna 2: Precios y margen */}
                                   <div className="space-y-3">
-                                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                                      <p className="text-xs text-blue-700 font-medium mb-1">Precio de Venta</p>
-                                      <p className="text-2xl font-bold text-blue-600">Bs {product.price.toFixed(2)}</p>
+                                    <div className="bg-zinc-50 rounded-lg p-4 border border-zinc-200">
+                                      <p className="text-xs text-zinc-500 font-medium mb-1">Precio de Venta</p>
+                                      <p className="text-2xl font-bold text-zinc-900">Bs {product.price.toFixed(2)}</p>
                                     </div>
-                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                      <p className="text-xs text-gray-700 font-medium mb-1">Costo</p>
-                                      <p className="text-xl font-bold text-gray-600">Bs {product.cost.toFixed(2)}</p>
+                                    <div className="bg-zinc-50 rounded-lg p-4 border border-zinc-200">
+                                      <p className="text-xs text-zinc-500 font-medium mb-1">Costo</p>
+                                      <p className="text-xl font-bold text-zinc-900">Bs {product.cost.toFixed(2)}</p>
                                     </div>
-                                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                                      <p className="text-xs text-green-700 font-medium mb-1">Margen de Ganancia</p>
-                                      <p className="text-xl font-bold text-green-600">
+                                    <div className="bg-zinc-50 rounded-lg p-4 border border-zinc-200">
+                                      <p className="text-xs text-zinc-500 font-medium mb-1">Margen de Ganancia</p>
+                                      <p className="text-xl font-bold text-zinc-900">
                                         {((product.price - product.cost) / product.cost * 100).toFixed(1)}%
                                       </p>
-                                      <p className="text-xs text-green-600 mt-1">
+                                      <p className="text-xs text-zinc-500 mt-1">
                                         +Bs {(product.price - product.cost).toFixed(2)} por unidad
                                       </p>
                                     </div>
@@ -1104,10 +1103,10 @@ export default function InventoryClient({
                                   <div className="space-y-3">
                                     {product.sizes && product.sizes.length > 0 && (
                                       <div>
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">Tallas Disponibles</p>
+                                        <p className="text-xs font-semibold text-zinc-700 mb-2">Tallas Disponibles</p>
                                         <div className="flex flex-wrap gap-2">
                                           {product.sizes.map((size, idx) => (
-                                            <span key={`${product.id}-size-${idx}-${size}`} className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700 border border-blue-300">
+                                            <span key={`${product.id}-size-${idx}-${size}`} className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-900 border border-zinc-300">
                                               {size}
                                             </span>
                                           ))}
@@ -1116,9 +1115,9 @@ export default function InventoryClient({
                                     )}
                                     {product.color && (
                                       <div>
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">Color</p>
+                                        <p className="text-xs font-semibold text-zinc-700 mb-2">Color</p>
                                         <div className="flex flex-wrap gap-2">
-                                          <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 border border-purple-300">
+                                          <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-900 border border-zinc-300">
                                             {product.color}
                                           </span>
                                         </div>
@@ -1126,16 +1125,16 @@ export default function InventoryClient({
                                     )}
                                     {product.categories && (
                                       <div>
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">Categoría</p>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 border border-gray-300">
+                                        <p className="text-xs font-semibold text-zinc-700 mb-2">Categoría</p>
+                                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-900 border border-zinc-300">
                                           {product.categories.name}
                                         </span>
                                       </div>
                                     )}
                                     {product.description && (
                                       <div>
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">Descripción</p>
-                                        <p className="text-xs text-gray-600">{product.description}</p>
+                                        <p className="text-xs font-semibold text-zinc-700 mb-2">Descripción</p>
+                                        <p className="text-xs text-zinc-600">{product.description}</p>
                                       </div>
                                     )}
                                   </div>
@@ -1144,8 +1143,8 @@ export default function InventoryClient({
 
                               {/* Título de distribución */}
                               <div className="flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-blue-600" />
-                                <h4 className="text-base font-bold text-gray-900">
+                                <MapPin className="w-5 h-5 text-zinc-500" />
+                                <h4 className="text-base font-bold text-zinc-900">
                                   Distribución de Stock por Ubicación
                                 </h4>
                               </div>
@@ -1189,36 +1188,34 @@ export default function InventoryClient({
                                     return (
                                       <div
                                         key={`${product.id}-location-${groupedInv.location_id}-${locIdx}`}
-                                        className="bg-white rounded-xl p-5 border-2 border-blue-200 shadow-md hover:shadow-lg transition-all"
+                                        className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm hover:shadow-md transition-all"
                                       >
                                         {/* Header de ubicación */}
-                                        <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-blue-100">
+                                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-100">
                                           <div className="flex items-center gap-3">
-                                            <div className="bg-blue-100 p-2 rounded-lg">
-                                              <MapPin className="w-5 h-5 text-blue-600" />
+                                            <div className="bg-zinc-100 p-2 rounded-lg">
+                                              <MapPin className="w-5 h-5 text-zinc-600" />
                                             </div>
                                             <div>
-                                              <span className="font-bold text-gray-900 text-base">
+                                              <span className="font-bold text-zinc-900 text-base">
                                                 {groupedInv.location_name}
                                               </span>
-                                              <p className="text-xs text-gray-500 mt-0.5">
+                                              <p className="text-xs text-zinc-500 mt-0.5">
                                                 Stock mínimo: {groupedInv.min_stock} unidades
                                               </p>
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-2">
                                             {locationReserved > 0 && (
-                                              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                                                🔒 {locationReserved} reservado
-                                              </span>
+                                              <Badge variant="warning" className="mr-2">🔒 {locationReserved} reservado</Badge>
                                             )}
                                             <div className="text-right">
-                                              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md">
+                                              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-zinc-900 text-white shadow-sm">
                                                 <Package className="w-4 h-4" />
                                                 {locationStock} total
                                               </span>
                                               {locationReserved > 0 && (
-                                                <p className="text-xs font-semibold text-green-600 mt-1 text-right">
+                                                <p className="text-xs font-semibold text-zinc-600 mt-1 text-right">
                                                   ✓ {locationAvailable} disponible
                                                 </p>
                                               )}
@@ -1229,7 +1226,7 @@ export default function InventoryClient({
                                         {/* Distribución por tallas */}
                                         {product.sizes && product.sizes.length > 0 ? (
                                           <div>
-                                            <p className="text-xs font-semibold text-gray-700 mb-3">
+                                            <p className="text-xs font-semibold text-zinc-700 mb-3">
                                               Distribución por Tallas:
                                             </p>
                                             <div className="flex flex-wrap gap-3">
@@ -1298,10 +1295,10 @@ export default function InventoryClient({
                               </div>
 
                               {/* Total general */}
-                              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-5 text-white shadow-xl">
+                              <div className="bg-zinc-900 rounded-xl p-5 text-white shadow-lg">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    <div className="bg-white/20 p-2 rounded-lg">
+                                    <div className="bg-white/10 p-2 rounded-lg border border-white/20">
                                       <Package className="w-6 h-6" />
                                     </div>
                                     <span className="font-bold text-base">STOCK TOTAL EN TODAS LAS UBICACIONES</span>
@@ -1325,35 +1322,36 @@ export default function InventoryClient({
 
         {/* Pagination */}
         {filteredAndSortedProducts.length > itemsPerPage && (
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-zinc-600">
                 Mostrando{" "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-zinc-900">
                   {(currentPage - 1) * itemsPerPage + 1}
                 </span>
                 {" - "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-zinc-900">
                   {Math.min(
                     currentPage * itemsPerPage,
                     filteredAndSortedProducts.length
                   )}
                 </span>
                 {" de "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-zinc-900">
                   {filteredAndSortedProducts.length}
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4 mr-1" />
                   Anterior
-                </button>
+                </Button>
 
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -1371,35 +1369,35 @@ export default function InventoryClient({
                       const showEllipsis = prevPage && page - prevPage > 1;
 
                       return (
-                        <>
+                        <React.Fragment key={`page-wrapper-${page}`}>
                           {showEllipsis && (
-                            <span key={`ellipsis-${page}`} className="px-2 text-gray-400">...</span>
+                            <span key={`ellipsis-${page}`} className="px-2 text-zinc-400">...</span>
                           )}
-                          <button
+                          <Button
                             key={`page-${page}`}
+                            variant={currentPage === page ? "primary" : "ghost"}
+                            size="sm"
                             onClick={() => setCurrentPage(page)}
-                            className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg transition ${currentPage === page
-                              ? "bg-blue-600 text-white"
-                              : "text-gray-700 hover:bg-gray-100"
-                              }`}
+                            className="w-10 h-10 p-0"
                           >
                             {page}
-                          </button>
-                        </>
+                          </Button>
+                        </React.Fragment>
                       );
                     })}
                 </div>
 
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   Siguiente
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
               </div>
             </div>
           </div>
@@ -1407,9 +1405,9 @@ export default function InventoryClient({
 
         {/* Footer with stock breakdown by location */}
         {!locationFilter && filteredAndSortedProducts.length > 0 && (
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-              <span className="font-semibold text-gray-700">Stock por ubicación:</span>
+          <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-600">
+              <span className="font-semibold text-zinc-700">Stock por ubicación:</span>
               {locations.map((loc) => {
                 const locStock = filteredAndSortedProducts.reduce(
                   (sum, p) => sum + getStockForLocation(p, loc.id),
@@ -1422,7 +1420,7 @@ export default function InventoryClient({
                       setLocationFilter(loc.id);
                       setShowFilters(true);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white hover:text-blue-600 transition-all hover:shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white hover:text-zinc-900 transition-all hover:shadow-sm"
                   >
                     <MapPin className="w-4 h-4" />
                     <span className="font-medium">{loc.name}:</span>

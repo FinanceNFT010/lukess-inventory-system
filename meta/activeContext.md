@@ -5,37 +5,35 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** —
-- **Block Name:** —
-- **Status:** PENDING
-- **Started:** —
+- **Block Number:** 11-C
+- **Block Name:** Dashboard + Inventario (Data-heavy modules)
+- **Status:** DONE
+- **Started:** 2026-02-28
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 11-A
-- **Block Name:** Design System Foundation — Zinc/Gold Migration
-- **Completed:** 2026-02-27
-- **Commit:** b68d188
+- **Block Number:** 11-C
+- **Block Name:** Dashboard + Inventario Redesign — Monochrome cards, tables, badges, modals
+- **Completed:** 2026-02-28
+- **Commit:** TBD
 
 ---
 
-## FILES CHANGED THIS SESSION (Block 11-A)
-- `app/globals.css` — [MODIFY] Full design system rewrite: zinc scale, gold accent, semantic colors via `@theme`
-- `components/ui/Button.tsx` — [NEW] Primary (gold), secondary, danger, ghost variants with loading state
-- `components/ui/Badge.tsx` — [NEW] Status badges: success, warning, danger, neutral, gold with icon support
-- `components/ui/Input.tsx` — [MODIFY] Replaced old brand-token Input with gold focus ring + zinc borders
-- `components/ui/Select.tsx` — [NEW] Select matching Input styling
-- `components/ui/Label.tsx` — [NEW] Label with optional required asterisk
-- `components/ui/index.ts` — [MODIFY] Added barrel exports for new components
-- `tailwind.config.ts` — [DELETE] Removed v3-style JS config (v4 uses CSS-first `@theme`)
+## FILES CHANGED THIS SESSION (Block 11-C)
+- `app/(dashboard)/page.tsx` — [MODIFY] Replaced colorful stat cards and borders with monochrome styling
+- `components/dashboard/StatsCard.tsx` — [MODIFY] Removed colorMap logic, unified styling manually via zinc classes
+- `app/(dashboard)/inventario/inventory-client.tsx` — [MODIFY] Refactored headers, tables, badges, and expanded view to new monochrome design
+- `app/(dashboard)/inventario/nuevo/new-product-form.tsx` — [MODIFY] Swapped all generic colors with zinc styling
+- `app/(dashboard)/inventario/[id]/edit-product-form.tsx` — [MODIFY] Swapped all generic colors with zinc styling
+- `replaceColors.js` — [NEW] Script created temporarily to standardize colors
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 18+
-- **Migrations Applied (11-A):** None (CSS/component only)
+- **Migrations Applied (11-C):** None (CSS/component only)
 - **Types Regenerated:** No (no DB changes)
 
 ---
@@ -47,15 +45,15 @@
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
 - [ ] TODO: WhatsApp templates (pago_confirmado, pedido_en_camino, pedido_entregado, pedido_cancelado) must be approved in Meta Business for notifications to work
 - [ ] TODO: is_featured sorting on landing page (lukess-home repo) — not implemented yet
-- [ ] TODO: Existing components (Sidebar, TopBar, StatsCard, POS, orders, reports, etc.) still use blue color classes — needs migration in subsequent blocks
+- [ ] TODO: Remaining dashboard components (POS, orders, reports) still use old styling — needs migration in subsequent blocks
 
 ---
 
 ## NEXT BLOCK
-- **Block:** 11-B
-- **Name:** TBD — Migrate existing dashboard components to zinc/gold palette
-- **Dependencies:** 11-A complete ✅
-- **Scope:** Replace all blue-* decorative usage across dashboard components with zinc/gold tokens
+- **Block:** TBD
+- **Name:** TBD
+- **Dependencies:** 11-C complete ✅
+- **Scope:** TBD
 
 ---
 
@@ -70,3 +68,5 @@
 | 10-E.2| Navbar & Footer Redesign | ✅ DONE | 2026-02-27 | 888acdf |
 | 10-E.3| Database Structure for Categories & Colors | ✅ DONE | 2026-02-27 | 6aab07d |
 | 11-A | Design System Foundation — Zinc/Gold | ✅ DONE | 2026-02-27 | b68d188 |
+| 11-B | Layout Shell Rebrand — Login/Sidebar/TopBar | ✅ DONE | 2026-02-27 | ad93be5 |
+| 11-C | Dashboard + Inventario Redesign | ✅ DONE | 2026-02-28 | TBD |
