@@ -5,8 +5,8 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 13
-- **Block Name:** BUGFIX SPRINT (Marketing, Allocations, Reports)
+- **Block Number:** 13-B
+- **Block Name:** Implement Cascading Stock Reservation (P1 -> P2 -> P3 -> Bodega Central)
 - **Status:** DONE
 - **Started:** 2026-02-28
 
@@ -20,19 +20,16 @@
 
 ---
 
-## FILES CHANGED THIS SESSION (Block 13)
-- `components/marketing/BannersManager.tsx` (MODIFIED - text info + DB logging)
-- `components/marketing/DiscountsManager.tsx` (MODIFIED - placeholder + DB logging)
-- `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED - Variant allocation bug fix)
-- `app/(dashboard)/reportes/page.tsx` (MODIFIED - POS Sales inclusion)
-- `app/(dashboard)/pedidos/actions.ts` (MODIFIED - Discount usage increment logic)
+- `types/database.types.ts` (MODIFIED - updated schema)
+- Database: `reserve_order_inventory` (UPDATED priority logic)
+- Database: `handle_order_status_change` (UPDATED priority logic)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 19+ 
-- **Migrations Applied (13):** Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners.
+- **Migrations Applied (14):** Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners. Fixed `discount_type` missing in insert payload. Applied `update_inventory_allocation_priority` for P1->P2->P3->Bodega cascading logic.
 - **Types Regenerated:** Yes (Generated locally via Supabase MCP `generate_typescript_types`).
 
 ---
@@ -72,4 +69,5 @@
 | 11-D | Orders + Reports Plugins (Monochrome Branding Updates) | ✅ DONE | 2026-02-28 | 6492283 |
 | 11-E | POS Rebrand and Order Allocation Bug Fix | ✅ DONE | 2026-02-28 | 6492283 |
 | 12 | Marketing CMS (Banners & Discount Codes) | ✅ DONE | 2026-02-28 | 6492283 |
-| 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | TBD |
+| 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | 7e0ffee |
+| 13-B | Cascading Stock Reservation (P1->P2->P3->Bodega) | ✅ DONE | 2026-02-28 | TBD |
