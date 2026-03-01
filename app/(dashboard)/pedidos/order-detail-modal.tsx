@@ -531,6 +531,13 @@ export default function OrderDetailModal({
                 }
                 return null;
               })()}
+              {/* Envío */}
+              {(order.shipping_cost ?? 0) > 0 && (
+                <div className="flex justify-between text-sm text-zinc-500">
+                  <span>Costo de Envío 🚚</span>
+                  <span>+Bs {formatCurrency(order.shipping_cost!)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-gray-600">
                 <span>💳 {order.payment_method}</span>
               </div>

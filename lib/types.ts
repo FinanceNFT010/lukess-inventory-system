@@ -596,6 +596,7 @@ export type Order = Tables<"orders"> & {
   discount_amount?: number | null;
   discount_code_id?: string | null;
   discount_percent?: number | null;
+  shipping_cost?: number | null;
 };
 export type OrderItem = Tables<"order_items">;
 export type OrderInsert = TablesInsert<"orders">;

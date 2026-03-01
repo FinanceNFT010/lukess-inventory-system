@@ -5,8 +5,8 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 13-D
-- **Block Name:** End-to-End Discount Consumption & Visibility - UI Updates
+- **Block Number:** 13-E
+- **Block Name:** Fix missing math fields (Shipping and Discount)
 - **Status:** DONE
 - **Started:** 2026-03-01
 - **Completed:** 2026-03-01
@@ -14,18 +14,16 @@
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 13-D
-- **Block Name:** End-to-End Discount Consumption & Visibility - UI Updates
+- **Block Number:** 13-E
+- **Block Name:** Fix missing math fields (Shipping and Discount)
 - **Completed:** 2026-03-01
-- **Commit:** ff8e0e2
+- **Commit:** PENDING
 
 ---
 
-- `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED - display discount_amount badge)
-- `app/(dashboard)/pedidos/order-detail-modal.tsx` (MODIFIED - display discount_amount row)
-- `app/(dashboard)/ventas/historial/sales-history-client.tsx` (MODIFIED - added Subtotal and Dto. columns)
-- `app/(dashboard)/reportes/reports-client.tsx` (MODIFIED - revenue calculations with discount_amount, new KPI Total Descontado, chart tooltips)
-- Previously in 13-C: `lib/types.ts`, `types/database.types.ts`, and Database RPC `consume_order_discount`.
+- `app/(dashboard)/pedidos/order-detail-modal.tsx` (MODIFIED - added shipping cost)
+- `app/(dashboard)/ventas/historial/sales-history-client.tsx` (MODIFIED - added discount amount)
+- `lib/types.ts` (MODIFIED - added shipping_cost type)
 
 ---
 
@@ -75,3 +73,4 @@
 | 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | 7e0ffee |
 | 13-C | End-to-End Discount Consumption & Visibility | ✅ DONE | 2026-03-01 | d20fac8 |
 | 13-D | End-to-End Discount Visibility (Orders, History, Reports) | ✅ DONE | 2026-03-01 | ff8e0e2 |
+| 13-E | Fix missing math fields (Shipping and Discount) | ✅ DONE | 2026-03-01 | PENDING |

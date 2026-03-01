@@ -70,6 +70,7 @@ interface Sale {
     shipping_address: string | null;
     shipping_district: string | null;
     payment_method: string | null;
+    discount_amount?: number | null;
   } | null;
 }
 
@@ -677,11 +678,16 @@ export default function SalesHistoryClient({
                         {formatCurrency(sale.subtotal)}
                       </td>
                       <td className="px-5 py-3.5 text-right text-sm">
-                        {sale.discount > 0 ? (
-                          <span className="text-red-500 font-medium">-{formatCurrency(sale.discount)}</span>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
+                        {(() => {
+                          const discountVal = (sale.order?.discount_amount ?? 0) > 0 ? (sale.order?.discount_amount ?? 0) : sale.discount;
+                          return discountVal > 0 ? (
+                            <span className="text-red-600 block text-xs font-semibold mt-1">
+                              🎟️ Dto: -Bs {formatCurrency(discountVal)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )
+                        })()}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <span className="text-base font-bold text-purple-700">
@@ -764,6 +770,11 @@ export default function SalesHistoryClient({
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
                       {totalItems} {totalItems === 1 ? "item" : "items"}
                     </span>
+                    {((sale.order?.discount_amount ?? 0) > 0 || sale.discount > 0) && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                        🎟️ Dto
+                      </span>
+                    )}
                     {(sale.canal ?? "fisico") === "online" ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
                         🌐 Online
@@ -1122,16 +1133,22 @@ export default function SalesHistoryClient({
                     <span className="text-sm text-gray-600">Subtotal</span>
                     <span className="text-sm font-semibold text-gray-900">{formatCurrency(selectedSale.subtotal)}</span>
                   </div>
-                  {selectedSale.discount > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-red-600 font-medium">
-                        Descuento ({((selectedSale.discount / selectedSale.subtotal) * 100).toFixed(0)}%)
-                      </span>
-                      <span className="text-sm font-semibold text-red-600">
-                        -{formatCurrency(selectedSale.discount)}
-                      </span>
-                    </div>
-                  )}
+                  {(() => {
+                    const discountVal = (selectedSale.order?.discount_amount ?? 0) > 0 ? (selectedSale.order?.discount_amount ?? 0) : selectedSale.discount;
+                    if (discountVal > 0) {
+                      return (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-red-600 font-medium">
+                            🎟️ Descuento ({((discountVal / selectedSale.subtotal) * 100).toFixed(0)}%)
+                          </span>
+                          <span className="text-sm font-semibold text-red-600">
+                            -{formatCurrency(discountVal)}
+                          </span>
+                        </div>
+                      )
+                    }
+                    return null;
+                  })()}
                   {(selectedSale.canal ?? "fisico") === "online" &&
                     selectedSale.order?.shipping_cost != null &&
                     Number(selectedSale.order.shipping_cost) > 0 && (
