@@ -829,9 +829,16 @@ export default function PedidosClient({
                   </div>
 
                   <div className="flex justify-between items-center pt-3 border-t border-zinc-100">
-                    <span className="text-lg font-bold text-zinc-900">
-                      Bs. {formatCurrency(order.total)}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-lg font-bold text-zinc-900">
+                        Bs. {formatCurrency(order.total)}
+                      </span>
+                      {order.discount_amount ? (
+                        <span className="text-xs text-amber-600 font-medium">
+                          Desc: -Bs. {formatCurrency(order.discount_amount)}
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="flex items-center gap-2">
                       {quickAction && canChangeStatus && (
                         <Button

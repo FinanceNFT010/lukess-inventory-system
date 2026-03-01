@@ -518,16 +518,13 @@ export default function OrderDetailModal({
                 <span>Subtotal</span>
                 <span>Bs {formatCurrency(order.subtotal)}</span>
               </div>
-              {/* Descuento: use order.discount_amount if > 0, else order.discount */}
+              {/* Descuento */}
               {(() => {
                 const discountValue = (order.discount_amount ?? 0) > 0 ? (order.discount_amount ?? 0) : (order.discount ?? 0);
                 if (discountValue > 0) {
-                  const pct = order.subtotal > 0
-                    ? Math.round((discountValue / order.subtotal) * 100)
-                    : 0;
                   return (
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Descuento{pct > 0 ? ` (${pct}%)` : ''} {order.discount_code_id ? '🎟️' : ''}</span>
+                    <div className="flex justify-between text-sm font-semibold text-red-600">
+                      <span>Descuento Aplicado {order.discount_code_id ? '🎟️' : ''}</span>
                       <span>-Bs {formatCurrency(discountValue)}</span>
                     </div>
                   );

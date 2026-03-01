@@ -466,12 +466,12 @@ export default function SalesHistoryClient({
               key={c}
               onClick={() => { setCanalFilter(c); setCurrentPage(1); }}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${canalFilter === c
-                  ? c === "fisico"
-                    ? "bg-blue-600 border-blue-600 text-white shadow-md"
-                    : c === "online"
-                      ? "bg-green-600 border-green-600 text-white shadow-md"
-                      : "bg-purple-600 border-purple-600 text-white shadow-md"
-                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                ? c === "fisico"
+                  ? "bg-blue-600 border-blue-600 text-white shadow-md"
+                  : c === "online"
+                    ? "bg-green-600 border-green-600 text-white shadow-md"
+                    : "bg-purple-600 border-purple-600 text-white shadow-md"
+                : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
                 }`}
             >
               {c === "all" && "Todos"}
@@ -589,7 +589,13 @@ export default function SalesHistoryClient({
                   </th>
                 )}
                 <th className="text-right text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
-                  Total
+                  Subtotal
+                </th>
+                <th className="text-right text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
+                  Dto.
+                </th>
+                <th className="text-right text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
+                  Total Neto
                 </th>
                 <th className="text-center text-xs font-bold text-purple-900 uppercase tracking-wider px-5 py-3.5">
                   Canal
@@ -605,7 +611,7 @@ export default function SalesHistoryClient({
             <tbody className="divide-y divide-gray-100">
               {paginatedSales.length === 0 ? (
                 <tr>
-                  <td colSpan={isStaff ? 7 : 9} className="px-6 py-12 text-center">
+                  <td colSpan={isStaff ? 9 : 11} className="px-6 py-12 text-center">
                     <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       No se encontraron ventas
@@ -667,15 +673,20 @@ export default function SalesHistoryClient({
                           <p className="text-sm font-medium text-gray-900">{sellerFirstName}</p>
                         </td>
                       )}
+                      <td className="px-5 py-3.5 text-right text-sm font-medium text-gray-700">
+                        {formatCurrency(sale.subtotal)}
+                      </td>
+                      <td className="px-5 py-3.5 text-right text-sm">
+                        {sale.discount > 0 ? (
+                          <span className="text-red-500 font-medium">-{formatCurrency(sale.discount)}</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5 text-right">
                         <span className="text-base font-bold text-purple-700">
                           {formatCurrency(sale.total)}
                         </span>
-                        {sale.discount > 0 && (
-                          <p className="text-xs text-red-500 font-medium">
-                            -{formatCurrency(sale.discount)} dto.
-                          </p>
-                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex justify-center">
@@ -817,8 +828,8 @@ export default function SalesHistoryClient({
                       <button
                         onClick={() => handlePageChange(page)}
                         className={`px-3 py-1.5 rounded-lg font-medium transition-all ${currentPage === page
-                            ? "bg-purple-600 text-white"
-                            : "hover:bg-gray-100 text-gray-600"
+                          ? "bg-purple-600 text-white"
+                          : "hover:bg-gray-100 text-gray-600"
                           }`}
                       >
                         {page}

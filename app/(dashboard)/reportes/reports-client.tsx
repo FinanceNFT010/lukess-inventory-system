@@ -145,11 +145,14 @@ function BarTooltip({
   label,
 }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number; fill: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: Array<{ name: string; value: number; fill: string; payload: any }>;
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
   const total = payload.reduce((s, p) => s + (p.value ?? 0), 0);
+  const discount = payload[0]?.payload?.Descuento || 0;
+
   return (
     <div className="bg-zinc-950 border-none rounded-xl shadow-xl p-4 min-w-[200px] text-zinc-50">
       <p className="text-sm font-bold text-zinc-50 mb-2 border-b border-zinc-800 pb-2">
@@ -168,6 +171,12 @@ function BarTooltip({
         <span className="text-xs text-zinc-400">Total</span>
         <span className="text-xs font-bold text-gold-500">{formatBs(total)}</span>
       </div>
+      {discount > 0 && (
+        <div className="mt-1 flex justify-between">
+          <span className="text-xs text-red-400">Descuento aplicado</span>
+          <span className="text-xs font-bold text-red-400">-{formatBs(discount)}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -273,6 +282,7 @@ export default function ReportesVentasClient({
           .filter((o) => o.canal === "online" || o.canal === null)
           .reduce((s, o) => s + o.total, 0),
         Físico: dayOrders.filter((o) => o.canal === "fisico").reduce((s, o) => s + o.total, 0),
+        Descuento: dayOrders.reduce((s, o) => s + ((o.discount_amount ?? 0) > 0 ? (o.discount_amount ?? 0) : (o.discount ?? 0)), 0),
       };
     });
   }, [orders, desde, hasta]);
@@ -379,23 +389,20 @@ export default function ReportesVentasClient({
 
   const dowMax = Math.max(...dowData.map((d) => d.total));
 
-  // ── Discount impact ────────────────────────────────────────────────────────
-  // totalRevenue = SUM(total) → valor bruto (sin descuento aplicado) → siempre mayor
-  // ingresosNetos = SUM(subtotal) → valor neto (con descuento aplicado) → siempre menor
+  // ── Discount impact (Gross, Net, Discount) ──────────────────────────────────
+  const ingresosNetos = totalRevenue; // Suma de 'total' pagado por el cliente
 
-  const ingresosNetos = useMemo(() => orders.reduce((s, o) => {
+  const totalDescuentos = useMemo(() => orders.reduce((s, o) => {
     const discountValue = (o.discount_amount ?? 0) > 0 ? (o.discount_amount ?? 0) : (o.discount ?? 0);
-    const net = o.subtotal - discountValue;
-    // ensure fallback backwards compatibility if o.subtotal wasn't accurate, though o.subtotal - discount is correct:
-    return s + (net > 0 ? net : o.total);
+    return s + discountValue;
   }, 0), [orders]);
-  const ingresosBrutos = totalRevenue;
-  const totalDescuentos = ingresosBrutos - ingresosNetos;
+
+  const ingresosBrutos = ingresosNetos + totalDescuentos; // Lo que hubiera costado sin descuento
   const descuentoPct = ingresosBrutos > 0 ? (totalDescuentos / ingresosBrutos) * 100 : 0;
 
   const discountChartData = [
-    { name: "Bruto", value: ingresosBrutos, fill: "#8B5CF6" },
     { name: "Neto", value: ingresosNetos, fill: "#3B82F6" },
+    { name: "Descuento", value: totalDescuentos, fill: "#EF4444" },
   ];
 
   // ── Inventory alerts ───────────────────────────────────────────────────────
@@ -475,8 +482,8 @@ export default function ReportesVentasClient({
     rows.push(`Ticket promedio,Bs ${aov.toFixed(2)}`);
     rows.push(`Tasa de cancelación,${cancelRate.toFixed(1)}%`);
     rows.push(`Ingresos brutos,Bs ${ingresosBrutos.toFixed(2)}`);
-    rows.push(`Total descuentos,Bs ${totalDescuentos.toFixed(2)}`);
     rows.push(`Ingresos netos,Bs ${ingresosNetos.toFixed(2)}`);
+    rows.push(`Total descontado,Bs ${totalDescuentos.toFixed(2)}`);
     rows.push("");
 
     rows.push("DETALLE POR DÍA");
@@ -578,6 +585,19 @@ export default function ReportesVentasClient({
           color={cancelRate > 20 ? "red" : "green"}
           subtitle={`${cancelledCount} cancelados`}
         />
+      </div>
+
+      {/* ── KPI Total Descontado ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        <KPICard
+          icon={Tag}
+          label="Total Descontado"
+          value={formatBs(totalDescuentos)}
+          change={null}
+          color="red"
+          subtitle={`${descuentoPct.toFixed(1)}% sobre ingresos brutos`}
+        />
+        {/* We can place the discount chart right here if needed, but it's okay just adding the KPI for now */}
       </div>
 
       {/* ── Último pedido ────────────────────────────────────────────────── */}
