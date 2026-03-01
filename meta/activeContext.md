@@ -5,8 +5,8 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 13-F
-- **Block Name:** POS specific location force & Online Discounts aggregation in Reports
+- **Block Number:** 14-A
+- **Block Name:** POS Stall Selection Logic and Refine Seller Role Permissions
 - **Status:** DONE
 - **Started:** 2026-03-01
 - **Completed:** 2026-03-01
@@ -14,16 +14,15 @@
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 13-F
-- **Block Name:** POS specific location force & Online Discounts aggregation in Reports
+- **Block Number:** 14-A
+- **Block Name:** POS Stall Selection Logic and Refine Seller Role Permissions
 - **Completed:** 2026-03-01
 - **Commit:** TBD
 
 ---
 
-- `app/(dashboard)/ventas/pos-client.tsx` (MODIFIED - forced specific store selection and blocked sales if "all")
-- `app/(dashboard)/reportes/page.tsx` (MODIFIED - added discount_amount to orders fetch)
-- `app/(dashboard)/ventas/historial/page.tsx` (MODIFIED - added discount_amount to orders fetch)
+- `app/(dashboard)/ventas/pos-client.tsx` (MODIFIED - forced specific stall selection for Admin)
+- `app/(dashboard)/inventario/inventory-client.tsx` (MODIFIED - hid 'Agregar Primer Producto' for sellers)
 
 ---
 
@@ -47,9 +46,9 @@
 ---
 
 ## NEXT BLOCK
-- **Block:** 14
+- **Block:** 14-B
 - **Name:** TBD
-- **Dependencies:** 13 complete ✅
+- **Dependencies:** 14-A complete ✅
 - **Scope:** TBD
 
 ---
@@ -74,4 +73,5 @@
 | 13-C | End-to-End Discount Consumption & Visibility | ✅ DONE | 2026-03-01 | d20fac8 |
 | 13-D | End-to-End Discount Visibility (Orders, History, Reports) | ✅ DONE | 2026-03-01 | ff8e0e2 |
 | 13-E | Fix missing math fields (Shipping and Discount) | ✅ DONE | 2026-03-01 | 59d6452 |
-| 13-F | POS Store Select Fix & Reports Online Discounts | ✅ DONE | 2026-03-01 | TBD |
+| 13-F | POS Store Select Fix & Reports Online Discounts | ✅ DONE | 2026-03-01 | 0f5a017 |
+| 14-A | POS Stall Selection & Seller Permissions | ✅ DONE | 2026-03-01 | TBD |

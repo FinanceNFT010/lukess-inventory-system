@@ -735,7 +735,7 @@ export default function InventoryClient({
                 ? "Agrega tu primer producto para comenzar"
                 : "Intenta con otro término de búsqueda o ajusta los filtros"}
             </p>
-            {products.length === 0 && (
+            {products.length === 0 && (userRole === "admin" || userRole === "manager") && (
               <Button
                 variant="primary"
                 onClick={() => router.push("/inventario/nuevo")}

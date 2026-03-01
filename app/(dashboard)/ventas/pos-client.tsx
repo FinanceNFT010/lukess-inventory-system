@@ -24,6 +24,8 @@ import {
   MapPin,
   SlidersHorizontal,
   ChevronDown,
+  Store,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -769,7 +771,41 @@ export default function POSClient({
         />
       )}
 
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)] bg-zinc-50 rounded-xl">
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)] bg-zinc-50 rounded-xl relative">
+        {/* Bloqueador de Localización para Admins */}
+        {!posLocation && isAdminOrManager && (
+          <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-xl p-4">
+            <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-zinc-200 p-8 text-center animate-in fade-in zoom-in duration-300">
+              <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Store className="w-10 h-10 text-purple-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-zinc-900 mb-3">
+                Selecciona un Puesto
+              </h2>
+              <p className="text-zinc-500 mb-8 leading-relaxed">
+                Para registrar una venta y descontar correctamente el inventario, selecciona el puesto físico desde donde estás operando.
+              </p>
+              <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                {locations.map((loc) => (
+                  <button
+                    key={loc.id}
+                    onClick={() => setPosLocation(loc.id)}
+                    className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-zinc-100 hover:border-purple-500 hover:bg-purple-50 transition-all group focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-zinc-100 group-hover:bg-white flex items-center justify-center transition-colors shadow-sm text-zinc-500 group-hover:text-purple-600">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <span className="font-bold text-zinc-900 group-hover:text-purple-900">{loc.name}</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-purple-600 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ═══ LEFT COLUMN: Product Grid ═══ */}
         <div className="flex-1 lg:w-[60%] flex flex-col min-w-0 overflow-hidden px-1">
           {/* ─── Filter Bar ─── */}
