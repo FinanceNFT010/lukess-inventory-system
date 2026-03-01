@@ -5,8 +5,8 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 13-B
-- **Block Name:** Implement Cascading Stock Reservation (P1 -> P2 -> P3 -> Bodega Central)
+- **Block Number:** 14-A
+- **Block Name:** Dual Image Upload (Local + External URL)
 - **Status:** DONE
 - **Started:** 2026-02-28
 
@@ -20,6 +20,8 @@
 
 ---
 
+- `app/(dashboard)/inventario/actions.ts` (MODIFIED - added uploadImageFromUrl)
+- `components/inventory/ImageUploader.tsx` (MODIFIED - dual mode + rebrand)
 - `types/database.types.ts` (MODIFIED - updated schema)
 - Database: `reserve_order_inventory` (UPDATED priority logic)
 - Database: `handle_order_status_change` (UPDATED priority logic)
@@ -70,4 +72,5 @@
 | 11-E | POS Rebrand and Order Allocation Bug Fix | ✅ DONE | 2026-02-28 | 6492283 |
 | 12 | Marketing CMS (Banners & Discount Codes) | ✅ DONE | 2026-02-28 | 6492283 |
 | 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | 7e0ffee |
-| 13-B | Cascading Stock Reservation (P1->P2->P3->Bodega) | ✅ DONE | 2026-02-28 | TBD |
+| 13-B | Cascading Stock Reservation (P1->P2->P3->Bodega) | ✅ DONE | 2026-02-28 | 4fb97bb |
+| 14-A | Dual Image Upload (Local + URL) | ✅ DONE | 2026-02-28 | TBD |

@@ -62,3 +62,48 @@ export async function revalidateProductPaths(): Promise<void> {
   revalidatePath("/inventario");
   revalidatePath("/", "page");
 }
+
+export async function uploadImageFromUrl(
+  url: string,
+  organizationId: string
+): Promise<{ success: boolean; publicUrl?: string; error?: string }> {
+  try {
+    const profile = await getCurrentUserProfile();
+    if (!profile) return { success: false, error: "No autenticado" };
+
+    if (profile.role !== "admin" && profile.role !== "manager") {
+      return { success: false, error: "Sin permisos para esta acción" };
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      return { success: false, error: "No se pudo obtener la imagen del URL proporcionado" };
+    }
+
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    const extension = contentType.split("/")[1] || "jpg";
+    const buffer = await response.arrayBuffer();
+
+    const supabase = await createClient();
+    const fileName = `${organizationId}/${Date.now()}_external.${extension}`;
+
+    const { data, error } = await supabase.storage
+      .from("product-images")
+      .upload(fileName, buffer, {
+        contentType,
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    const { data: urlData } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(data.path);
+
+    return { success: true, publicUrl: urlData.publicUrl };
+  } catch (err: unknown) {
+    console.error("uploadImageFromUrl error:", err);
+    return { success: false, error: "Error al procesar la imagen del URL" };
+  }
+}
