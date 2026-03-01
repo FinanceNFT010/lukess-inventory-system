@@ -431,6 +431,63 @@ export default function OrderDetailModal({
               </div>
             </div>
 
+            {/* DELIVERY / PICKUP INFO */}
+            {order.delivery_method && (
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  Información de Entrega
+                </h3>
+                {order.delivery_method === 'pickup' ? (
+                  <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
+                    <p className="text-sm font-semibold text-zinc-900 mb-1">🏪 Recojo en Tienda</p>
+                    <p className="text-sm text-zinc-700">
+                      Puesto seleccionado:{' '}
+                      <span className="font-bold">{order.pickup_location ?? '—'}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 space-y-1.5">
+                    <p className="text-sm font-semibold text-zinc-900 mb-1">🛵 Envío a Domicilio</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-zinc-700">
+                      {order.shipping_address && (
+                        <p>
+                          <span className="font-medium">Dirección:</span> {order.shipping_address}
+                        </p>
+                      )}
+                      {order.shipping_reference && (
+                        <p>
+                          <span className="font-medium">Referencia:</span> {order.shipping_reference}
+                        </p>
+                      )}
+                      {order.recipient_name && (
+                        <p>
+                          <span className="font-medium">Recibe:</span> {order.recipient_name}
+                          {order.recipient_phone ? ` (${order.recipient_phone})` : ''}
+                        </p>
+                      )}
+                      {order.delivery_instructions && (
+                        <p className="sm:col-span-2">
+                          <span className="font-medium">Instrucciones:</span>{' '}
+                          {order.delivery_instructions}
+                        </p>
+                      )}
+                      {order.maps_link && (
+                        <a
+                          href={order.maps_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="sm:col-span-2 inline-flex items-center gap-1.5 text-blue-600 underline text-sm font-medium hover:text-blue-800 transition-colors"
+                        >
+                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                          Ver ubicación en GPS
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* PRODUCTS */}
             <div>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">

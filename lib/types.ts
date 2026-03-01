@@ -597,6 +597,16 @@ export type Order = Tables<"orders"> & {
   discount_code_id?: string | null;
   discount_percent?: number | null;
   shipping_cost?: number | null;
+  // Delivery fields (not yet in generated types but exist in DB)
+  delivery_method?: string | null;
+  shipping_address?: string | null;
+  shipping_reference?: string | null;
+  pickup_location?: string | null;
+  maps_link?: string | null;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  delivery_instructions?: string | null;
+  discount_consumed?: boolean | null;
 };
 export type OrderItem = Tables<"order_items">;
 export type OrderInsert = TablesInsert<"orders">;
