@@ -19,6 +19,7 @@ type OrderQueryResult = {
   delivery_method: string
   maps_link: string | null
   shipping_address: string | null
+  pickup_location: string | null
   shipping_cost: number
   gps_distance_km: number | null
   subtotal: number
@@ -100,6 +101,7 @@ export async function updateOrderStatus(
           delivery_method,
           maps_link,
           shipping_address,
+          pickup_location,
           shipping_cost,
           gps_distance_km,
           subtotal,
@@ -144,14 +146,17 @@ export async function updateOrderStatus(
           customer_name: raw.customer_name,
           customer_phone: raw.customer_phone,
           notify_whatsapp: raw.notify_whatsapp ?? false,
-          shipping_address: raw.shipping_address,
           delivery_method: raw.delivery_method ?? 'delivery',
+          shipping_address: raw.shipping_address,
+          pickup_location: raw.pickup_location ?? null,
+          total: raw.total ?? 0,
         }
         await sendOrderStatusWhatsApp(
           orderForWhatsApp,
-          newStatus,
-          cancellationReason
-        ).catch(err => console.error('[whatsapp action] error:', err))
+          newStatus
+        ).catch(() => {
+          // WhatsApp failure must never block the order status update
+        })
       }
     } catch (emailErr) {
       console.error('[updateOrderStatus] Error al obtener pedido para email:', emailErr)
