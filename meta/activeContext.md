@@ -17,12 +17,14 @@
 - **Block Number:** 14-A
 - **Block Name:** POS Stall Selection Logic and Refine Seller Role Permissions
 - **Completed:** 2026-03-01
-- **Commit:** TBD
+- **Commit:** 3725781
 
 ---
 
 - `app/(dashboard)/ventas/pos-client.tsx` (MODIFIED - forced specific stall selection for Admin)
 - `app/(dashboard)/inventario/inventory-client.tsx` (MODIFIED - hid 'Agregar Primer Producto' for sellers)
+- `components/dashboard/Sidebar.tsx` (MODIFIED - added staff role to Inventario link)
+- `app/(dashboard)/page.tsx` (MODIFIED - removed staff redirect to /ventas)
 
 ---
 
@@ -74,4 +76,4 @@
 | 13-D | End-to-End Discount Visibility (Orders, History, Reports) | ✅ DONE | 2026-03-01 | ff8e0e2 |
 | 13-E | Fix missing math fields (Shipping and Discount) | ✅ DONE | 2026-03-01 | 59d6452 |
 | 13-F | POS Store Select Fix & Reports Online Discounts | ✅ DONE | 2026-03-01 | 0f5a017 |
-| 14-A | POS Stall Selection & Seller Permissions | ✅ DONE | 2026-03-01 | TBD |
+| 14-A | POS Stall Selection & Seller Permissions | ✅ DONE | 2026-03-01 | 3725781 |

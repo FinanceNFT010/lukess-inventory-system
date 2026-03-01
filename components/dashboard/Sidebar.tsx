@@ -42,7 +42,7 @@ const navLinks: NavLink[] = [
     label: "Inventario",
     href: "/inventario",
     icon: Package,
-    roles: ["admin", "manager"],
+    roles: ["admin", "manager", "staff"],
     subLinks: [
       {
         label: "Ver Historial",
