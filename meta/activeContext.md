@@ -73,4 +73,4 @@
 | 12 | Marketing CMS (Banners & Discount Codes) | ✅ DONE | 2026-02-28 | 6492283 |
 | 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | 7e0ffee |
 | 13-B | Cascading Stock Reservation (P1->P2->P3->Bodega) | ✅ DONE | 2026-02-28 | 4fb97bb |
-| 14-A | Dual Image Upload (Local + URL) | ✅ DONE | 2026-02-28 | TBD |
+| 14-A | Dual Image Upload (Local + URL) | ✅ DONE | 2026-02-28 | ff63969 |
