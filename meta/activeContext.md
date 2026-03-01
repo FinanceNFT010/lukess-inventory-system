@@ -17,7 +17,7 @@
 - **Block Number:** 13-D
 - **Block Name:** End-to-End Discount Consumption & Visibility - UI Updates
 - **Completed:** 2026-03-01
-- **Commit:** TBD
+- **Commit:** ff8e0e2
 
 ---
 
@@ -74,4 +74,4 @@
 | 12 | Marketing CMS (Banners & Discount Codes) | ✅ DONE | 2026-02-28 | 6492283 |
 | 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | 7e0ffee |
 | 13-C | End-to-End Discount Consumption & Visibility | ✅ DONE | 2026-03-01 | d20fac8 |
-| 13-D | End-to-End Discount Visibility (Orders, History, Reports) | ✅ DONE | 2026-03-01 | TBD |
+| 13-D | End-to-End Discount Visibility (Orders, History, Reports) | ✅ DONE | 2026-03-01 | ff8e0e2 |
