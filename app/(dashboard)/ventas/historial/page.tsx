@@ -74,7 +74,8 @@ export default async function SalesHistoryPage() {
         shipping_cost,
         shipping_address,
         shipping_district,
-        payment_method
+        payment_method,
+        discount_amount
       )
     `
     )
@@ -100,14 +101,14 @@ export default async function SalesHistoryPage() {
     // Fetch sellers — staff only sees themselves
     isStaff
       ? supabase
-          .from("profiles")
-          .select("id, full_name, role")
-          .eq("id", profile.id)
+        .from("profiles")
+        .select("id, full_name, role")
+        .eq("id", profile.id)
       : supabase
-          .from("profiles")
-          .select("id, full_name, role")
-          .eq("organization_id", orgId)
-          .order("full_name"),
+        .from("profiles")
+        .select("id, full_name, role")
+        .eq("organization_id", orgId)
+        .order("full_name"),
   ]);
 
   return (

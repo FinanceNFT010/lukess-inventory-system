@@ -108,7 +108,9 @@ export default function POSClient({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [posLocation, setPosLocation] = useState<string | null>(locationId);
+  const [posLocation, setPosLocation] = useState<string | null>(
+    locationId || ((userRole === "admin" || userRole === "manager") && locations.length > 0 ? locations[0].id : null)
+  );
   const [sizeFilter, setSizeFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"with" | "all" | "low">("with");
   const [sortBy, setSortBy] = useState<"name" | "price_asc" | "price_desc" | "stock">("name");
@@ -794,7 +796,7 @@ export default function POSClient({
                     onChange={(e) => setPosLocation(e.target.value || null)}
                     className="pl-9 pr-8 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700 appearance-none cursor-pointer min-w-[160px] shadow-sm"
                   >
-                    <option value="">Todas las ubicaciones</option>
+                    <option value="">Todos los puestos</option>
                     {locations.map((loc) => (
                       <option key={loc.id} value={loc.id}>{loc.name}</option>
                     ))}
@@ -943,7 +945,17 @@ export default function POSClient({
 
           {/* Products grid */}
           <div className="flex-1 overflow-y-auto pr-1">
-            {filteredProducts.length === 0 ? (
+            {!posLocation && isAdminOrManager ? (
+              <div className="flex flex-col items-center justify-center h-64 text-center px-4 bg-amber-50 rounded-2xl border border-amber-200 mx-1 mt-2">
+                <MapPin className="w-12 h-12 text-amber-500 mb-3" />
+                <p className="text-base font-bold text-amber-900 mb-1">
+                  Puesto no seleccionado
+                </p>
+                <p className="text-sm text-amber-700 max-w-sm">
+                  Para realizar una venta, seleccione un puesto específico en la parte superior.
+                </p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center px-4">
                 <PackageSearch className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
                 <p className="text-sm font-medium text-zinc-900 mb-1">

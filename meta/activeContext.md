@@ -5,8 +5,8 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 13-E
-- **Block Name:** Fix missing math fields (Shipping and Discount)
+- **Block Number:** 13-F
+- **Block Name:** POS specific location force & Online Discounts aggregation in Reports
 - **Status:** DONE
 - **Started:** 2026-03-01
 - **Completed:** 2026-03-01
@@ -14,16 +14,16 @@
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 13-E
-- **Block Name:** Fix missing math fields (Shipping and Discount)
+- **Block Number:** 13-F
+- **Block Name:** POS specific location force & Online Discounts aggregation in Reports
 - **Completed:** 2026-03-01
-- **Commit:** PENDING
+- **Commit:** TBD
 
 ---
 
-- `app/(dashboard)/pedidos/order-detail-modal.tsx` (MODIFIED - added shipping cost)
-- `app/(dashboard)/ventas/historial/sales-history-client.tsx` (MODIFIED - added discount amount)
-- `lib/types.ts` (MODIFIED - added shipping_cost type)
+- `app/(dashboard)/ventas/pos-client.tsx` (MODIFIED - forced specific store selection and blocked sales if "all")
+- `app/(dashboard)/reportes/page.tsx` (MODIFIED - added discount_amount to orders fetch)
+- `app/(dashboard)/ventas/historial/page.tsx` (MODIFIED - added discount_amount to orders fetch)
 
 ---
 
@@ -73,4 +73,5 @@
 | 13 | BUGFIX SPRINT (Marketing, Allocations, Reports) | ✅ DONE | 2026-02-28 | 7e0ffee |
 | 13-C | End-to-End Discount Consumption & Visibility | ✅ DONE | 2026-03-01 | d20fac8 |
 | 13-D | End-to-End Discount Visibility (Orders, History, Reports) | ✅ DONE | 2026-03-01 | ff8e0e2 |
-| 13-E | Fix missing math fields (Shipping and Discount) | ✅ DONE | 2026-03-01 | PENDING |
+| 13-E | Fix missing math fields (Shipping and Discount) | ✅ DONE | 2026-03-01 | 59d6452 |
+| 13-F | POS Store Select Fix & Reports Online Discounts | ✅ DONE | 2026-03-01 | TBD |
