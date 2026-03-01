@@ -43,6 +43,8 @@ interface OrderRow {
   total: number;
   subtotal: number;
   discount: number;
+  discount_amount: number | null;
+  discount_code_id: string | null;
   canal: "online" | "fisico" | null;
   created_at: string;
   status: string;
@@ -381,7 +383,12 @@ export default function ReportesVentasClient({
   // totalRevenue = SUM(total) → valor bruto (sin descuento aplicado) → siempre mayor
   // ingresosNetos = SUM(subtotal) → valor neto (con descuento aplicado) → siempre menor
 
-  const ingresosNetos = useMemo(() => orders.reduce((s, o) => s + (o.subtotal ?? o.total), 0), [orders]);
+  const ingresosNetos = useMemo(() => orders.reduce((s, o) => {
+    const discountValue = (o.discount_amount ?? 0) > 0 ? (o.discount_amount ?? 0) : (o.discount ?? 0);
+    const net = o.subtotal - discountValue;
+    // ensure fallback backwards compatibility if o.subtotal wasn't accurate, though o.subtotal - discount is correct:
+    return s + (net > 0 ? net : o.total);
+  }, 0), [orders]);
   const ingresosBrutos = totalRevenue;
   const totalDescuentos = ingresosBrutos - ingresosNetos;
   const descuentoPct = ingresosBrutos > 0 ? (totalDescuentos / ingresosBrutos) * 100 : 0;

@@ -592,7 +592,11 @@ export type OrderStatus =
   | "completed"
   | "cancelled";
 
-export type Order = Tables<"orders">;
+export type Order = Tables<"orders"> & {
+  discount_amount?: number | null;
+  discount_code_id?: string | null;
+  discount_percent?: number | null;
+};
 export type OrderItem = Tables<"order_items">;
 export type OrderInsert = TablesInsert<"orders">;
 export type OrderUpdate = TablesUpdate<"orders">;

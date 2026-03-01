@@ -518,16 +518,21 @@ export default function OrderDetailModal({
                 <span>Subtotal</span>
                 <span>Bs {formatCurrency(order.subtotal)}</span>
               </div>
-              {order.discount > 0 && (() => {
-                const pct = order.subtotal > 0
-                  ? Math.round((order.discount / order.subtotal) * 100)
-                  : 0
-                return (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Descuento{pct > 0 ? ` (${pct}%)` : ''}</span>
-                    <span>-Bs {formatCurrency(order.discount)}</span>
-                  </div>
-                )
+              {/* Descuento: use order.discount_amount if > 0, else order.discount */}
+              {(() => {
+                const discountValue = (order.discount_amount ?? 0) > 0 ? (order.discount_amount ?? 0) : (order.discount ?? 0);
+                if (discountValue > 0) {
+                  const pct = order.subtotal > 0
+                    ? Math.round((discountValue / order.subtotal) * 100)
+                    : 0;
+                  return (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Descuento{pct > 0 ? ` (${pct}%)` : ''} {order.discount_code_id ? '🎟️' : ''}</span>
+                      <span>-Bs {formatCurrency(discountValue)}</span>
+                    </div>
+                  );
+                }
+                return null;
               })()}
               <div className="flex justify-between text-sm text-gray-600">
                 <span>💳 {order.payment_method}</span>

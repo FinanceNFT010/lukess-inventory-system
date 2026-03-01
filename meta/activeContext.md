@@ -5,26 +5,26 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 14-A
-- **Block Name:** Dual Image Upload (Local + External URL)
+- **Block Number:** 13-C
+- **Block Name:** End-to-End Discount Consumption & Visibility
 - **Status:** DONE
-- **Started:** 2026-02-28
+- **Started:** 2026-03-01
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 13
-- **Block Name:** BUGFIX SPRINT (Marketing, Allocations, Reports)
-- **Completed:** 2026-02-28
-- **Commit:** 7e0ffee
+- **Block Number:** 13-C
+- **Block Name:** End-to-End Discount Consumption & Visibility
+- **Completed:** 2026-03-01
+- **Commit:** TBD
 
 ---
 
-- `app/(dashboard)/inventario/actions.ts` (MODIFIED - added uploadImageFromUrl)
-- `components/inventory/ImageUploader.tsx` (MODIFIED - dual mode + rebrand)
-- `types/database.types.ts` (MODIFIED - updated schema)
-- Database: `reserve_order_inventory` (UPDATED priority logic)
-- Database: `handle_order_status_change` (UPDATED priority logic)
+- `app/(dashboard)/pedidos/order-detail-modal.tsx` (MODIFIED - display discount_amount)
+- `app/(dashboard)/reportes/reports-client.tsx` (MODIFIED - revenue calculations with discount_amount)
+- `lib/types.ts` (MODIFIED - OrderWithItems type updated)
+- `types/database.types.ts` (MODIFIED - updated with discount columns)
+- Database: `consume_order_discount` (NEW RPC added)
 
 ---
 
