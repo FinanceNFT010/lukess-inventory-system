@@ -16,7 +16,7 @@
 - **Block Number:** 13-C
 - **Block Name:** End-to-End Discount Consumption & Visibility
 - **Completed:** 2026-03-01
-- **Commit:** TBD
+- **Commit:** d20fac8
 
 ---
 
