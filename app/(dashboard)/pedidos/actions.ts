@@ -150,6 +150,7 @@ export async function updateOrderStatus(
           shipping_address: raw.shipping_address,
           pickup_location: raw.pickup_location ?? null,
           total: raw.total ?? 0,
+          cancellation_reason: cancellationReason?.trim() || null,
         }
         await sendOrderStatusWhatsApp(
           orderForWhatsApp,

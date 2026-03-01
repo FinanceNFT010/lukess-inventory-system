@@ -7,83 +7,97 @@ export interface OrderForWhatsApp {
   shipping_address: string | null
   pickup_location: string | null
   total: number
+  cancellation_reason?: string | null
 }
 
 /**
- * Maps an order status to the Meta-approved template name.
- * For `shipped` we need delivery_method context, handled in
- * `resolveTemplateName` below.
+ * Approved Meta template → body variable positions:
+ *
+ * pedido_recibido:  "Hola {{1}}, recibimos tu pedido #{{2}} por Bs {{3}}."
+ *                   {{1}}=name  {{2}}=order  {{3}}=total
+ *
+ * pago_confirmado:  "Pago confirmado para el pedido #{{1}}, {{2}}."
+ *                   {{1}}=order  {{2}}=name
+ *
+ * pedido_en_camino: "Tu pedido #{{1}} fue despachado, {{2}}. Dirección de entrega: {{3}}"
+ *                   {{1}}=order  {{2}}=name  {{3}}=address
+ *
+ * pedido_entregado: "Tu pedido #{{1}} fue entregado, {{2}}!"  +  HEADER IMAGE
+ *                   {{1}}=order  {{2}}=name
+ *
+ * pedido_cancelado: "Tu pedido #{{1}} fue cancelado, {{2}}. Motivo: {{3}}"
+ *                   {{1}}=order  {{2}}=name  {{3}}=reason
  */
+
 const STATUS_TO_TEMPLATE: Record<string, string> = {
   pending: 'pedido_recibido',
   confirmed: 'pago_confirmado',
-  shipped: 'pedido_en_camino',   // delivery path — pickup overrides below
+  shipped: 'pedido_en_camino',
   completed: 'pedido_entregado',
   cancelled: 'pedido_cancelado',
 }
 
-/**
- * Resolves the final template name, accounting for the dual
- * delivery method on `shipped`:
- *   - delivery → `pedido_en_camino`
- *   - pickup   → `pedido_listo_recojo` (if approved) or falls back to
- *                `pedido_en_camino` so the notification is never silently dropped.
- */
+/** URL for the header image on the `pedido_entregado` template */
+const ENTREGADO_HEADER_IMAGE =
+  'https://lukess-home.vercel.app/images/entregado.png'
+
 function resolveTemplateName(
   status: string,
   deliveryMethod: string
 ): string | undefined {
   if (status === 'shipped' && deliveryMethod === 'pickup') {
-    // Use dedicated pickup template if you have it approved in Meta.
-    // Fall back to pedido_en_camino so a notification always fires.
     return 'pedido_listo_recojo'
   }
   return STATUS_TO_TEMPLATE[status]
 }
 
 /**
- * Builds the ordered variables array for each template.
- * Variable positions match the {{1}}, {{2}}, {{3}} placeholders in Meta exactly.
- *
- * pedido_recibido:     {{1}} customer_name  {{2}} order_number
- * pago_confirmado:     {{1}} customer_name  {{2}} order_number  {{3}} total
- * pedido_en_camino:    {{1}} customer_name  {{2}} order_number
- * pedido_listo_recojo: {{1}} customer_name  {{2}} order_number  {{3}} pickup_location
- * pedido_entregado:    {{1}} customer_name
- * pedido_cancelado:    {{1}} customer_name  {{2}} order_number
+ * Returns body variables in the exact {{1}}, {{2}}, {{3}} order
+ * as approved in Meta Business Manager.
  */
-function buildVariables(
+function buildBodyVariables(
   templateName: string,
   order: OrderForWhatsApp
 ): string[] {
   const orderNumber = order.id.substring(0, 8).toUpperCase()
-  const totalFormatted = `Bs. ${order.total.toFixed(2)}`
 
   switch (templateName) {
     case 'pedido_recibido':
-      return [order.customer_name, orderNumber]
-
-    case 'pago_confirmado':
-      return [order.customer_name, orderNumber, totalFormatted]
-
-    case 'pedido_en_camino':
-      return [order.customer_name, orderNumber]
-
-    case 'pedido_listo_recojo':
       return [
         order.customer_name,
         orderNumber,
+        `${order.total.toFixed(2)}`,
+      ]
+
+    case 'pago_confirmado':
+      return [orderNumber, order.customer_name]
+
+    case 'pedido_en_camino':
+      return [
+        orderNumber,
+        order.customer_name,
+        order.shipping_address ?? 'Tu dirección',
+      ]
+
+    case 'pedido_listo_recojo':
+      return [
+        orderNumber,
+        order.customer_name,
         order.pickup_location ?? 'la caseta asignada',
       ]
 
     case 'pedido_entregado':
-      return [order.customer_name]
+      return [orderNumber, order.customer_name]
 
     case 'pedido_cancelado':
-      return [order.customer_name, orderNumber]
+      return [
+        orderNumber,
+        order.customer_name,
+        order.cancellation_reason ?? 'Problemas con el stock o pago',
+      ]
 
     default:
-      return [order.customer_name, orderNumber]
+      return [orderNumber, order.customer_name]
   }
 }
 
@@ -102,7 +116,11 @@ export async function sendOrderStatusWhatsApp(
     ? rawPhone
     : `591${rawPhone}`
 
-  const variables = buildVariables(templateName, order)
+  const variables = buildBodyVariables(templateName, order)
+
+  // `pedido_entregado` has an approved HEADER image component
+  const headerImage =
+    templateName === 'pedido_entregado' ? ENTREGADO_HEADER_IMAGE : undefined
 
   const landingUrl = process.env.LANDING_URL ?? 'https://lukess-home.vercel.app'
   const url = `${landingUrl}/api/send-whatsapp`
@@ -110,7 +128,7 @@ export async function sendOrderStatusWhatsApp(
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to: formattedPhone, templateName, variables }),
+    body: JSON.stringify({ to: formattedPhone, templateName, variables, headerImage }),
   })
 
   if (!res.ok) {
