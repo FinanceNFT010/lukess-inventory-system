@@ -1,36 +1,49 @@
 # activeContext.md — lukess-inventory-system (Admin Dashboard)
-**Last Updated:** 2026-02-28
+**Last Updated:** 2026-03-03
 **Updated By:** Antigravity Agent
 
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 14-A
-- **Block Name:** POS Stall Selection Logic and Refine Seller Role Permissions
+- **Block Number:** 15-C (cleanup)
+- **Block Name:** Pre-Production Root Cleanup
 - **Status:** DONE
-- **Started:** 2026-03-01
-- **Completed:** 2026-03-01
+- **Started:** 2026-03-03
+- **Completed:** 2026-03-03
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 14-A
-- **Block Name:** POS Stall Selection Logic and Refine Seller Role Permissions
-- **Completed:** 2026-03-01
-- **Commit:** 3725781
+- **Block Number:** 15-C (cleanup)
+- **Block Name:** Pre-Production Root Cleanup
+- **Completed:** 2026-03-03
+- **Commit:** TBD
 
 ---
 
-- `app/(dashboard)/ventas/pos-client.tsx` (MODIFIED - forced specific stall selection for Admin)
-- `app/(dashboard)/inventario/inventory-client.tsx` (MODIFIED - hid 'Agregar Primer Producto' for sellers)
-- `components/dashboard/Sidebar.tsx` (MODIFIED - added staff role to Inventario link)
-- `app/(dashboard)/page.tsx` (MODIFIED - removed staff redirect to /ventas)
+### Files Modified
+- `/AUDITORIA_COMPLETA_SISTEMA_INVENTARIO_17_02_2026.md` (DELETED)
+- `/AUDITORIA_INVENTARIO_22_02_2026.md` (DELETED)
+- `/AUDIT_09_02_10AM_demofuncional.md` (DELETED)
+- `/AUDIT_09_02_2PM_optimizaciones.md` (DELETED)
+- `/AUDIT_09_02_4PM_optimizaciones.md` (DELETED)
+- `/AUDIT_18_02_12PM_reestructuracion_productos_variantes.md` (DELETED)
+- `/FEATURE_STOCK_DETALLADO_EXPANDIBLE.md` (DELETED)
+- `/IMPLEMENTACION_VARIANTES.md` (DELETED)
+- `/mcp_audit_26_02.md` (DELETED)
+- `/configs.txt` (DELETED)
+- `/estructura-app.txt` (DELETED)
+- `/estructura-components.txt` (DELETED)
+- `/estructura-proyecto.txt` (DELETED)
+- `/ts_errors.txt` (DELETED)
+- `/tsc_errors.txt` (DELETED)
+- `/update_sizes.sql` (DELETED)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
-- **Total Tables:** 19+ 
+- **Total Tables:** 19+
 - **Migrations Applied (14):** Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners. Fixed `discount_type` missing in insert payload. Applied `update_inventory_allocation_priority` for P1->P2->P3->Bodega cascading logic.
 - **Types Regenerated:** Yes (Generated locally via Supabase MCP `generate_typescript_types`).
 
@@ -41,16 +54,16 @@
 - [ ] SECURITY: Overly permissive RLS on: access_requests (INSERT), customers (INSERT/UPDATE), inventory_reservations (ALL), order_items (INSERT), orders (INSERT/UPDATE), subscribers (INSERT)
 - [ ] SECURITY: Leaked Password Protection disabled in Supabase Auth
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
-- [ ] TODO: WhatsApp templates (pago_confirmado, pedido_en_camino, pedido_entregado, pedido_cancelado) must be approved in Meta Business for notifications to work
+- [ ] TODO: WhatsApp `pedido_listo_recojo` template must be submitted to Meta Business for approval (pickup path currently uses this name — will be silently dropped if not approved)
 - [ ] TODO: is_featured sorting on landing page (lukess-home repo) — not implemented yet
 - [ ] TODO: User must push the `marketing_schema.sql` migration to Supabase and regenerate typescript types (From Block 12, though types were regenerated this sprint).
 
 ---
 
 ## NEXT BLOCK
-- **Block:** 14-B
+- **Block:** 16-A
 - **Name:** TBD
-- **Dependencies:** 14-A complete ✅
+- **Dependencies:** 15-C complete ✅
 - **Scope:** TBD
 
 ---
@@ -76,4 +89,7 @@
 | 13-D | End-to-End Discount Visibility (Orders, History, Reports) | ✅ DONE | 2026-03-01 | ff8e0e2 |
 | 13-E | Fix missing math fields (Shipping and Discount) | ✅ DONE | 2026-03-01 | 59d6452 |
 | 13-F | POS Store Select Fix & Reports Online Discounts | ✅ DONE | 2026-03-01 | 0f5a017 |
-| 14-A | POS Stall Selection & Seller Permissions | ✅ DONE | 2026-03-01 | 3725781 |
+| 14-A | POS Stall Selection & Seller Permissions | ✅ DONE | 2026-03-01 | 9741d79 |
+| 14-B | Restore Delivery Info in Modal + Discount Idempotency | ✅ DONE | 2026-03-01 | 14f7d56 |
+| 15-B | Map WhatsApp Templates to Order Status Changes | ✅ DONE | 2026-03-01 | 2f1d723 |
+| 15-C | Pre-Production Root Cleanup | ✅ DONE | 2026-03-03 | TBD |
