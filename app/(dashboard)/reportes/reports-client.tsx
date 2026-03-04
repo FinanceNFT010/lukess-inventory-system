@@ -1142,7 +1142,7 @@ export default function ReportesVentasClient({
                 <td className="px-4 py-3.5 text-right text-sm font-bold text-zinc-700">
                   {formatBs(onlineRevenue)}
                 </td>
-                <td className="px-4 py-3.5 text-right text-sm font-bold" style={{ color: CHART_COLORS.fisico }}>
+                <td className="px-4 py-3.5 text-right text-sm font-bold text-gold-600">
                   {formatBs(fisicoRevenue)}
                 </td>
                 <td className="px-4 py-3.5 text-right text-sm font-bold text-gray-900">

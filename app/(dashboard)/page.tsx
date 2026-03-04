@@ -135,10 +135,14 @@ export default async function DashboardPage() {
 
     // Reserved stock
     supabase
-      .from("orders")
-      .select("status, organization_id, order_items(quantity)")
-      .eq("organization_id", orgId)
-      .in("status", ["pending", "preparando", "en_camino"]),
+      .from("order_items")
+      .select(`
+        quantity,
+        orders!inner(organization_id, status)
+      `)
+      .eq("orders.organization_id", orgId)
+      // Filter out completed, cancelled, and delivered to catch ALL active reservations
+      .not("orders.status", "in", '("completed","cancelled","entregado","COMPLETED","CANCELLED","ENTREGADO")'),
 
     // Last 5 sales
     supabase
@@ -198,11 +202,11 @@ export default async function DashboardPage() {
   const salesTodayFisico = salesTodayResult.data?.filter(s => s.canal === "fisico").reduce((sum, sale) => sum + sale.total, 0) || 0;
   const salesTodayFisicoCount = salesTodayResult.data?.filter(s => s.canal === "fisico").length || 0;
 
-  const reservedStock = reservedStockResult.data?.reduce((sum, order) => {
-    const orderQty = (order.order_items as { quantity: number }[] | null)
-      ?.reduce((s, i) => s + (i.quantity || 0), 0) || 0;
-    return sum + orderQty;
-  }, 0) || 0;
+  // Since we flipped the query back to order_items, the calculation is simple again
+  const reservedStock = reservedStockResult.data?.reduce(
+    (sum, item) => sum + (item.quantity || 0),
+    0
+  ) || 0;
 
   const recentSales = recentSalesResult.data || [];
 
