@@ -1,12 +1,12 @@
 # activeContext.md — lukess-inventory-system (Admin Dashboard)
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-04
 **Updated By:** Antigravity Agent
 
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 16-C-3
-- **Block Name:** Marketing + Users Module Fixes
+- **Block Number:** 16-C-4-A
+- **Block Name:** Enhanced Banner Upload Form + Supabase Migration
 - **Status:** DONE
 - **Started:** 2026-03-04
 - **Completed:** 2026-03-04
@@ -14,25 +14,27 @@
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 16-C-3
-- **Block Name:** Marketing + Users Module Fixes
+- **Block Number:** 16-C-4-A
+- **Block Name:** Enhanced Banner Upload Form + Supabase Migration
 - **Completed:** 2026-03-04
 - **Commits:** 
-  - `feat(marketing+users): banner inline edit + reorder + validation, fix roles modal responsive`
+  - `feat(marketing): enhanced banner form with desktop/mobile images + date range + migration` (3f8b046)
 
 ---
 
 ### Files Modified
-- `app/(dashboard)/configuracion/usuarios/usuarios-client.tsx` (MODIFIED — refactored role selection to responsive fixed modal)
-- `components/marketing/BannersManager.tsx` (MODIFIED — added inline editing, file validation and reordering)
+- `supabase/migrations/20260304173354_enhance_banners_table.sql` (NEW — adds desktop_image_url, mobile_image_url, start_date, end_date to banners)
+- `types/database.types.ts` (MODIFIED — banners table type updated with 4 new columns)
+- `components/marketing/BannerUploadModal.tsx` (NEW — full modal form with dual image upload, validation, previews)
+- `components/marketing/BannersManager.tsx` (MODIFIED — Banner interface updated, modal integration, date badges, dual-file delete)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 19+
-- **Migrations Applied (15):** Overwritten `get_available_filters_by_category` RPC. Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners. Fixed `discount_type` missing in insert payload. Applied `update_inventory_allocation_priority` for P1->P2->P3->Bodega cascading logic.
-- **Types Regenerated:** Yes (Generated locally via Supabase MCP `generate_typescript_types`).
+- **Migrations Applied (16):** Overwritten `get_available_filters_by_category` RPC. Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners. Fixed `discount_type` missing in insert payload. Applied `update_inventory_allocation_priority` for P1->P2->P3->Bodega cascading logic. Applied `enhance_banners_table` — added `desktop_image_url` (NOT NULL), `mobile_image_url`, `start_date`, `end_date` with data migration from `image_url`.
+- **Types Regenerated:** Yes (Generated via Supabase MCP `generate_typescript_types` + manually updated in `types/database.types.ts`).
 
 ---
 
@@ -63,6 +65,7 @@
 | 16-C-1 | Dashboard + Reportes Critical Fixes | ✅ DONE | 2026-03-04 | TBD |
 | 16-C-2 | Inventory UX Improvements | ✅ DONE | 2026-03-04 | 01d905d |
 | 16-C-3 | Marketing + Users Module Fixes | ✅ DONE | 2026-03-04 | c6daa0c |
+| 16-C-4-A | Enhanced Banner Upload Form + DB Migration | ✅ DONE | 2026-03-04 | 3f8b046 |
 | 9c-A | Inventario: BD + formulario descuentos/is_new | ✅ DONE | 2026-02-27 | 4001f88 |
 | 9c-B | Inventario: Upload múltiples imágenes | ✅ DONE | 2026-02-27 | 9a330bc |
 | 9c-C | Create form parity + is_featured | ✅ DONE | 2026-02-26 | 5bdab26 |
