@@ -466,7 +466,7 @@ export default function PedidosClient({
   const monthRevenue = orders
     .filter(
       (o) =>
-        o.status === "completed" && new Date(o.created_at) >= startOfMonth
+        ["completed", "entregado"].includes(o.status) && new Date(o.created_at) >= startOfMonth
     )
     .reduce((sum, o) => sum + o.total, 0);
 

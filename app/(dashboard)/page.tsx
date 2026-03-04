@@ -12,6 +12,9 @@ import {
   Banknote,
   QrCode,
   ShoppingBag,
+  Globe,
+  Store,
+  Lock,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -107,7 +110,7 @@ export default async function DashboardPage() {
     productsResult,
     inventoryResult,
     salesTodayResult,
-    lowStockResult,
+    reservedStockResult,
     recentSalesResult,
   ] = await Promise.all([
     // Total products
@@ -117,35 +120,25 @@ export default async function DashboardPage() {
       .eq("organization_id", orgId)
       .eq("is_active", true),
 
-    // Total stock (sum of all inventory)
+    // Total stock and global low stock logic
     supabase
       .from("inventory")
-      .select("quantity, product_id, products!inner(organization_id)")
+      .select("quantity, product_id, size, min_stock, products!inner(id, name, sku, organization_id)")
       .eq("products.organization_id", orgId),
 
     // Today's sales
     supabase
       .from("sales")
-      .select("total")
+      .select("total, canal")
       .eq("organization_id", orgId)
       .gte("created_at", todayStart.toISOString()),
 
-    // Low stock products
+    // Reserved stock
     supabase
-      .from("inventory")
-      .select(
-        `
-        quantity,
-        min_stock,
-        location_id,
-        locations(name),
-        products!inner(id, name, sku, organization_id)
-      `
-      )
-      .eq("products.organization_id", orgId)
-      .lt("quantity", LOW_STOCK_THRESHOLD)
-      .order("quantity", { ascending: true })
-      .limit(10),
+      .from("order_items")
+      .select("quantity, orders!inner(organization_id, status)")
+      .eq("orders.organization_id", orgId)
+      .in("orders.status", ["pending", "preparando", "en_camino"]),
 
     // Last 5 sales
     supabase
@@ -173,18 +166,40 @@ export default async function DashboardPage() {
 
   const totalProducts = productsResult.count || 0;
 
-  const totalStock =
-    inventoryResult.data?.reduce(
-      (sum, item) => sum + (item.quantity || 0),
-      0
-    ) || 0;
+  let totalStock = 0;
+  const globalStockMap = new Map<string, { product: any; totalQty: number; criticalSizes: string[] }>();
 
-  const salesTodayTotal =
-    salesTodayResult.data?.reduce((sum, sale) => sum + sale.total, 0) || 0;
-  const salesTodayCount = salesTodayResult.data?.length || 0;
+  inventoryResult.data?.forEach((item) => {
+    const qty = item.quantity || 0;
+    totalStock += qty;
 
-  const lowStockCount = lowStockResult.data?.length || 0;
-  const lowStockItems = lowStockResult.data || [];
+    const pid = item.product_id;
+    if (!globalStockMap.has(pid)) {
+      globalStockMap.set(pid, { product: item.products, totalQty: 0, criticalSizes: [] });
+    }
+    const productStats = globalStockMap.get(pid)!;
+    productStats.totalQty += qty;
+
+    if (qty <= 3 && item.size) {
+      if (!productStats.criticalSizes.includes(item.size)) {
+        productStats.criticalSizes.push(item.size);
+      }
+    }
+  });
+
+  const lowStockItems = Array.from(globalStockMap.values())
+    .filter((p) => p.totalQty < LOW_STOCK_THRESHOLD)
+    .sort((a, b) => a.totalQty - b.totalQty);
+  const lowStockCount = lowStockItems.length;
+
+  const salesTodayOnline = salesTodayResult.data?.filter(s => s.canal !== "fisico").reduce((sum, sale) => sum + sale.total, 0) || 0;
+  const salesTodayOnlineCount = salesTodayResult.data?.filter(s => s.canal !== "fisico").length || 0;
+
+  const salesTodayFisico = salesTodayResult.data?.filter(s => s.canal === "fisico").reduce((sum, sale) => sum + sale.total, 0) || 0;
+  const salesTodayFisicoCount = salesTodayResult.data?.filter(s => s.canal === "fisico").length || 0;
+
+  const reservedStock = reservedStockResult.data?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+
   const recentSales = recentSalesResult.data || [];
 
   return (
@@ -198,7 +213,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
         <StatsCard
           title="Total Productos"
           value={formatNumber(totalProducts)}
@@ -213,12 +228,35 @@ export default async function DashboardPage() {
           subtitle="Unidades en inventario"
           delay={100}
         />
+        <div className="relative">
+          <StatsCard
+            title="Stock Reservado"
+            value={formatNumber(reservedStock)}
+            icon={Lock}
+            subtitle="Pedidos activos"
+            delay={150}
+          />
+          {reservedStock > 0 && (
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10">
+              <Badge variant="warning" className="shadow-sm whitespace-nowrap text-[10px] border border-amber-200">
+                ⚠ {formatNumber(reservedStock)} uds. bloqueadas
+              </Badge>
+            </div>
+          )}
+        </div>
         <StatsCard
-          title="Ventas Hoy"
-          value={formatCurrency(salesTodayTotal)}
-          icon={TrendingUp}
-          subtitle={`${salesTodayCount} venta${salesTodayCount !== 1 ? "s" : ""}`}
+          title="Ventas Online"
+          value={formatCurrency(salesTodayOnline)}
+          icon={Globe}
+          subtitle={`${salesTodayOnlineCount} venta${salesTodayOnlineCount !== 1 ? "s" : ""} online`}
           delay={200}
+        />
+        <StatsCard
+          title="Ventas Físico"
+          value={formatCurrency(salesTodayFisico)}
+          icon={Store}
+          subtitle={`${salesTodayFisicoCount} venta${salesTodayFisicoCount !== 1 ? "s" : ""} en tienda`}
+          delay={250}
         />
         <StatsCard
           title="Bajo Stock"
@@ -256,32 +294,46 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-zinc-200">
-              {lowStockItems.map((item: any, i: number) => {
-                const qty = item.quantity;
-                const variant =
-                  qty <= 3
-                    ? "danger"
-                    : "warning";
+              <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 px-4 py-2 bg-zinc-50 text-xs font-semibold text-zinc-500 items-center">
+                <div>Producto</div>
+                <div>SKU</div>
+                <div className="text-center">Stock Total</div>
+                <div>Tallas Críticas</div>
+                <div className="w-[60px]"></div>
+              </div>
+              {lowStockItems.map((item, i: number) => {
+                const qty = item.totalQty;
+                const variant = qty <= 3 ? "danger" : "warning";
 
                 return (
                   <div
-                    key={i}
-                    className="px-4 py-3 hover:bg-zinc-50 transition-colors flex items-center justify-between gap-3"
-                    style={{
-                      animation: `fadeIn 0.4s ease-out ${i * 0.1}s both`,
-                    }}
+                    key={item.product?.id || i}
+                    className="grid grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-center px-4 py-3 hover:bg-zinc-50 transition-colors"
+                    style={{ animation: `fadeIn 0.4s ease-out ${i * 0.1}s both` }}
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-zinc-900 truncate">
-                        {item.products?.name}
-                      </p>
-                      <p className="text-xs text-zinc-500 mt-0.5">
-                        {item.products?.sku} · {(item.locations as any)?.name || "—"}
+                    <div className="min-w-0 pr-2 flex items-center">
+                      <p className="text-[13px] font-medium text-zinc-900 truncate">
+                        {item.product?.name}
                       </p>
                     </div>
-                    <Badge variant={variant} icon>
-                      {qty} {qty === 1 ? "ud" : "uds"}
-                    </Badge>
+                    <div className="min-w-0 pr-2">
+                      <p className="text-[11px] text-zinc-500 font-mono truncate">
+                        {item.product?.sku}
+                      </p>
+                    </div>
+                    <div className="text-[13px] font-semibold text-zinc-900 text-center">
+                      {qty}
+                    </div>
+                    <div className="text-[11px] text-zinc-600 truncate flex gap-1 flex-wrap">
+                      {item.criticalSizes.length > 0 ? item.criticalSizes.map((s, idx) => (
+                        <span key={idx} className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded border border-red-100">{s}</span>
+                      )) : <span className="text-zinc-400">—</span>}
+                    </div>
+                    <div className="text-right">
+                      <Badge variant={variant} icon>
+                        {qty} uds
+                      </Badge>
+                    </div>
                   </div>
                 );
               })}

@@ -5,32 +5,33 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 11-[RPC Color Fix]
-- **Block Name:** Fix: RPC `get_available_filters_by_category` color column bug
+- **Block Number:** 16-C-1
+- **Block Name:** Dashboard + Reportes Critical Fixes
 - **Status:** DONE
-- **Started:** 2026-03-03
-- **Completed:** 2026-03-03
+- **Started:** 2026-03-04
+- **Completed:** 2026-03-04
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 11-[RPC Color Fix]
-- **Block Name:** Fix: RPC color column bug (inventory.color → products.color)
-- **Completed:** 2026-03-03
-- **Commits:** `fix(rpc): correct color column name from 'colors' to 'color'` + `fix(types): update get_available_filters_by_category return type`
+- **Block Number:** 16-C-1
+- **Block Name:** Dashboard + Reportes Critical Fixes
+- **Completed:** 2026-03-04
+- **Commits:** `fix(dashboard): stock reservado KPI, split ventas online/físico, global low stock logic, chart colors zinc/gold`
 
 ---
 
 ### Files Modified
-- `supabase/migrations/20260303220045_get_available_filters_by_category.sql` (REWRITTEN — correct column ref + RETURNS TABLE signature)
-- `types/database.types.ts` (MODIFIED — precise return type instead of Json)
+- `app/(dashboard)/page.tsx` (MODIFIED — added Stock Reservado KPI, split Ventas Hoy into Online/Físico, refactored Bajo Stock to use global product stock with size critical badges)
+- `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED — fixed "Ventas del Mes" logic to check for "entregado" as well as "completed")
+- `app/(dashboard)/reportes/reports-client.tsx` (MODIFIED — updated chart colors to use slate/gold for Físico and Online proportions, removed black bars)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 19+
-- **Migrations Applied (14):** Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners. Fixed `discount_type` missing in insert payload. Applied `update_inventory_allocation_priority` for P1->P2->P3->Bodega cascading logic.
+- **Migrations Applied (15):** Overwritten `get_available_filters_by_category` RPC. Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners. Fixed `discount_type` missing in insert payload. Applied `update_inventory_allocation_priority` for P1->P2->P3->Bodega cascading logic.
 - **Types Regenerated:** Yes (Generated locally via Supabase MCP `generate_typescript_types`).
 
 ---
@@ -59,6 +60,7 @@
 | Block | Name | Status | Date | Commit |
 |---|---|---|---|---|
 | 1to8 | Fundamentals (Roles to Reports) | ✅ DONE | Feb 2026 | — |
+| 16-C-1 | Dashboard + Reportes Critical Fixes | ✅ DONE | 2026-03-04 | TBD |
 | 9c-A | Inventario: BD + formulario descuentos/is_new | ✅ DONE | 2026-02-27 | 4001f88 |
 | 9c-B | Inventario: Upload múltiples imágenes | ✅ DONE | 2026-02-27 | 9a330bc |
 | 9c-C | Create form parity + is_featured | ✅ DONE | 2026-02-26 | 5bdab26 |

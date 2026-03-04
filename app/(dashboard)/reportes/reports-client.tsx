@@ -297,11 +297,8 @@ export default function ReportesVentasClient({
   }, [onlineRevenue, fisicoRevenue]);
 
   const DONUT_COLORS = [
-    'var(--color-zinc-900)',
-    'var(--color-zinc-700)',
-    'var(--color-zinc-500)',
-    'var(--color-zinc-300)',
-    'var(--color-gold-500)'
+    '#6B7280', // Online
+    '#D4AF37', // Físico
   ];
 
   // ── Daily table ────────────────────────────────────────────────────────────
@@ -647,7 +644,7 @@ export default function ReportesVentasClient({
                 content={<BarTooltip />}
               />
               <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
-              <Bar dataKey="Online" stackId="a" fill="var(--color-zinc-800)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="Online" stackId="a" fill="#374151" radius={[0, 0, 0, 0]} />
               <Bar dataKey="Físico" stackId="a" fill="var(--color-gold-500)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
