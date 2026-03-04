@@ -5,8 +5,8 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 16-C-2
-- **Block Name:** Inventory UX Improvements
+- **Block Number:** 16-C-3
+- **Block Name:** Marketing + Users Module Fixes
 - **Status:** DONE
 - **Started:** 2026-03-04
 - **Completed:** 2026-03-04
@@ -14,22 +14,17 @@
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 16-C-2
-- **Block Name:** Inventory UX Improvements
+- **Block Number:** 16-C-3
+- **Block Name:** Marketing + Users Module Fixes
 - **Completed:** 2026-03-04
 - **Commits:** 
-  - `feat(inventory): UX improvements — brand autocomplete, mobile polish, compact details`
+  - `feat(marketing+users): banner inline edit + reorder + validation, fix roles modal responsive`
 
 ---
 
 ### Files Modified
-- `app/(dashboard)/inventario/nuevo/page.tsx` (MODIFIED — added datalist brand fetching)
-- `app/(dashboard)/inventario/[id]/page.tsx` (MODIFIED — added datalist brand fetching)
-- `app/(dashboard)/inventario/nuevo/new-product-form.tsx` (MODIFIED — fixed stock placeholder 0, brand auto-complete)
-- `app/(dashboard)/inventario/[id]/edit-product-form.tsx` (MODIFIED — fixed stock placeholder 0, brand auto-complete)
-- `app/(dashboard)/inventario/inventory-client.tsx` (MODIFIED — hidden columns on mobile screen)
-- `components/dashboard/TopBar.tsx` (MODIFIED — padded title to fix mobile hamburger overlap)
-- `components/ui/ProductQuickView.tsx` (MODIFIED — made UI more compact, removed redundant low stock warnings)
+- `app/(dashboard)/configuracion/usuarios/usuarios-client.tsx` (MODIFIED — refactored role selection to responsive fixed modal)
+- `components/marketing/BannersManager.tsx` (MODIFIED — added inline editing, file validation and reordering)
 
 ---
 
@@ -66,7 +61,8 @@
 |---|---|---|---|---|
 | 1to8 | Fundamentals (Roles to Reports) | ✅ DONE | Feb 2026 | — |
 | 16-C-1 | Dashboard + Reportes Critical Fixes | ✅ DONE | 2026-03-04 | TBD |
-| 16-C-2 | Inventory UX Improvements | ✅ DONE | 2026-03-04 | TBD |
+| 16-C-2 | Inventory UX Improvements | ✅ DONE | 2026-03-04 | 01d905d |
+| 16-C-3 | Marketing + Users Module Fixes | ✅ DONE | 2026-03-04 | TBD |
 | 9c-A | Inventario: BD + formulario descuentos/is_new | ✅ DONE | 2026-02-27 | 4001f88 |
 | 9c-B | Inventario: Upload múltiples imágenes | ✅ DONE | 2026-02-27 | 9a330bc |
 | 9c-C | Create form parity + is_featured | ✅ DONE | 2026-02-26 | 5bdab26 |

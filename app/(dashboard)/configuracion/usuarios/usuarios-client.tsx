@@ -317,22 +317,20 @@ export default function UsuariosClient({
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab("usuarios")}
-            className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-all ${
-              activeTab === "usuarios"
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-all ${activeTab === "usuarios"
                 ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <Users className="w-4 h-4" />
             Usuarios
           </button>
           <button
             onClick={() => setActiveTab("solicitudes")}
-            className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-all ${
-              activeTab === "solicitudes"
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-all ${activeTab === "solicitudes"
                 ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             Solicitudes de Acceso
             {pendingCount > 0 && (
@@ -467,11 +465,10 @@ export default function UsuariosClient({
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                                user.is_active
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${user.is_active
                                   ? "bg-green-50 text-green-700 border-green-200"
                                   : "bg-red-50 text-red-700 border-red-200"
-                              }`}
+                                }`}
                             >
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${user.is_active ? "bg-green-500" : "bg-red-500"}`}
@@ -493,15 +490,15 @@ export default function UsuariosClient({
                                     openRoleDropdown === user.id
                                       ? setOpenRoleDropdown(null)
                                       : (() => {
-                                          setOpenRoleDropdown(user.id);
-                                          setPendingRole((prev) => ({
-                                            ...prev,
-                                            [user.id]: user.role as
-                                              | "admin"
-                                              | "manager"
-                                              | "staff",
-                                          }));
-                                        })();
+                                        setOpenRoleDropdown(user.id);
+                                        setPendingRole((prev) => ({
+                                          ...prev,
+                                          [user.id]: user.role as
+                                            | "admin"
+                                            | "manager"
+                                            | "staff",
+                                        }));
+                                      })();
                                   }}
                                   disabled={
                                     loadingAction === `role-${user.id}` ||
@@ -512,59 +509,104 @@ export default function UsuariosClient({
                                       ? "No puedes modificar tu propio rol"
                                       : "Cambiar rol"
                                   }
-                                  className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                                    user.id === currentUserId
+                                  className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${user.id === currentUserId
                                       ? "text-gray-300 cursor-not-allowed"
                                       : "text-blue-600 hover:bg-blue-50"
-                                  }`}
+                                    }`}
                                 >
                                   <RefreshCw
                                     className={`w-4 h-4 ${loadingAction === `role-${user.id}` ? "animate-spin" : ""}`}
                                   />
                                 </button>
                                 {openRoleDropdown === user.id && (
-                                  <div className="absolute left-0 top-full mt-1 z-20 bg-white border-2 border-gray-200 rounded-xl shadow-lg p-2 min-w-[160px]">
-                                    <p className="text-xs font-semibold text-gray-500 px-2 pb-2 uppercase tracking-wide">
-                                      Seleccionar rol
-                                    </p>
-                                    {(
-                                      ["admin", "manager", "staff"] as const
-                                    ).map((r) => (
-                                      <button
-                                        key={r}
-                                        onClick={() =>
-                                          setPendingRole((prev) => ({
-                                            ...prev,
-                                            [user.id]: r,
-                                          }))
-                                        }
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                          pendingRole[user.id] === r
-                                            ? "bg-blue-50 text-blue-700"
-                                            : "text-gray-700 hover:bg-gray-50"
-                                        }`}
-                                      >
-                                        {roleLabels[r]}
-                                      </button>
-                                    ))}
-                                    <div className="border-t border-gray-100 mt-2 pt-2 flex gap-1">
-                                      <button
-                                        onClick={() => handleRoleChange(user.id)}
-                                        disabled={
-                                          pendingRole[user.id] === user.role
-                                        }
-                                        className="flex-1 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                      >
-                                        Confirmar
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          setOpenRoleDropdown(null)
-                                        }
-                                        className="flex-1 py-1.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-                                      >
-                                        Cancelar
-                                      </button>
+                                  <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+                                    {/* Backdrop */}
+                                    <div
+                                      className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+                                      onClick={() => setOpenRoleDropdown(null)}
+                                    />
+
+                                    {/* Modal Panel */}
+                                    <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
+                                      {/* Modal Header */}
+                                      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                                        <h3 className="text-lg font-bold text-gray-900">
+                                          Cambiar Rol
+                                        </h3>
+                                        <button
+                                          onClick={() => setOpenRoleDropdown(null)}
+                                          className="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-500"
+                                        >
+                                          <X className="w-5 h-5" />
+                                        </button>
+                                      </div>
+
+                                      {/* Modal Body */}
+                                      <div className="p-6 overflow-y-auto overflow-x-hidden">
+                                        <div className="mb-6">
+                                          <p className="text-sm text-gray-500 mb-4">
+                                            Selecciona el nuevo nivel de acceso para{" "}
+                                            <span className="font-bold text-gray-900">
+                                              {user.full_name}
+                                            </span>
+                                          </p>
+                                          <div className="flex flex-wrap gap-2 sm:gap-3">
+                                            {(
+                                              ["admin", "manager", "staff"] as const
+                                            ).map((r) => (
+                                              <button
+                                                key={r}
+                                                onClick={() =>
+                                                  setPendingRole((prev) => ({
+                                                    ...prev,
+                                                    [user.id]: r,
+                                                  }))
+                                                }
+                                                className={`flex-1 min-w-[120px] px-4 py-3 rounded-xl text-sm font-semibold transition-all border-2 text-center ${pendingRole[user.id] === r
+                                                  ? "bg-blue-50 border-blue-600 text-blue-700 ring-4 ring-blue-50"
+                                                  : "bg-white border-gray-100 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                                                  }`}
+                                              >
+                                                {roleLabels[r]}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+
+                                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+                                          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                                            <KeyRound className="w-4 h-4 text-amber-600" />
+                                          </div>
+                                          <p className="text-xs text-amber-800 leading-relaxed">
+                                            Asegúrate de que el usuario necesite estos permisos. Los cambios se aplican de inmediato en su próxima sesión.
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Modal Footer */}
+                                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+                                        <button
+                                          onClick={() => handleRoleChange(user.id)}
+                                          disabled={
+                                            pendingRole[user.id] === user.role ||
+                                            loadingAction === `role-${user.id}`
+                                          }
+                                          className="flex-1 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
+                                        >
+                                          {loadingAction === `role-${user.id}` ? (
+                                            <RefreshCw className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <Check className="w-4 h-4" />
+                                          )}
+                                          Guardar Cambios
+                                        </button>
+                                        <button
+                                          onClick={() => setOpenRoleDropdown(null)}
+                                          className="flex-1 py-3 bg-white border-2 border-gray-200 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                                        >
+                                          Cancelar
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -731,7 +773,7 @@ export default function UsuariosClient({
                                           onClick={() => handleReject(req.id)}
                                           disabled={
                                             loadingAction ===
-                                              `reject-${req.id}` || isPending
+                                            `reject-${req.id}` || isPending
                                           }
                                           className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                         >
@@ -836,12 +878,11 @@ export default function UsuariosClient({
                                               },
                                             }))
                                           }
-                                          className={`w-full px-2 py-1.5 border-2 rounded-lg text-xs focus:ring-1 outline-none transition-all bg-white ${
-                                            approvalForm.role === "staff" &&
-                                            !approvalForm.locationId
+                                          className={`w-full px-2 py-1.5 border-2 rounded-lg text-xs focus:ring-1 outline-none transition-all bg-white ${approvalForm.role === "staff" &&
+                                              !approvalForm.locationId
                                               ? "border-amber-300 focus:border-amber-500 focus:ring-amber-200"
                                               : "border-gray-200 focus:border-green-500 focus:ring-green-200"
-                                          }`}
+                                            }`}
                                         >
                                           <option value="">
                                             {approvalForm.role === "staff"
@@ -912,7 +953,7 @@ export default function UsuariosClient({
                                           }
                                           disabled={
                                             loadingAction ===
-                                              `approve-${req.id}` ||
+                                            `approve-${req.id}` ||
                                             isPending ||
                                             !approvalForm.password.trim() ||
                                             (approvalForm.role === "staff" &&
@@ -922,7 +963,7 @@ export default function UsuariosClient({
                                         >
                                           <KeyRound className="w-3.5 h-3.5" />
                                           {loadingAction ===
-                                          `approve-${req.id}`
+                                            `approve-${req.id}`
                                             ? "Creando..."
                                             : "Confirmar y Crear Usuario"}
                                         </button>

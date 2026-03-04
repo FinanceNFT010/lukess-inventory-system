@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Trash2, Plus, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Trash2, Plus, Image as ImageIcon, Loader2, Pencil, ChevronUp, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface Banner {
@@ -41,6 +41,19 @@ export function BannersManager(): React.JSX.Element {
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
         if (!e.target.files || e.target.files.length === 0) return;
         const file = e.target.files[0];
+
+        // 2B: Validation
+        const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+        if (file.size > MAX_SIZE) {
+            toast.error("Imagen máx 2MB");
+            return;
+        }
+
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error("Formato no permitido. Usa JPG, PNG, WebP o GIF");
+            return;
+        }
 
         const fileExt = file.name.split(".").pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -105,6 +118,37 @@ export function BannersManager(): React.JSX.Element {
         }
     };
 
+    const updateBannerField = async (id: string, field: "title" | "link", value: string): Promise<void> => {
+        const { error } = await supabase
+            .from("banners")
+            .update({ [field]: value })
+            .eq("id", id);
+
+        if (error) {
+            toast.error("Error al actualizar");
+        } else {
+            setBanners(banners.map(b => b.id === id ? { ...b, [field]: value } : b));
+        }
+    };
+
+    const moveBanner = async (index: number, direction: "up" | "down"): Promise<void> => {
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= banners.length) return;
+
+        const currentBanner = banners[index];
+        const targetBanner = banners[targetIndex];
+
+        // Swap display_order
+        const { error } = await supabase.from("banners").update({ display_order: targetBanner.display_order }).eq("id", currentBanner.id);
+        const { error: error2 } = await supabase.from("banners").update({ display_order: currentBanner.display_order }).eq("id", targetBanner.id);
+
+        if (error || error2) {
+            toast.error("Error al reordenar");
+        } else {
+            fetchBanners();
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center p-12">
@@ -144,7 +188,7 @@ export function BannersManager(): React.JSX.Element {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {banners.map((banner) => (
+                    {banners.map((banner, index) => (
                         <div key={banner.id} className="group relative bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
                             <div className="aspect-[21/9] bg-zinc-100 relative">
                                 <img
@@ -153,6 +197,24 @@ export function BannersManager(): React.JSX.Element {
                                     className="w-full h-full object-cover"
                                 />
                                 <div className="absolute top-2 right-2 flex gap-2">
+                                    <div className="flex bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-zinc-200 overflow-hidden">
+                                        <button
+                                            disabled={index === 0}
+                                            onClick={() => moveBanner(index, "up")}
+                                            className="p-1.5 hover:bg-zinc-100 text-zinc-600 disabled:opacity-30 transition-colors border-r border-zinc-200"
+                                            title="Subir"
+                                        >
+                                            <ChevronUp className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            disabled={index === banners.length - 1}
+                                            onClick={() => moveBanner(index, "down")}
+                                            className="p-1.5 hover:bg-zinc-100 text-zinc-600 disabled:opacity-30 transition-colors"
+                                            title="Bajar"
+                                        >
+                                            <ChevronDown className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                     <button
                                         onClick={() => toggleActive(banner.id, banner.is_active)}
                                         className={`px-2 py-1 text-xs font-bold rounded-full ${banner.is_active
@@ -170,9 +232,29 @@ export function BannersManager(): React.JSX.Element {
                                     </button>
                                 </div>
                             </div>
-                            <div className="p-4">
-                                <p className="font-bold text-zinc-900">{banner.title}</p>
-                                <p className="text-sm text-zinc-500 font-medium truncate">{banner.link}</p>
+                            <div className="p-4 space-y-3">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-zinc-400 group/title">
+                                        <Pencil className="w-3 h-3 group-focus-within/title:text-gold-500" />
+                                        <input
+                                            type="text"
+                                            defaultValue={banner.title || ""}
+                                            onBlur={(e) => updateBannerField(banner.id, "title", e.target.value)}
+                                            placeholder="Título del banner"
+                                            className="w-full border-0 border-b border-zinc-100 focus:border-gold-500 bg-transparent outline-none text-sm font-bold text-zinc-900 placeholder:font-normal placeholder:text-zinc-400 py-0.5 transition-colors"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2 text-zinc-400 group/link">
+                                        <Pencil className="w-3 h-3 group-focus-within/link:text-gold-500" />
+                                        <input
+                                            type="text"
+                                            defaultValue={banner.link || ""}
+                                            onBlur={(e) => updateBannerField(banner.id, "link", e.target.value)}
+                                            placeholder="Enlace (ej: /catalogo)"
+                                            className="w-full border-0 border-b border-zinc-100 focus:border-gold-500 bg-transparent outline-none text-xs text-zinc-500 font-medium py-0.5 transition-colors"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ))}
