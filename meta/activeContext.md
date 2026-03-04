@@ -22,6 +22,7 @@
   - `fix(dashboard): reserved stock query + normalize chart colors to CHART_COLORS`
   - `fix: robust reserved stock query and normalize chart colors`
   - `fix(dashboard): auto-discovered correct order status values for reserved stock`
+  - `fix(dashboard): remove org filter from reserved stock to include landing orders`
 
 ---
 

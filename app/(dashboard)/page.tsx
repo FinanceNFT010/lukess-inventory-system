@@ -134,13 +134,14 @@ export default async function DashboardPage() {
       .gte("created_at", todayStart.toISOString()),
 
     // Reserved stock
+    // TODO: Restore organization_id filter once landing page order creation is fixed
+    // Currently excluding filter to include pending orders from landing (org_id = null)
     supabase
       .from("order_items")
       .select(`
         quantity,
-        orders!inner(organization_id, status)
+        orders!inner(status)
       `)
-      .eq("orders.organization_id", orgId)
       .eq("orders.status", "pending"),
 
     // Last 5 sales
