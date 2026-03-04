@@ -1118,8 +1118,8 @@ export type Database = {
         Returns: undefined
       }
       get_available_filters_by_category: {
-        Args: { p_category_name: string }
-        Returns: Json
+        Args: { p_category: string | null }
+        Returns: { brands: string[]; colors: string[]; sizes: string[] }[]
       }
       get_user_location_id: { Args: never; Returns: string }
       get_user_org_id: { Args: never; Returns: string }
