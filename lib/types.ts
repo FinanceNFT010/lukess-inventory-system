@@ -632,18 +632,18 @@ export const ORDER_STATUS_CONFIG: Record<
   }
 > = {
   pending: {
-    label: "Pendiente",
+    label: "Validando Pago (QR/Transfer)",
     color: "text-amber-700",
     bgColor: "bg-amber-50",
     borderColor: "border-amber-200",
     icon: "🕐",
   },
   pending_payment: {
-    label: "Pago pendiente",
+    label: "Reserva Activa (Pagar en Puesto)",
     color: "text-orange-700",
     bgColor: "bg-orange-50",
     borderColor: "border-orange-200",
-    icon: "💳",
+    icon: "🏦",
   },
   reserved: {
     label: "Pago pendiente",

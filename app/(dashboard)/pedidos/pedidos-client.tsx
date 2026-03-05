@@ -776,38 +776,79 @@ export default function PedidosClient({
           ) : (
             filteredOrders.map((order) => {
               const config = ORDER_STATUS_CONFIG[order.status as OrderStatus];
-              const isPending = order.status === "pending" || order.status === "reserved";
+              const isPending = order.status === "pending" || order.status === "reserved" || order.status === "pending_payment";
               const itemsCount = order.order_items?.length ?? 0;
               const itemsSummary = getItemsSummary(order);
               const isConfirming = confirmingId === order.id;
               const quickAction = QUICK_ACTIONS[order.status as OrderStatus];
 
+              // ── Delivery type badge ───────────────────────────────────────
+              const deliveryMethod = (order as { delivery_method?: string | null }).delivery_method
+              const paymentMethod = (order as { payment_method?: string | null }).payment_method
+              let deliveryBadge: { icon: string; label: string; className: string } | null = null
+              if (deliveryMethod === 'delivery') {
+                deliveryBadge = { icon: '🚚', label: 'Delivery', className: 'bg-blue-50 text-blue-700 border-blue-200' }
+              } else if (deliveryMethod === 'pickup' && paymentMethod === 'qr') {
+                deliveryBadge = { icon: '📱', label: 'Retiro · QR', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
+              } else if (deliveryMethod === 'pickup' && (paymentMethod === 'cash_on_pickup' || paymentMethod === 'efectivo' || paymentMethod === 'cash')) {
+                deliveryBadge = { icon: '🏪', label: 'Retiro · Pago en Puesto', className: 'bg-violet-50 text-violet-700 border-violet-200' }
+              } else if (deliveryMethod === 'pickup') {
+                deliveryBadge = { icon: '🏪', label: 'Retiro en Tienda', className: 'bg-violet-50 text-violet-700 border-violet-200' }
+              }
+
+              // ── 48h countdown for pending_payment + cash_on_pickup ────────
+              let countdownBadge: string | null = null
+              if (
+                order.status === 'pending_payment' &&
+                (paymentMethod === 'cash_on_pickup' || paymentMethod === 'efectivo' || paymentMethod === 'cash')
+              ) {
+                const createdAt = new Date(order.created_at).getTime()
+                const expiresAt = createdAt + 48 * 3600 * 1000
+                const remaining = expiresAt - Date.now()
+                if (remaining > 0) {
+                  const hh = Math.floor(remaining / 3600000)
+                  const mm = Math.floor((remaining % 3600000) / 60000)
+                  countdownBadge = `⏰ Expira en ${hh}h ${mm}m`
+                } else {
+                  countdownBadge = '⚠️ Reserva expirada'
+                }
+              }
+
               return (
                 <div
                   key={order.id}
-                  className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                  className={`bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow ${deliveryMethod === 'pickup' ? 'border-violet-200' : 'border-zinc-200'
+                    }`}
                 >
+                  {/* Header row */}
                   <div className="flex justify-between items-start border-b border-zinc-100 pb-3 mb-3">
-                    <div>
-                      <span className="text-xs font-mono text-zinc-500">
-                        #{order.id.slice(0, 8).toUpperCase()}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-zinc-500">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </span>
+                        {deliveryBadge && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border ${deliveryBadge.className}`}>
+                            {deliveryBadge.icon} {deliveryBadge.label}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-medium text-zinc-900 mt-1">
                         {order.customer_name}
                       </h3>
-                      <p className="text-xs text-zinc-500 mt-1">
+                      <p className="text-xs text-zinc-500 mt-0.5">
                         📱 {order.customer_phone}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end gap-1.5">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-3">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         {isPending && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
-                            ⚠ Requiere atención
+                            ⚠ Atención
                           </span>
                         )}
                         <Badge variant={getBadgeVariant(order.status as OrderStatus)} icon>
-                          {config.label}
+                          {config?.label ?? order.status}
                         </Badge>
                       </div>
                       <span className="text-xs text-zinc-400 font-medium">
@@ -816,7 +857,20 @@ export default function PedidosClient({
                     </div>
                   </div>
 
-                  <div className="space-y-2 mb-4 text-sm text-zinc-600">
+                  {/* 48h countdown */}
+                  {countdownBadge && (
+                    <div className="mb-3">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border ${countdownBadge.startsWith('⚠️')
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                        {countdownBadge}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Info rows */}
+                  <div className="space-y-1.5 mb-4 text-sm text-zinc-600">
                     <div className="flex justify-between">
                       <span>Artículos:</span>
                       <span className="font-medium text-zinc-900 line-clamp-1 flex-1 text-right ml-4">
@@ -830,18 +884,35 @@ export default function PedidosClient({
                     </div>
                   </div>
 
+                  {/* Footer: amount + actions */}
                   <div className="flex justify-between items-center pt-3 border-t border-zinc-100">
                     <div className="flex flex-col">
                       <span className="text-lg font-bold text-zinc-900">
                         Bs. {formatCurrency(order.total)}
                       </span>
-                      {order.discount_amount ? (
+                      {(order.discount_amount ?? 0) > 0 ? (
                         <span className="text-xs text-amber-600 font-medium">
-                          Desc: -Bs. {formatCurrency(order.discount_amount)}
+                          Desc: -Bs. {formatCurrency(order.discount_amount ?? 0)}
                         </span>
                       ) : null}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {/* Receipt link */}
+                      {(order as { payment_receipt_url?: string | null }).payment_receipt_url && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            const { getReceiptSignedUrl } = await import('./actions')
+                            const result = await getReceiptSignedUrl(
+                              (order as { payment_receipt_url: string }).payment_receipt_url
+                            )
+                            if ('signedUrl' in result) window.open(result.signedUrl, '_blank')
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                        >
+                          📎 Comprobante
+                        </button>
+                      )}
                       {quickAction && canChangeStatus && (
                         <Button
                           variant="secondary"
@@ -873,6 +944,7 @@ export default function PedidosClient({
                 </div>
               );
             })
+
           )}
         </div>
       </div>

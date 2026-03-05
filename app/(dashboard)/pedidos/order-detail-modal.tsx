@@ -573,10 +573,10 @@ export default function OrderDetailModal({
 
             {/* TOTALS */}
             <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Resumen</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Resumen del cobro</h3>
               <div className="flex justify-between text-sm text-gray-600">
-                <span>Subtotal</span>
-                <span>Bs {formatCurrency(order.subtotal)}</span>
+                <span>Subtotal productos</span>
+                <span className="font-medium text-gray-800">Bs {formatCurrency(order.subtotal)}</span>
               </div>
               {/* Descuento */}
               {(() => {
@@ -584,7 +584,7 @@ export default function OrderDetailModal({
                 if (discountValue > 0) {
                   return (
                     <div className="flex justify-between text-sm font-semibold text-red-600">
-                      <span>Descuento Aplicado {order.discount_code_id ? '🎟️' : ''}</span>
+                      <span>🎟️ Descuento{order.discount_code_id ? ' (código)' : ''}</span>
                       <span>-Bs {formatCurrency(discountValue)}</span>
                     </div>
                   );
@@ -593,17 +593,18 @@ export default function OrderDetailModal({
               })()}
               {/* Envío */}
               {(order.shipping_cost ?? 0) > 0 && (
-                <div className="flex justify-between text-sm text-zinc-500">
-                  <span>Costo de Envío 🚚</span>
+                <div className="flex justify-between text-sm text-zinc-600">
+                  <span>🚚 Costo de Envío</span>
                   <span>+Bs {formatCurrency(order.shipping_cost!)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>💳 {order.payment_method}</span>
+              <div className="flex justify-between text-sm text-gray-500 border-t border-gray-100 pt-1">
+                <span>Método de pago</span>
+                <span className="font-medium text-gray-700">💳 {order.payment_method ?? '—'}</span>
               </div>
-              <div className="border-t border-gray-200 pt-2 flex justify-between">
-                <span className="font-bold text-gray-900">TOTAL</span>
-                <span className="text-xl font-bold text-gray-900">Bs {formatCurrency(order.total)}</span>
+              <div className="border-t border-gray-300 pt-2 flex justify-between items-center mt-1">
+                <span className="text-base font-bold text-gray-900">TOTAL A COBRAR</span>
+                <span className="text-2xl font-bold text-gray-900">Bs {formatCurrency(order.total)}</span>
               </div>
             </div>
 
