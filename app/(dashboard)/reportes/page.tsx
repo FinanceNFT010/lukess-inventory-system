@@ -171,18 +171,40 @@ export default async function ReportesPage({
     orderIds.length > 0
       ? supabase
         .from("order_items")
-        .select("product_id, quantity, subtotal, products(id, name, category_id, categories(name))")
+        .select("product_id, quantity, subtotal, order_id, products(id, name, category_id, categories(name))")
         .in("order_id", orderIds)
       : Promise.resolve({ data: [] }),
     salesIds.length > 0
       ? supabase
         .from("sale_items")
-        .select("product_id, quantity, subtotal, products(id, name, category_id, categories(name))")
+        .select("product_id, quantity, subtotal, sale_id, products(id, name, category_id, categories(name))")
         .in("sale_id", salesIds)
       : Promise.resolve({ data: [] })
   ]);
 
-  const combinedItems = [...(orderItemsRaw ?? []), ...(saleItemsRaw ?? [])];
+  const orderMap = new Map((currentOrdersRaw ?? []).map((o) => [o.id, o]));
+  const saleMap = new Map((currentSalesRaw ?? []).map((s) => [s.id, s]));
+
+  const combinedItems = [
+    ...(orderItemsRaw ?? []).map((item) => {
+      const order = orderMap.get(item.order_id);
+      let net_subtotal = item.subtotal;
+      if (order && order.subtotal > 0 && order.total < order.subtotal) {
+        const ratio = order.total / order.subtotal;
+        net_subtotal = item.subtotal * ratio;
+      }
+      return { ...item, net_subtotal };
+    }),
+    ...(saleItemsRaw ?? []).map((item) => {
+      const sale = saleMap.get(item.sale_id);
+      let net_subtotal = item.subtotal;
+      if (sale && sale.subtotal > 0 && sale.total < sale.subtotal) {
+        const ratio = sale.total / sale.subtotal;
+        net_subtotal = item.subtotal * ratio;
+      }
+      return { ...item, net_subtotal };
+    }),
+  ];
 
   // Deduplicate recently sold product IDs
   const recentlySoldProductIds = [

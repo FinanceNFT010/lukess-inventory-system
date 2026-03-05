@@ -63,6 +63,7 @@ interface OrderItemRow {
   product_id: string;
   quantity: number;
   subtotal: number;
+  net_subtotal?: number;
   products: {
     id: string;
     name: string;
@@ -359,7 +360,7 @@ export default function ReportesVentasClient({
         };
       }
       map[pid].units += item.quantity;
-      map[pid].revenue += item.subtotal;
+      map[pid].revenue += (item.net_subtotal ?? item.subtotal);
     });
     return Object.entries(map)
       .sort(([, a], [, b]) => b.units - a.units)
@@ -373,7 +374,7 @@ export default function ReportesVentasClient({
     const map: Record<string, number> = {};
     orderItems.forEach((item) => {
       const cat = item.products?.categories?.name ?? "Sin categoría";
-      map[cat] = (map[cat] ?? 0) + item.subtotal;
+      map[cat] = (map[cat] ?? 0) + (item.net_subtotal ?? item.subtotal);
     });
     return Object.entries(map)
       .sort(([, a], [, b]) => b - a)

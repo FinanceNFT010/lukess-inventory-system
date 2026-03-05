@@ -5,21 +5,19 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-A-4.2
-- **Block Name:** Auto-trigger pickup flow emails
+- **Block Number:** 2 (Fix)
+- **Block Name:** Inventory System Order UI Improvements
 - **Status:** DONE
-- **Started:** 2026-03-05
 - **Completed:** 2026-03-05
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-A-4.2
-- **Block Name:** Auto-trigger pickup flow emails
+- **Block Number:** 2 (Fix)
+- **Block Name:** Inventory System Order UI Improvements
 - **Completed:** 2026-03-05
 - **Commits:**
-  - `feat(orders): auto-trigger pickup status emails from dashboard`
-  - `fix(orders): handle null payment_method in client filters` (Hotfix for production crash)
+  - `fix(admin): improve order UI, add pickup badges, countdown and receipt link`
 
 ---
 
