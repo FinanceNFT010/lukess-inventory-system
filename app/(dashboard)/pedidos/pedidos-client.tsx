@@ -138,6 +138,7 @@ export default function PedidosClient({
   userRole,
 }: PedidosClientProps) {
   const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
+  const [deliveryTab, setDeliveryTab] = useState<"delivery" | "pickup">("delivery");
   const [activeTab, setActiveTab] = useState<"all" | OrderStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
@@ -475,6 +476,12 @@ export default function PedidosClient({
   const filteredOrders = useMemo(() => {
     let result = [...orders];
 
+    if (deliveryTab === "delivery") {
+      result = result.filter((o) => o.delivery_method === "delivery");
+    } else if (deliveryTab === "pickup") {
+      result = result.filter((o) => o.delivery_method === "pickup");
+    }
+
     if (activeTab !== "all") {
       result = result.filter((o) => o.status === activeTab);
     }
@@ -513,11 +520,14 @@ export default function PedidosClient({
     }
 
     return sortOrders(result, activeTab);
-  }, [orders, activeTab, searchQuery, dateFilter, paymentFilter]);
+  }, [orders, deliveryTab, activeTab, searchQuery, dateFilter, paymentFilter]);
 
   // Tab counts (apply search+date+payment, not tab itself)
   const tabCounts = useMemo(() => {
     const base = orders.filter((o) => {
+      if (deliveryTab === "delivery" && o.delivery_method !== "delivery") return false;
+      if (deliveryTab === "pickup" && o.delivery_method !== "pickup") return false;
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         if (
@@ -560,7 +570,7 @@ export default function PedidosClient({
       completed: base.filter((o) => o.status === "completed").length,
       cancelled: base.filter((o) => o.status === "cancelled").length,
     };
-  }, [orders, searchQuery, dateFilter, paymentFilter]);
+  }, [orders, deliveryTab, searchQuery, dateFilter, paymentFilter]);
 
   return (
     <div className="space-y-6">
@@ -624,6 +634,36 @@ export default function PedidosClient({
           <p className="text-sm font-semibold text-green-700">Total del mes</p>
           <p className="text-xs text-green-500 mt-0.5">Ingresos confirmados</p>
         </div>
+      </div>
+
+      {/* Delivery vs Pickup Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex -mb-px space-x-8">
+          <button
+            onClick={() => setDeliveryTab('delivery')}
+            className={`
+              py-4 px-1 border-b-2 font-medium text-sm
+              ${deliveryTab === 'delivery'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }
+            `}
+          >
+            🚚 Envíos a Domicilio ({orders.filter(o => o.delivery_method === 'delivery').length})
+          </button>
+          <button
+            onClick={() => setDeliveryTab('pickup')}
+            className={`
+              py-4 px-1 border-b-2 font-medium text-sm
+              ${deliveryTab === 'pickup'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }
+            `}
+          >
+            🏪 Retiro en Tienda ({orders.filter(o => o.delivery_method === 'pickup').length})
+          </button>
+        </nav>
       </div>
 
       {/* Filter Bar */}
@@ -861,8 +901,8 @@ export default function PedidosClient({
                   {countdownBadge && (
                     <div className="mb-3">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border ${countdownBadge.startsWith('⚠️')
-                          ? 'bg-red-50 text-red-700 border-red-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
                         {countdownBadge}
                       </span>

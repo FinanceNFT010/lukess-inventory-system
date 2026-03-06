@@ -5,27 +5,25 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 2 (Fix)
-- **Block Name:** Inventory System Order UI Improvements
+- **Block Number:** 3 (Fix)
+- **Block Name:** Reports and Discount Calculations
 - **Status:** DONE
 - **Completed:** 2026-03-05
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 2 (Fix)
-- **Block Name:** Inventory System Order UI Improvements
+- **Block Number:** 3 (Fix)
+- **Block Name:** Reports and Discount Calculations
 - **Completed:** 2026-03-05
 - **Commits:**
-  - `fix(admin): improve order UI, add pickup badges, countdown and receipt link`
+  - `fix(reports): use actual order total instead of base price to account for discounts`
 
 ---
 
 ### Files Modified
-- `app/(dashboard)/pedidos/actions.ts` (MODIFIED — Added `triggerOrderStatusEmail` hook for status updates)
-- `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED — Hotfix: handled null `payment_method` causing crash on toLowerCase)
-- `lib/utils/email-triggers.ts` (NEW — Utility for connecting to Lukess-home external API email triggers)
-- `.env.local` (MODIFIED — Added `NEXT_PUBLIC_LANDING_API_URL`)
+- `app/(dashboard)/reportes/page.tsx` (MODIFIED — Calculated proportional discount per item to reflect net revenue)
+- `app/(dashboard)/reportes/reports-client.tsx` (MODIFIED — Plumbed `net_subtotal` into `top10` and `catData` calculations)
 
 ---
 

@@ -128,43 +128,48 @@ export async function updateOrderStatus(
         .single()
 
       if (orderData) {
-        const raw = orderData as unknown as OrderQueryResult
-        const orderForEmail: OrderForEmail = {
-          id: raw.id,
-          customer_name: raw.customer_name,
-          customer_email: raw.customer_email,
-          notify_email: raw.notify_email ?? true,
-          maps_link: raw.maps_link,
-          shipping_address: raw.shipping_address,
-          shipping_cost: raw.shipping_cost ?? 0,
-          gps_distance_km: raw.gps_distance_km,
-          subtotal: raw.subtotal,
-          total: raw.total,
-          cancellationReason: cancellationReason?.trim() || undefined,
-          items: raw.order_items.map((item): OrderItemForEmail => ({
-            name: item.products?.name ?? 'Producto',
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            size: item.size,
-            color: item.color,
-          })),
-        }
-        await sendOrderStatusEmail(orderForEmail, newStatus)
+        const raw = orderData as unknown as OrderQueryResult & { delivery_method: string; payment_method: string }
 
-        if (currentOrder) {
+        // ── CRITICAL: Send ONLY ONE type of email based on delivery_method ──
+        if (raw.delivery_method === 'pickup') {
+          // PICKUP FLOW ONLY
           triggerOrderStatusEmail({
             orderId: raw.id,
             customerName: raw.customer_name,
             customerEmail: raw.customer_email || '',
             oldStatus: oldStatus || undefined,
             newStatus: newStatus,
-            deliveryMethod: currentOrder.delivery_method || 'delivery',
-            paymentMethod: currentOrder.payment_method || undefined,
-            pickupLocation: currentOrder.pickup_location || undefined,
+            deliveryMethod: raw.delivery_method,
+            paymentMethod: raw.payment_method || undefined,
+            pickupLocation: raw.pickup_location || undefined,
             cancellationReason: cancellationReason?.trim() || undefined,
-          }).catch((err) => console.error('[triggerOrderStatusEmail] Error en background:', err))
+          }).catch((err) => console.error('[triggerOrderStatusEmail] Error:', err))
+        } else {
+          // DELIVERY FLOW ONLY
+          const orderForEmail: OrderForEmail = {
+            id: raw.id,
+            customer_name: raw.customer_name,
+            customer_email: raw.customer_email,
+            notify_email: raw.notify_email ?? true,
+            maps_link: raw.maps_link,
+            shipping_address: raw.shipping_address,
+            shipping_cost: raw.shipping_cost ?? 0,
+            gps_distance_km: raw.gps_distance_km,
+            subtotal: raw.subtotal,
+            total: raw.total,
+            cancellationReason: cancellationReason?.trim() || undefined,
+            items: raw.order_items.map((item): OrderItemForEmail => ({
+              name: item.products?.name ?? 'Producto',
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              size: item.size,
+              color: item.color,
+            })),
+          }
+          await sendOrderStatusEmail(orderForEmail, newStatus)
         }
 
+        // WhatsApp (works for both)
         const orderForWhatsApp: OrderForWhatsApp = {
           id: raw.id,
           customer_name: raw.customer_name,
