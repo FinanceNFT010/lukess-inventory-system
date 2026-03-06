@@ -5,25 +5,26 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-D (Final)
-- **Block Name:** Minor Report Fixes (Discounts and Joins)
+- **Block Number:** 17-E.2
+- **Block Name:** Dynamic Discounts & WhatsApp Router Hotfixes
 - **Status:** DONE
-- **Completed:** 2026-03-05
+- **Completed:** 2026-03-06
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-D (Final)
-- **Block Name:** Minor Report Fixes (Discounts and Joins)
-- **Completed:** 2026-03-05
+- **Block Number:** 17-E.2
+- **Block Name:** Dynamic Discounts & WhatsApp Router Hotfixes
+- **Completed:** 2026-03-06
 - **Commits:**
-  - SI: `fix(reportes): remove redundant filters and fix discount calculations`
+  - SI: `feat(whatsapp): dynamic discount generation and template fixes`
 
 ---
 
 ### Files Modified
-- **SI:** `app/(dashboard)/reportes/page.tsx` (MODIFIED — Removed redundant `sales.canal` filter in `sale_items` join)
-- **SI:** `app/(dashboard)/reportes/reports-client.tsx` (MODIFIED — Fixed discount logic `totalDescuentos` and chart parsing to exclusively use `discount_amount`)
+- **SI:** `lib/whatsapp.ts` (MODIFIED — fixed `pedido_reservado_pago_en_tienda_` template name and adapted signature)
+- **SI:** `lib/utils/discounts.ts` (NEW — created `generateWelcomeBackDiscount` helper)
+- **SI:** `app/(dashboard)/pedidos/actions.ts` (MODIFIED — injected dynamic discount into the `completed` sequence WhatsApp handler)
 
 ---
 

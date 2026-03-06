@@ -7,6 +7,7 @@ import type { OrderStatus } from '@/lib/types'
 import { sendOrderStatusWhatsApp } from '@/lib/whatsapp'
 import type { OrderForWhatsApp } from '@/lib/whatsapp'
 import { triggerOrderStatusEmail } from '@/lib/utils/email-triggers'
+import { generateWelcomeBackDiscount } from '@/lib/utils/discounts'
 
 type OrderQueryResult = {
   id: string
@@ -116,6 +117,8 @@ export async function updateOrderStatus(
           customer_phone,
           notify_whatsapp,
           delivery_method,
+          payment_method,
+          whatsapp_last_status_sent,
           maps_link,
           shipping_address,
           pickup_location,
@@ -135,7 +138,7 @@ export async function updateOrderStatus(
         .single()
 
       if (orderData) {
-        const raw = orderData as unknown as OrderQueryResult & { delivery_method: string; payment_method: string }
+        const raw = orderData as unknown as OrderQueryResult & { delivery_method: string; payment_method: string; whatsapp_last_status_sent: string | null }
 
         triggerOrderStatusEmail({
           orderId: raw.id,
@@ -151,23 +154,39 @@ export async function updateOrderStatus(
 
 
         // WhatsApp (works for both)
-        const orderForWhatsApp: OrderForWhatsApp = {
-          id: raw.id,
-          customer_name: raw.customer_name,
-          customer_phone: raw.customer_phone,
-          notify_whatsapp: raw.notify_whatsapp ?? false,
-          delivery_method: raw.delivery_method ?? 'delivery',
-          shipping_address: raw.shipping_address,
-          pickup_location: raw.pickup_location ?? null,
-          total: raw.total ?? 0,
-          cancellation_reason: cancellationReason?.trim() || null,
+        if (raw.whatsapp_last_status_sent !== newStatus) {
+
+          let discountCodeForMeta: string | undefined = undefined;
+          if (newStatus === 'completed') {
+            discountCodeForMeta = await generateWelcomeBackDiscount(raw.id, raw.customer_email);
+          }
+
+          const orderForWhatsApp: OrderForWhatsApp = {
+            id: raw.id,
+            customer_name: raw.customer_name,
+            customer_phone: raw.customer_phone,
+            notify_whatsapp: raw.notify_whatsapp ?? false,
+            delivery_method: raw.delivery_method ?? 'delivery',
+            payment_method: raw.payment_method ?? 'qr',
+            shipping_address: raw.shipping_address,
+            pickup_location: raw.pickup_location ?? null,
+            total: raw.total ?? 0,
+            cancellation_reason: cancellationReason?.trim() || null,
+          }
+          await sendOrderStatusWhatsApp(
+            orderForWhatsApp,
+            newStatus,
+            discountCodeForMeta
+          )
+            .then(async () => {
+              // Update to prevent duplicate WhatsApp messages for this same status
+              await supabaseAdmin.from('orders').update({ whatsapp_last_status_sent: newStatus }).eq('id', raw.id)
+            })
+            .catch((err) => {
+              console.error('[sendOrderStatusWhatsApp] Error:', err)
+              // WhatsApp failure must never block the order status update
+            })
         }
-        await sendOrderStatusWhatsApp(
-          orderForWhatsApp,
-          newStatus
-        ).catch(() => {
-          // WhatsApp failure must never block the order status update
-        })
       }
     } catch (emailErr) {
       console.error('[updateOrderStatus] Error al obtener pedido para email:', emailErr)

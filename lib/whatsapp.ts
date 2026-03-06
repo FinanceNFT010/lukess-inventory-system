@@ -4,123 +4,111 @@ export interface OrderForWhatsApp {
   customer_phone: string | null
   notify_whatsapp: boolean
   delivery_method: string
+  payment_method: string
   shipping_address: string | null
   pickup_location: string | null
   total: number
   cancellation_reason?: string | null
 }
 
-/**
- * Approved Meta template → body variable positions:
- *
- * pedido_recibido:  "Hola {{1}}, recibimos tu pedido #{{2}} por Bs {{3}}."
- *                   {{1}}=name  {{2}}=order  {{3}}=total
- *
- * pago_confirmado:  "Pago confirmado para el pedido #{{1}}, {{2}}."
- *                   {{1}}=order  {{2}}=name
- *
- * pedido_en_camino: "Tu pedido #{{1}} fue despachado, {{2}}. Dirección de entrega: {{3}}"
- *                   {{1}}=order  {{2}}=name  {{3}}=address
- *
- * pedido_entregado: "Tu pedido #{{1}} fue entregado, {{2}}!"  +  HEADER IMAGE
- *                   {{1}}=order  {{2}}=name
- *
- * pedido_cancelado: "Tu pedido #{{1}} fue cancelado, {{2}}. Motivo: {{3}}"
- *                   {{1}}=order  {{2}}=name  {{3}}=reason
- */
-
-const STATUS_TO_TEMPLATE: Record<string, string> = {
-  pending: 'pedido_recibido',
-  confirmed: 'pago_confirmado',
-  shipped: 'pedido_en_camino',
-  completed: 'pedido_entregado',
-  cancelled: 'pedido_cancelado',
-}
+export type WhatsAppTemplateConfig = {
+  templateName: string;
+  variables: string[];
+  headerImage?: string;
+};
 
 /** URL for the header image on the `pedido_entregado` template */
 const ENTREGADO_HEADER_IMAGE =
   'https://lukess-home.vercel.app/images/entregado.png'
 
-function resolveTemplateName(
-  status: string,
-  deliveryMethod: string
-): string | undefined {
-  if (status === 'shipped' && deliveryMethod === 'pickup') {
-    return 'pedido_listo_recojo'
-  }
-  return STATUS_TO_TEMPLATE[status]
-}
+export function getWhatsAppTemplate(
+  order: OrderForWhatsApp,
+  newStatus: string,
+  nextPurchaseDiscountCode: string = 'GRACIAS10'
+): WhatsAppTemplateConfig | null {
 
-/**
- * Returns body variables in the exact {{1}}, {{2}}, {{3}} order
- * as approved in Meta Business Manager.
- */
-function buildBodyVariables(
-  templateName: string,
-  order: OrderForWhatsApp
-): string[] {
-  const orderNumber = order.id.substring(0, 8).toUpperCase()
+  const orderNumber = order.id.substring(0, 8).toUpperCase();
+  const name = order.customer_name;
 
-  switch (templateName) {
-    case 'pedido_recibido':
-      return [
-        order.customer_name,
-        orderNumber,
-        `${order.total.toFixed(2)}`,
-      ]
+  const isPickup = order.delivery_method === 'pickup';
+  const isCashOnPickup = isPickup && (order.payment_method === 'cash_on_pickup' || order.payment_method === 'efectivo' || order.payment_method === 'cash');
 
-    case 'pago_confirmado':
-      return [orderNumber, order.customer_name]
+  switch (newStatus) {
+    case 'pending':
+      return {
+        templateName: 'pedido_recibido',
+        variables: [name, orderNumber, order.total.toFixed(2)] // {{1}}=name, {{2}}=order, {{3}}=total
+      };
 
-    case 'pedido_en_camino':
-      return [
-        orderNumber,
-        order.customer_name,
-        order.shipping_address ?? 'Tu dirección',
-      ]
+    case 'pending_payment':
+      if (isCashOnPickup) {
+        return {
+          templateName: 'pedido_reservado_pago_en_tienda_',
+          variables: [orderNumber, name]
+        };
+      }
+      return null;
 
-    case 'pedido_listo_recojo':
-      return [
-        orderNumber,
-        order.customer_name,
-        order.pickup_location ?? 'la caseta asignada',
-      ]
+    case 'confirmed':
+      if (isPickup) {
+        return {
+          templateName: 'pago_confirmado_pickup_qr',
+          variables: [orderNumber, name]
+        };
+      }
+      return {
+        templateName: 'pago_confirmado',
+        variables: [orderNumber, name] // {{1}}=order, {{2}}=name
+      };
 
-    case 'pedido_entregado':
-      return [orderNumber, order.customer_name]
+    case 'shipped':
+      // 'shipped' in DB represents 'En camino' or 'Listo para recoger'
+      if (isPickup) {
+        return {
+          templateName: 'pedido_listo_recojo',
+          variables: [orderNumber, name, order.pickup_location ?? 'tienda'] // {{3}}=location
+        };
+      }
+      return {
+        templateName: 'pedido_en_camino',
+        variables: [orderNumber, name, order.shipping_address ?? 'tu dirección'] // {{3}}=address
+      };
 
-    case 'pedido_cancelado':
-      return [
-        orderNumber,
-        order.customer_name,
-        order.cancellation_reason ?? 'Problemas con el stock o pago',
-      ]
+    case 'completed':
+      return {
+        templateName: 'pedido_entregado',
+        variables: [orderNumber, name, nextPurchaseDiscountCode], // {{1}}=order, {{2}}=name, {{3}}=discount
+        headerImage: ENTREGADO_HEADER_IMAGE
+      };
+
+    case 'cancelled':
+      return {
+        templateName: 'pedido_cancelado',
+        variables: [orderNumber, name, order.cancellation_reason ?? 'Motivo no especificado']
+      };
 
     default:
-      return [orderNumber, order.customer_name]
+      return null;
   }
 }
 
 export async function sendOrderStatusWhatsApp(
   order: OrderForWhatsApp,
-  newStatus: string
+  newStatus: string,
+  discountCode?: string
 ): Promise<void> {
   if (!order.notify_whatsapp) return
   if (!order.customer_phone?.trim()) return
 
-  const templateName = resolveTemplateName(newStatus, order.delivery_method)
-  if (!templateName) return
+  const config = getWhatsAppTemplate(order, newStatus, discountCode)
+  if (!config) return
+
+  const { templateName, variables, headerImage } = config
 
   const rawPhone = order.customer_phone.trim().replace(/\D/g, '')
   const formattedPhone = rawPhone.startsWith('591')
     ? rawPhone
     : `591${rawPhone}`
-
-  const variables = buildBodyVariables(templateName, order)
-
-  // `pedido_entregado` has an approved HEADER image component
-  const headerImage =
-    templateName === 'pedido_entregado' ? ENTREGADO_HEADER_IMAGE : undefined
 
   const landingUrl = process.env.LANDING_URL ?? 'https://lukess-home.vercel.app'
   const url = `${landingUrl}/api/send-whatsapp`
