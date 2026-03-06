@@ -117,8 +117,11 @@ export async function sendOrderStatusWhatsApp(
     ? rawPhone
     : `591${rawPhone}`
 
-  const landingUrl = process.env.LANDING_URL ?? 'https://lukess-home.vercel.app'
+  // Trim trailing slash to prevent double slashes (e.g. 'https://domain.com/' + '/api/...')
+  const landingUrl = (process.env.LANDING_URL ?? 'https://lukess-home.vercel.app').replace(/\/+$/, '')
   const url = `${landingUrl}/api/send-whatsapp`
+
+  console.log('[WhatsApp → Inventory] Sending to:', url, '| template:', templateName)
 
   const res = await fetch(url, {
     method: 'POST',
@@ -127,7 +130,19 @@ export async function sendOrderStatusWhatsApp(
   })
 
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`[whatsapp] ${res.status} — ${text}`)
+    // Parse the JSON error body from /api/send-whatsapp for structured Meta API debug info
+    let errorBody: unknown;
+    try {
+      errorBody = await res.json()
+    } catch {
+      errorBody = await res.text()
+    }
+    console.error('[WhatsApp → Inventory] API error:', {
+      status: res.status,
+      templateName,
+      to: formattedPhone,
+      errorBody,
+    })
+    throw new Error(`[whatsapp] ${res.status} — ${JSON.stringify(errorBody)}`)
   }
 }

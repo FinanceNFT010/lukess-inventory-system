@@ -151,12 +151,15 @@ export default function PedidosClient({
   const [productAllocations, setProductAllocations] = useState<ProductAllocation[]>([]);
   const [allocationsLoading, setAllocationsLoading] = useState(false);
   const [fulfillmentNotes, setFulfillmentNotes] = useState("");
+  // Which status the confirm modal is submitting to ('confirmed' or 'shipped' for cash-on-pickup)
+  const [confirmModalTargetStatus, setConfirmModalTargetStatus] = useState<'confirmed' | 'shipped'>('confirmed');
 
   const canChangeStatus = userRole === "admin" || userRole === "manager";
 
   // Abre el modal de confirmación y construye asignaciones editables
-  const openConfirmModal = async (order: OrderWithItems) => {
+  const openConfirmModal = async (order: OrderWithItems, targetStatus: 'confirmed' | 'shipped' = 'confirmed') => {
     setConfirmModalOrder(order);
+    setConfirmModalTargetStatus(targetStatus);
     setFulfillmentNotes("");
     setAllocationsLoading(true);
     try {
@@ -330,15 +333,18 @@ export default function PedidosClient({
 
       const result = await updateOrderStatus(
         confirmModalOrder.id,
-        "confirmed",
+        confirmModalTargetStatus,
         undefined,
         fulfillmentNotes
       );
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Pedido confirmado ✅");
-        handleStatusChange(confirmModalOrder.id, "confirmed");
+        const successMsg = confirmModalTargetStatus === 'shipped'
+          ? '¡Listo para recoger! 🏪'
+          : 'Pedido confirmado ✅';
+        toast.success(successMsg);
+        handleStatusChange(confirmModalOrder.id, confirmModalTargetStatus);
         closeConfirmModal();
       }
     } finally {
@@ -436,7 +442,14 @@ export default function PedidosClient({
     e.stopPropagation();
     // Para confirmar un pedido pendiente o reservado → abrir modal con reservas
     if (newStatus === "confirmed" && (order.status === "pending" || order.status === "reserved")) {
-      openConfirmModal(order);
+      openConfirmModal(order, 'confirmed');
+      return;
+    }
+    // Para marcar como 'listo para recoger' un pedido cash-on-pickup → también abrir modal de stock
+    const isCashOnPickup = order.delivery_method === 'pickup' &&
+      (order.payment_method === 'cash_on_pickup' || order.payment_method === 'efectivo' || order.payment_method === 'cash');
+    if (newStatus === "shipped" && isCashOnPickup && order.status === "pending_payment") {
+      openConfirmModal(order, 'shipped');
       return;
     }
     setConfirmingId(order.id);

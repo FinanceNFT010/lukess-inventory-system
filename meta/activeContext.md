@@ -5,26 +5,27 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-E.3
-- **Block Name:** Conditional Loyalty Discounts & 3-Day Expiry
+- **Block Number:** 17-G
+- **Block Name:** Final Workflow Polish & Stock Reservation Fix
 - **Status:** DONE
 - **Completed:** 2026-03-06
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-E.3
-- **Block Name:** Conditional Loyalty Discounts & 3-Day Expiry
+- **Block Number:** 17-G
+- **Block Name:** Final Workflow Polish & Stock Reservation Fix
 - **Completed:** 2026-03-06
 - **Commits:**
-  - SI: `feat(whatsapp): conditional loyalty discounts with 3-day expiry`
+  - SI: `fix(pedidos): cash-on-pickup stock modal + whatsapp error logging`
+  - LH: `fix(mis-pedidos): pickup shipped status shows Listo para recojo`
 
 ---
 
 ### Files Modified
-- **SI:** `lib/utils/discounts.ts` (MODIFIED — changed expiry from 7 days to 3 days)
-- **SI:** `app/(dashboard)/pedidos/actions.ts` (MODIFIED — only generates welcome discount if `discount_code_id` is null on the current order)
-- **SI:** `lib/whatsapp.ts` (MODIFIED — falls back to `pedido_entregado_simple` template if no discount code is provided)
+- **SI:** `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED — added `confirmModalTargetStatus` state; stock modal now opens for cash-on-pickup→shipped; `handleConfirmOrder` uses dynamic target status)
+- **SI:** `lib/whatsapp.ts` (MODIFIED — enhanced error logging in `sendOrderStatusWhatsApp` to parse and log the full Meta API JSON error)
+- **LH:** `app/mis-pedidos/page.tsx` (MODIFIED — `OrderCard` now resolves `shipped` label dynamically: pickup orders show "Listo para recojo 🏪", delivery orders show "En camino")
 
 ---
 

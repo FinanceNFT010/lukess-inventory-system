@@ -1,4 +1,6 @@
-const LANDING_API_URL = process.env.NEXT_PUBLIC_LANDING_API_URL || 'https://lukess-home.vercel.app'
+// Use the server-only LANDING_URL (no NEXT_PUBLIC_ prefix needed — this file only runs server-side)
+// Trim trailing slash to prevent double slashes when concatenating paths
+const LANDING_BASE_URL = (process.env.LANDING_URL ?? 'https://lukess-home.vercel.app').replace(/\/+$/, '')
 
 type EmailTriggerData = {
     orderId: string
@@ -82,7 +84,8 @@ export async function triggerOrderStatusEmail(data: EmailTriggerData): Promise<v
     if (!emailType) return
 
     try {
-        const response = await fetch(`${LANDING_API_URL}/api/send-email`, {
+        const endpoint = `${LANDING_BASE_URL}/api/send-email`
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -92,8 +95,15 @@ export async function triggerOrderStatusEmail(data: EmailTriggerData): Promise<v
         })
 
         if (!response.ok) {
-            const error = await response.json()
-            console.error('[triggerOrderStatusEmail] API error:', error)
+            let errorBody: string
+            try { errorBody = await response.text() } catch { errorBody = '(unable to read body)' }
+            console.error('[triggerOrderStatusEmail] HTTP error:', {
+                status: response.status,
+                emailType,
+                orderId,
+                endpoint,
+                errorBody,
+            })
         } else {
             console.log(`[triggerOrderStatusEmail] Sent ${emailType} for order ${orderId}`)
         }
