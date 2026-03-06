@@ -2,6 +2,15 @@
 // Trim trailing slash to prevent double slashes when concatenating paths
 const LANDING_BASE_URL = (process.env.LANDING_URL ?? 'https://lukess-home.vercel.app').replace(/\/+$/, '')
 
+// Shape of each order item forwarded to the Landing email builder
+interface EmailOrderItem {
+    products?: { name?: string } | null
+    unit_price: number
+    quantity: number
+    size?: string | null
+    color?: string | null
+}
+
 type EmailTriggerData = {
     orderId: string
     customerName: string
@@ -13,6 +22,12 @@ type EmailTriggerData = {
     pickupLocation?: string
     cancellationReason?: string
     customCancellationReason?: string
+    // Full order financials — required by the Landing's buildCostBreakdown()
+    total?: number
+    subtotal?: number
+    shippingCost?: number
+    discountAmount?: number
+    items?: EmailOrderItem[]
 }
 
 export async function triggerOrderStatusEmail(data: EmailTriggerData): Promise<void> {
@@ -90,7 +105,25 @@ export async function triggerOrderStatusEmail(data: EmailTriggerData): Promise<v
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 type: emailType,
-                orderData: emailData,
+                orderData: {
+                    orderId,
+                    customerName,
+                    customerEmail,
+                    // Financial fields — required by Landing's buildCostBreakdown (total.toFixed() crashes without these)
+                    total: data.total ?? 0,
+                    subtotal: data.subtotal,
+                    shippingCost: data.shippingCost,
+                    discountAmount: data.discountAmount,
+                    // Items for the product list in the email body
+                    items: data.items ?? [],
+                    // Contextual fields
+                    deliveryMethod: deliveryMethod as 'delivery' | 'pickup',
+                    pickupLocationName: pickupLocation || 'Mercado Mutualista', // Default if not provided
+                    pickupLocationAddress: 'Pasillo B3, Puesto 3', // Hardcoded for now
+                    expiresInHours: 48, // Hardcoded for now
+                    cancellationReason: cancellationReason || 'other', // Default if not provided
+                    customCancellationReason: customCancellationReason,
+                },
             }),
         })
 

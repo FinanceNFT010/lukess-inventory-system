@@ -5,27 +5,28 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-G
-- **Block Name:** Final Workflow Polish & Stock Reservation Fix
+- **Block Number:** 17-G (Final)
+- **Block Name:** Webhook URL Fix & Flow Polish
 - **Status:** DONE
 - **Completed:** 2026-03-06
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-G
-- **Block Name:** Final Workflow Polish & Stock Reservation Fix
+- **Block Number:** 17-G (Final)
+- **Block Name:** Webhook URL Fix & Flow Polish
 - **Completed:** 2026-03-06
 - **Commits:**
-  - SI: `fix(pedidos): cash-on-pickup stock modal + whatsapp error logging`
+  - SI: `fix(pedidos): cash-on-pickup stock modal + whatsapp error logging + URL normalization`
   - LH: `fix(mis-pedidos): pickup shipped status shows Listo para recojo`
 
 ---
 
 ### Files Modified
-- **SI:** `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED — added `confirmModalTargetStatus` state; stock modal now opens for cash-on-pickup→shipped; `handleConfirmOrder` uses dynamic target status)
-- **SI:** `lib/whatsapp.ts` (MODIFIED — enhanced error logging in `sendOrderStatusWhatsApp` to parse and log the full Meta API JSON error)
-- **LH:** `app/mis-pedidos/page.tsx` (MODIFIED — `OrderCard` now resolves `shipped` label dynamically: pickup orders show "Listo para recojo 🏪", delivery orders show "En camino")
+- **SI:** `lib/utils/email-triggers.ts` (MODIFIED — switched to server-only `LANDING_URL`, added trailing-slash trimming, upgraded `!res.ok` error logging to include status + raw body)
+- **SI:** `lib/whatsapp.ts` (MODIFIED — added trailing-slash trimming for `LANDING_URL`, added `console.log` of URL + template before each fetch)
+- **SI:** `app/(dashboard)/pedidos/pedidos-client.tsx` (MODIFIED — stock modal now opens for cash-on-pickup→shipped via `confirmModalTargetStatus` state)
+- **LH:** `app/mis-pedidos/page.tsx` (MODIFIED — `shipped` label for pickup orders shows "Listo para recojo 🏪")
 
 ---
 

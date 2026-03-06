@@ -141,6 +141,9 @@ export async function updateOrderStatus(
       if (orderData) {
         const raw = orderData as unknown as OrderQueryResult & { delivery_method: string; payment_method: string; whatsapp_last_status_sent: string | null; discount_code_id: string | null }
 
+        // ── Email trigger ─────────────────────────────────────────────────────
+        // Fire-and-forget; pass the FULL financial payload so Landing buildCostBreakdown()
+        // never crashes with undefined.toFixed()
         triggerOrderStatusEmail({
           orderId: raw.id,
           customerName: raw.customer_name,
@@ -151,47 +154,46 @@ export async function updateOrderStatus(
           paymentMethod: raw.payment_method || undefined,
           pickupLocation: raw.pickup_location || undefined,
           cancellationReason: cancellationReason?.trim() || undefined,
+          // Financial fields required by Landing email templates
+          total: raw.total ?? 0,
+          subtotal: raw.subtotal ?? raw.total ?? 0,
+          shippingCost: raw.shipping_cost ?? 0,
+          items: raw.order_items ?? [],
         }).catch((err) => console.error('[triggerOrderStatusEmail] Error:', err))
 
-
-        // WhatsApp (works for both)
+        // ── WhatsApp trigger ──────────────────────────────────────────────────
+        // Fully independent from Email: if WA fails, email still fires.
         if (raw.whatsapp_last_status_sent !== newStatus) {
+          try {
+            let discountCodeForMeta: string | undefined = undefined;
+            // Generate a post-purchase loyalty code ONLY if they didn't already use one
+            if (newStatus === 'completed' && !raw.discount_code_id) {
+              discountCodeForMeta = await generateWelcomeBackDiscount(raw.id, raw.customer_email);
+            }
 
-          let discountCodeForMeta: string | undefined = undefined;
-          // Generate a post-purchase loyalty code ONLY if they didn't already use one
-          if (newStatus === 'completed' && !raw.discount_code_id) {
-            discountCodeForMeta = await generateWelcomeBackDiscount(raw.id, raw.customer_email);
-          }
+            const orderForWhatsApp: OrderForWhatsApp = {
+              id: raw.id,
+              customer_name: raw.customer_name,
+              customer_phone: raw.customer_phone,
+              notify_whatsapp: raw.notify_whatsapp ?? false,
+              delivery_method: raw.delivery_method ?? 'delivery',
+              payment_method: raw.payment_method ?? 'qr',
+              shipping_address: raw.shipping_address,
+              pickup_location: raw.pickup_location ?? null,
+              total: raw.total ?? 0,
+              cancellation_reason: cancellationReason?.trim() || null,
+            }
 
-          const orderForWhatsApp: OrderForWhatsApp = {
-            id: raw.id,
-            customer_name: raw.customer_name,
-            customer_phone: raw.customer_phone,
-            notify_whatsapp: raw.notify_whatsapp ?? false,
-            delivery_method: raw.delivery_method ?? 'delivery',
-            payment_method: raw.payment_method ?? 'qr',
-            shipping_address: raw.shipping_address,
-            pickup_location: raw.pickup_location ?? null,
-            total: raw.total ?? 0,
-            cancellation_reason: cancellationReason?.trim() || null,
+            await sendOrderStatusWhatsApp(orderForWhatsApp, newStatus, discountCodeForMeta)
+            // Mark WA as sent ONLY after successful dispatch
+            await supabaseAdmin.from('orders').update({ whatsapp_last_status_sent: newStatus }).eq('id', raw.id)
+          } catch (waErr) {
+            console.error('[sendOrderStatusWhatsApp] Error (email still fires):', waErr)
           }
-          await sendOrderStatusWhatsApp(
-            orderForWhatsApp,
-            newStatus,
-            discountCodeForMeta
-          )
-            .then(async () => {
-              // Update to prevent duplicate WhatsApp messages for this same status
-              await supabaseAdmin.from('orders').update({ whatsapp_last_status_sent: newStatus }).eq('id', raw.id)
-            })
-            .catch((err) => {
-              console.error('[sendOrderStatusWhatsApp] Error:', err)
-              // WhatsApp failure must never block the order status update
-            })
         }
       }
-    } catch (emailErr) {
-      console.error('[updateOrderStatus] Error al obtener pedido para email:', emailErr)
+    } catch (triggerErr) {
+      console.error('[updateOrderStatus] Error al obtener pedido para triggers:', triggerErr)
     }
 
     revalidatePath('/pedidos')
