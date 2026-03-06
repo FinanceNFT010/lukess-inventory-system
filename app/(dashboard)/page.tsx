@@ -19,7 +19,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/Badge";
-
+import { getBolivianDayStart, toUTC } from '@/lib/utils/timezone';
 const LOW_STOCK_THRESHOLD = 10;
 
 const paymentIcons: Record<string, typeof CreditCard> = {
@@ -103,8 +103,8 @@ export default async function DashboardPage() {
 
   // ── Parallel data fetching ────────────────────────────────────────────────
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getBolivianDayStart();
+  const todayStartUTC = toUTC(todayStart);
 
   const [
     productsResult,
@@ -131,7 +131,7 @@ export default async function DashboardPage() {
       .from("sales")
       .select("total, canal")
       .eq("organization_id", orgId)
-      .gte("created_at", todayStart.toISOString()),
+      .gte("created_at", todayStartUTC),
 
     // Reserved stock
     // TODO: Restore organization_id filter once landing page order creation is fixed

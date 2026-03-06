@@ -102,7 +102,7 @@ export default async function ReportesPage({
 
   let allStatusSalesQuery = supabase
     .from("sales")
-    .select("id")
+    .select("id, canal")
     .gte("created_at", desdeFull)
     .lte("created_at", hastaFull);
 
@@ -152,9 +152,19 @@ export default async function ReportesPage({
   ]);
 
   // Combine Orders + Sales (Mapping sales to have status="completed")
-  const currentSalesMapped = (currentSalesRaw ?? []).map((s) => ({ ...s, status: "completed" }));
-  const prevSalesMapped = (prevSalesRaw ?? []).map((s) => ({ ...s, status: "completed" }));
-  const allStatusSalesMapped = (allStatusSalesRaw ?? []).map((s) => ({ ...s, status: "completed" }));
+  // Filter out online orders from sales table to prevent double-counting
+  // Online orders are auto-copied to sales when completed, so we only want POS sales here
+  const currentSalesMapped = (currentSalesRaw ?? [])
+    .filter((s) => s.canal === 'fisico')
+    .map((s) => ({ ...s, status: 'completed' }));
+
+  const prevSalesMapped = (prevSalesRaw ?? [])
+    .filter((s) => s.canal === 'fisico')
+    .map((s) => ({ ...s, status: 'completed' }));
+
+  const allStatusSalesMapped = (allStatusSalesRaw ?? [])
+    .filter((s) => s.canal === 'fisico')
+    .map((s) => ({ ...s, status: 'completed' }));
 
   const currentOrders = [...(currentOrdersRaw ?? []), ...currentSalesMapped];
   const prevOrders = [...(prevOrdersRaw ?? []), ...prevSalesMapped];
@@ -177,8 +187,9 @@ export default async function ReportesPage({
     salesIds.length > 0
       ? supabase
         .from("sale_items")
-        .select("product_id, quantity, subtotal, sale_id, products(id, name, category_id, categories(name))")
+        .select("product_id, quantity, subtotal, sale_id, sales!inner(canal), products(id, name, category_id, categories(name))")
         .in("sale_id", salesIds)
+        .eq("sales.canal", "fisico")
       : Promise.resolve({ data: [] })
   ]);
 

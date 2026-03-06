@@ -5,25 +5,26 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 3 (Fix)
-- **Block Name:** Reports and Discount Calculations
+- **Block Number:** 17-B-A-2 (Fix)
+- **Block Name:** Fix Timezone and Duplicate Sales in Reports
 - **Status:** DONE
 - **Completed:** 2026-03-05
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 3 (Fix)
-- **Block Name:** Reports and Discount Calculations
+- **Block Number:** 17-B-A-2 (Fix)
+- **Block Name:** Fix Timezone and Duplicate Sales in Reports
 - **Completed:** 2026-03-05
 - **Commits:**
-  - `fix(reports): use actual order total instead of base price to account for discounts`
+  - `fix(dashboard): use Bolivia GMT-4 timezone and prevent duplicate sales in reports`
 
 ---
 
 ### Files Modified
-- `app/(dashboard)/reportes/page.tsx` (MODIFIED — Calculated proportional discount per item to reflect net revenue)
-- `app/(dashboard)/reportes/reports-client.tsx` (MODIFIED — Plumbed `net_subtotal` into `top10` and `catData` calculations)
+- `lib/utils/timezone.ts` (NEW — Added Bolivia timezone utility)
+- `app/(dashboard)/page.tsx` (MODIFIED — Updated queries to use GMT-4 date boundaries)
+- `app/(dashboard)/reportes/page.tsx` (MODIFIED — Excluded online orders from POS sales logic)
 
 ---
 
