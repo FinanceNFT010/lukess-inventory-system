@@ -340,6 +340,9 @@ export default function PedidosClient({
       if (result.error) {
         toast.error(result.error);
       } else {
+        if ('warning' in result && result.warning) {
+          toast.error(result.warning as string, { duration: 10000 });
+        }
         const successMsg = confirmModalTargetStatus === 'shipped'
           ? '¡Listo para recoger! 🏪'
           : 'Pedido confirmado ✅';
@@ -458,6 +461,9 @@ export default function PedidosClient({
       if (result.error) {
         toast.error(result.error);
       } else {
+        if ('warning' in result && result.warning) {
+          toast.error(result.warning as string, { duration: 10000 });
+        }
         toast.success(QUICK_ACTION_MESSAGES[newStatus] ?? "Estado actualizado");
         handleStatusChange(order.id, newStatus);
       }

@@ -105,7 +105,7 @@ export async function updateOrderStatus(
       return { error: 'Pedido no encontrado o no se pudo actualizar.' }
     }
 
-
+    let warningMessage: string | undefined = undefined;
     try {
       const { data: orderData } = await supabaseAdmin
         .from('orders')
@@ -200,8 +200,9 @@ export async function updateOrderStatus(
             await sendOrderStatusWhatsApp(orderForWhatsApp, newStatus, discountCodeForEmail)
             // Mark WA as sent ONLY after successful dispatch
             await supabaseAdmin.from('orders').update({ whatsapp_last_status_sent: newStatus }).eq('id', raw.id)
-          } catch (waErr) {
+          } catch (waErr: any) {
             console.error('[sendOrderStatusWhatsApp] Error (email still fires):', waErr)
+            warningMessage = 'WhatsApp failed: ' + (waErr.message || String(waErr));
           }
         }
       }
@@ -210,7 +211,7 @@ export async function updateOrderStatus(
     }
 
     revalidatePath('/pedidos')
-    return { success: true }
+    return { success: true, ...(warningMessage ? { warning: warningMessage } : {}) }
   } catch (err) {
     console.error('updateOrderStatus error:', err)
     return { error: 'Error interno del servidor' }

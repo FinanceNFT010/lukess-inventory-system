@@ -5,25 +5,25 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-H
-- **Block Name:** Bulletproof Webhooks & Payload Alignment
+- **Block Number:** 17-I
+- **Block Name:** Fix Email Payload (Images & Discount Codes)
 - **Status:** DONE
 - **Completed:** 2026-03-06
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-H
-- **Block Name:** Bulletproof Webhooks & Payload Alignment
+- **Block Number:** 17-I
+- **Block Name:** Fix Email Payload (Images & Discount Codes)
 - **Completed:** 2026-03-06
 - **Commits:**
-  - SI: `fix(webhooks): pass full order payload to email trigger + independent WA try/catch`
+  - SI: `fix(email): add product image_url to items payload and pass loyalty discount code to completion email`
 
 ---
 
 ### Files Modified
-- **SI:** `lib/utils/email-triggers.ts` (MODIFIED — added `EmailOrderItem` interface, expanded `EmailTriggerData` with financial fields, now forwards `total`, `subtotal`, `shippingCost`, `discountAmount`, `items` to Landing `/api/send-email`)
-- **SI:** `app/(dashboard)/pedidos/actions.ts` (MODIFIED — passes all financial order fields to `triggerOrderStatusEmail`; wrapped WhatsApp send in independent `try/catch` so WA failure never prevents email)
+- **SI:** `lib/utils/email-triggers.ts` (MODIFIED — `EmailOrderItem` now includes `image_url`; `EmailTriggerData` now accepts `discountCode`; fetch body forwards `discountCode` inside `orderData`)
+- **SI:** `app/(dashboard)/pedidos/actions.ts` (MODIFIED — Supabase select now fetches `image_url` from `products`; `OrderQueryResult` updated; discount code generated ONCE before email trigger and reused by both email and WhatsApp; items mapped with `image_url` extracted from products join)
 
 ---
 

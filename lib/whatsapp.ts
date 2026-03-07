@@ -28,7 +28,7 @@ export function getWhatsAppTemplate(
 ): WhatsAppTemplateConfig | null {
 
   const orderNumber = order.id.substring(0, 8).toUpperCase();
-  const name = order.customer_name;
+  const name = (order.customer_name || '').trim().replace(/\n/g, ' ');
 
   const isPickup = order.delivery_method === 'pickup';
   const isCashOnPickup = isPickup && (order.payment_method === 'cash_on_pickup' || order.payment_method === 'efectivo' || order.payment_method === 'cash');
@@ -143,6 +143,6 @@ export async function sendOrderStatusWhatsApp(
       to: formattedPhone,
       errorBody,
     })
-    throw new Error(`[whatsapp] ${res.status} — ${JSON.stringify(errorBody)}`)
+    throw new Error(JSON.stringify(errorBody))
   }
 }
