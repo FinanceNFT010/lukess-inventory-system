@@ -17,9 +17,7 @@ export type WhatsAppTemplateConfig = {
   headerImage?: string;
 };
 
-/** URL for the header image on the `pedido_entregado` template */
-const ENTREGADO_HEADER_IMAGE =
-  'https://lukess-home.vercel.app/images/entregado.png'
+
 
 export function getWhatsAppTemplate(
   order: OrderForWhatsApp,
