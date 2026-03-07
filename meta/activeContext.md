@@ -5,25 +5,24 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-I
-- **Block Name:** Fix Email Payload (Images & Discount Codes)
+- **Block Number:** 17-M
+- **Block Name:** Utility Template Names Update
 - **Status:** DONE
-- **Completed:** 2026-03-06
+- **Completed:** 2026-03-07
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-I
-- **Block Name:** Fix Email Payload (Images & Discount Codes)
-- **Completed:** 2026-03-06
+- **Block Number:** 17-M
+- **Block Name:** Utility Template Names Update
+- **Completed:** 2026-03-07
 - **Commits:**
-  - SI: `fix(email): add product image_url to items payload and pass loyalty discount code to completion email`
+  - SI: `feat(whatsapp): update utility template names`
 
 ---
 
 ### Files Modified
-- **SI:** `lib/utils/email-triggers.ts` (MODIFIED — `EmailOrderItem` now includes `image_url`; `EmailTriggerData` now accepts `discountCode`; fetch body forwards `discountCode` inside `orderData`)
-- **SI:** `app/(dashboard)/pedidos/actions.ts` (MODIFIED — Supabase select now fetches `image_url` from `products`; `OrderQueryResult` updated; discount code generated ONCE before email trigger and reused by both email and WhatsApp; items mapped with `image_url` extracted from products join)
+- **SI:** `lib/whatsapp.ts` (MODIFIED — updated `pago_confirmado_u` and `pedido_cancelado_u`, removed `headerImage` from `completed` templates)
 
 ---
 
@@ -87,5 +86,6 @@
 | 14-B | Restore Delivery Info in Modal + Discount Idempotency | ✅ DONE | 2026-03-01 | 14f7d56 |
 | 15-B | Map WhatsApp Templates to Order Status Changes | ✅ DONE | 2026-03-01 | 2f1d723 |
 | 15-C | Pre-Production Root Cleanup | ✅ DONE | 2026-03-03 | 1ad0c99 |
+| 17-M | Utility Template Names Update | ✅ DONE | 2026-03-07 | TBD |
 | 16-A | Deep Code Cleanup (Logs & Dead Code) | ✅ DONE | 2026-03-03 | f2007b7 |
 | 11-F | Dynamic Attributes (Database Analysis) | ✅ DONE | 2026-03-03 | — |
