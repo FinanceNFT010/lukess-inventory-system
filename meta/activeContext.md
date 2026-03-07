@@ -5,24 +5,27 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-M
-- **Block Name:** Utility Template Names Update
+- **Block Number:** 17-N
+- **Block Name:** Fix Email UI & Meta API Formatting
 - **Status:** DONE
 - **Completed:** 2026-03-07
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-M
-- **Block Name:** Utility Template Names Update
+- **Block Number:** 17-N
+- **Block Name:** Fix Email UI & Meta API Formatting
 - **Completed:** 2026-03-07
 - **Commits:**
-  - SI: `feat(whatsapp): update utility template names`
+  - SI: `feat(whatsapp): remove headerImage from completed templates`
+  - Landing: `feat(email): vip gift layout & wa fallback lang`
 
 ---
 
 ### Files Modified
-- **SI:** `lib/whatsapp.ts` (MODIFIED — updated `pago_confirmado_u` and `pedido_cancelado_u`, removed `headerImage` from `completed` templates)
+- **Landing:** `lib/whatsapp/send-message.ts` (MODIFIED — Changed WhatsApp language policy to `fallback` to fix Meta API matching error)
+- **Landing:** `app/api/send-email/route.ts` (MODIFIED — Injected visually premium "VIP Gift" section into `buildCompletionEmailHtml` for the `discountCode`)
+- **SI:** `lib/whatsapp.ts` (MODIFIED — Removed `ENTREGADO_HEADER_IMAGE` constant and its usage from `completed` templates to fix Meta API format error)
 
 ---
 
@@ -86,6 +89,6 @@
 | 14-B | Restore Delivery Info in Modal + Discount Idempotency | ✅ DONE | 2026-03-01 | 14f7d56 |
 | 15-B | Map WhatsApp Templates to Order Status Changes | ✅ DONE | 2026-03-01 | 2f1d723 |
 | 15-C | Pre-Production Root Cleanup | ✅ DONE | 2026-03-03 | 1ad0c99 |
-| 17-M | Utility Template Names Update | ✅ DONE | 2026-03-07 | TBD |
+| 17-N | Fix Email UI & Meta API Formatting | ✅ DONE | 2026-03-07 | d36ae3b |
 | 16-A | Deep Code Cleanup (Logs & Dead Code) | ✅ DONE | 2026-03-03 | f2007b7 |
 | 11-F | Dynamic Attributes (Database Analysis) | ✅ DONE | 2026-03-03 | — |
