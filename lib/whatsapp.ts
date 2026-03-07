@@ -76,17 +76,19 @@ export function getWhatsAppTemplate(
       if (nextPurchaseDiscountCode) {
         return {
           templateName: 'pedido_entregado',
-          variables: [orderNumber, name, nextPurchaseDiscountCode] // {{1}}=order, {{2}}=name, {{3}}=discount
+          variables: [orderNumber, name, nextPurchaseDiscountCode],
+          headerImage: 'https://lukess-home.vercel.app/images/entregado.png'
         };
       }
       return {
         templateName: 'pedido_entregado_simple',
-        variables: [orderNumber, name] // {{1}}=order, {{2}}=name
+        variables: [orderNumber, name],
+        headerImage: 'https://lukess-home.vercel.app/images/entregado.png'
       };
 
     case 'cancelled':
       return {
-        templateName: 'pedido_cancelado',
+        templateName: 'pedido_cancelado_u',
         variables: [orderNumber, name, order.cancellation_reason ?? 'Motivo no especificado']
       };
 
