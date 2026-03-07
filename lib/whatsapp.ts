@@ -55,7 +55,7 @@ export function getWhatsAppTemplate(
         };
       }
       return {
-        templateName: 'pago_confirmado',
+        templateName: 'pago_confirmado_u',
         variables: [orderNumber, name] // {{1}}=order, {{2}}=name
       };
 
