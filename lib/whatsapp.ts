@@ -42,7 +42,7 @@ export function getWhatsAppTemplate(
       if (isCashOnPickup) {
         return {
           templateName: 'pedido_reservado_pago_en_tienda_',
-          variables: [orderNumber, name]
+          variables: [name, orderNumber, order.total.toFixed(2)]
         };
       }
       return null;

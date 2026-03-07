@@ -5,24 +5,24 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-Q
-- **Block Name:** Sync WhatsApp Header Image to Supabase
+- **Block Number:** 17-R
+- **Block Name:** QA WhatsApp Templates Alignment
 - **Status:** DONE
 - **Completed:** 2026-03-07
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-Q
-- **Block Name:** Sync WhatsApp Header Image to Supabase
+- **Block Number:** 17-R
+- **Block Name:** QA WhatsApp Templates Alignment
 - **Completed:** 2026-03-07
 - **Commits:**
-  - SI: `fix(whatsapp): sync header image url to supabase storage to bypass 132012`
+  - SI: `fix(whatsapp): update template variables for pago en tienda`
 
 ---
 
 ### Files Modified
-- **SI:** `C:\LukessHome\lukess-inventory-system\lib\whatsapp.ts` (MODIFIED — Replaced hardcoded `headerImage` URLs with the Supabase public URL `https://lrcggpdgrqltqbxqnjgh.supabase.co/storage/v1/object/public/banners/whatsapp/entregado.png` to bypass Vercel bot protection/Error 132012)
+- **SI:** `C:\LukessHome\lukess-inventory-system\lib\whatsapp.ts` (MODIFIED — Updated `pedido_reservado_pago_en_tienda_` to send 3 variables instead of 2 to match Meta approval).
 
 ---
 
