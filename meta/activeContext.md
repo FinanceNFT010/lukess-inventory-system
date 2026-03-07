@@ -5,27 +5,24 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-N
-- **Block Name:** Fix Email UI & Meta API Formatting
+- **Block Number:** 17-O
+- **Block Name:** Fix WhatsApp Meta API Image & Cancelled Template Name
 - **Status:** DONE
 - **Completed:** 2026-03-07
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-N
-- **Block Name:** Fix Email UI & Meta API Formatting
+- **Block Number:** 17-O
+- **Block Name:** Fix WhatsApp Meta API Image & Cancelled Template Name
 - **Completed:** 2026-03-07
 - **Commits:**
-  - SI: `feat(whatsapp): remove headerImage from completed templates`
-  - Landing: `feat(email): vip gift layout & wa fallback lang`
+  - SI: `fix(whatsapp): pass header image to landing api and fix cancelled name` (ba08f6b)
 
 ---
 
 ### Files Modified
-- **Landing:** `lib/whatsapp/send-message.ts` (MODIFIED — Changed WhatsApp language policy to `fallback` to fix Meta API matching error)
-- **Landing:** `app/api/send-email/route.ts` (MODIFIED — Injected visually premium "VIP Gift" section into `buildCompletionEmailHtml` for the `discountCode`)
-- **SI:** `lib/whatsapp.ts` (MODIFIED — Removed `ENTREGADO_HEADER_IMAGE` constant and its usage from `completed` templates to fix Meta API format error)
+- **SI:** `C:\LukessHome\lukess-inventory-system\lib\whatsapp.ts` (MODIFIED — Added `headerImage` back to `completed` templates and updated `cancelled` template name to `pedido_cancelado_u` to match Meta API formats)
 
 ---
 
@@ -90,5 +87,6 @@
 | 15-B | Map WhatsApp Templates to Order Status Changes | ✅ DONE | 2026-03-01 | 2f1d723 |
 | 15-C | Pre-Production Root Cleanup | ✅ DONE | 2026-03-03 | 1ad0c99 |
 | 17-N | Fix Email UI & Meta API Formatting | ✅ DONE | 2026-03-07 | d36ae3b |
+| 17-O | Fix WhatsApp Meta API Image & Cancelled Template Name | ✅ DONE | 2026-03-07 | ba08f6b |
 | 16-A | Deep Code Cleanup (Logs & Dead Code) | ✅ DONE | 2026-03-03 | f2007b7 |
 | 11-F | Dynamic Attributes (Database Analysis) | ✅ DONE | 2026-03-03 | — |
