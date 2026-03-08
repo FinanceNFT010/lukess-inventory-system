@@ -166,6 +166,8 @@ export async function updateOrderStatus(
             orderId: raw.id,
             customerName: raw.customer_name,
             customerEmail: raw.customer_email || '',
+            // HARD GATE: pass notify_email so email-triggers.ts blocks sending at the lowest level
+            notifyEmail: raw.notify_email === true,
             oldStatus: oldStatus || undefined,
             newStatus: newStatus,
             deliveryMethod: raw.delivery_method,

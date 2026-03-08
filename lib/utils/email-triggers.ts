@@ -16,6 +16,8 @@ type EmailTriggerData = {
     orderId: string
     customerName: string
     customerEmail: string
+    // Hard gate: if false, this function exits immediately without sending any email
+    notifyEmail: boolean
     oldStatus?: string
     newStatus: string
     deliveryMethod: 'delivery' | 'pickup' | string
@@ -34,6 +36,13 @@ type EmailTriggerData = {
 }
 
 export async function triggerOrderStatusEmail(data: EmailTriggerData): Promise<void> {
+    // HARD GATE: respect customer email-notification preference at the lowest level.
+    // This guard runs before any email type is determined so there is zero risk of bypass.
+    if (!data.notifyEmail) {
+        console.log(`[triggerOrderStatusEmail] Skipped — notify_email is false for order ${data.orderId}`)
+        return
+    }
+
     const {
         deliveryMethod,
         paymentMethod,
