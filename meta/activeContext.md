@@ -5,24 +5,24 @@
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-R
-- **Block Name:** QA WhatsApp Templates Alignment
+- **Block Number:** 17-S
+- **Block Name:** Fix Checkout Notification Preferences UX
 - **Status:** DONE
-- **Completed:** 2026-03-07
+- **Completed:** 2026-03-08
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-R
-- **Block Name:** QA WhatsApp Templates Alignment
-- **Completed:** 2026-03-07
+- **Block Number:** 17-S
+- **Block Name:** Fix Checkout Notification Preferences UX
+- **Completed:** 2026-03-08
 - **Commits:**
-  - SI: `fix(whatsapp): update template variables for pago en tienda`
+  - LE: `fix(checkout): add error toast when removing last notification method and sync previous order preferences`
 
 ---
 
 ### Files Modified
-- **SI:** `C:\LukessHome\lukess-inventory-system\lib\whatsapp.ts` (MODIFIED — Updated `pedido_reservado_pago_en_tienda_` to send 3 variables instead of 2 to match Meta approval).
+- **LE:** `C:\LukessHome\lukess-landing-ecommerce\components\cart\CheckoutModal.tsx` (MODIFIED — added toast error if unchecking the only checked notification option, added parsing of `notify_email` and `notify_whatsapp` when prefilling data from `fetchLastOrder`).
 
 ---
 
