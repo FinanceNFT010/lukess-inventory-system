@@ -25,8 +25,14 @@ export function getWhatsAppTemplate(
   nextPurchaseDiscountCode?: string
 ): WhatsAppTemplateConfig | null {
 
-  const orderNumber = order.id.substring(0, 8).toUpperCase();
-  const name = (order.customer_name || '').trim().replace(/\n/g, ' ');
+  // Meta API strictly forbids newlines, tabs, and more than 4 consecutive spaces (Error 132018)
+  const cleanText = (str: string | null | undefined) => {
+    if (!str) return '';
+    return String(str).replace(/[\n\r\t]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  };
+
+  const orderNumber = cleanText(order.id).substring(0, 8).toUpperCase();
+  const name = cleanText(order.customer_name);
 
   const isPickup = order.delivery_method === 'pickup';
   const isCashOnPickup = isPickup && (order.payment_method === 'cash_on_pickup' || order.payment_method === 'efectivo' || order.payment_method === 'cash');
@@ -60,23 +66,22 @@ export function getWhatsAppTemplate(
       };
 
     case 'shipped':
-      // 'shipped' in DB represents 'En camino' or 'Listo para recoger'
       if (isPickup) {
         return {
           templateName: 'pedido_listo_recojo',
-          variables: [orderNumber, name, order.pickup_location ?? 'tienda'] // {{3}}=location
+          variables: [orderNumber, name, cleanText(order.pickup_location) || 'tienda'] // {{3}}=location
         };
       }
       return {
         templateName: 'pedido_en_camino',
-        variables: [orderNumber, name, order.shipping_address ?? 'tu dirección'] // {{3}}=address
+        variables: [orderNumber, name, cleanText(order.shipping_address) || 'tu dirección'] // {{3}}=address
       };
 
     case 'completed':
       if (nextPurchaseDiscountCode) {
         return {
           templateName: 'pedido_entregado',
-          variables: [orderNumber, name, nextPurchaseDiscountCode],
+          variables: [orderNumber, name, cleanText(nextPurchaseDiscountCode)],
           headerImage: 'https://lrcggpdgrqltqbxqnjgh.supabase.co/storage/v1/object/public/banners/whatsapp/entregado.png'
         };
       }
@@ -89,7 +94,7 @@ export function getWhatsAppTemplate(
     case 'cancelled':
       return {
         templateName: 'pedido_cancelado_u',
-        variables: [orderNumber, name, order.cancellation_reason ?? 'Motivo no especificado']
+        variables: [orderNumber, name, cleanText(order.cancellation_reason) || 'Motivo no especificado']
       };
 
     default:
