@@ -76,7 +76,7 @@ export function getWhatsAppTemplate(
       if (nextPurchaseDiscountCode) {
         return {
           templateName: 'pedido_entregado',
-          variables: [name, orderNumber, nextPurchaseDiscountCode],
+          variables: [orderNumber, name, nextPurchaseDiscountCode],
           headerImage: 'https://lrcggpdgrqltqbxqnjgh.supabase.co/storage/v1/object/public/banners/whatsapp/entregado.png'
         };
       }
