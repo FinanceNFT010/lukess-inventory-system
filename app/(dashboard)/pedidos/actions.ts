@@ -156,27 +156,29 @@ export async function updateOrderStatus(
           }
         }
 
-        triggerOrderStatusEmail({
-          orderId: raw.id,
-          customerName: raw.customer_name,
-          customerEmail: raw.customer_email || '',
-          oldStatus: oldStatus || undefined,
-          newStatus: newStatus,
-          deliveryMethod: raw.delivery_method,
-          paymentMethod: raw.payment_method || undefined,
-          pickupLocation: raw.pickup_location || undefined,
-          cancellationReason: cancellationReason?.trim() || undefined,
-          // Financial fields required by Landing email templates
-          total: raw.total ?? 0,
-          subtotal: raw.subtotal ?? raw.total ?? 0,
-          shippingCost: raw.shipping_cost ?? 0,
-          items: (raw.order_items ?? []).map((item) => ({
-            ...item,
-            image_url: item.products?.image_url ?? null,
-          })),
-          // Loyalty code for the completion email
-          discountCode: discountCodeForEmail,
-        }).catch((err) => console.error('[triggerOrderStatusEmail] Error:', err))
+        if (raw.notify_email && raw.customer_email) {
+          triggerOrderStatusEmail({
+            orderId: raw.id,
+            customerName: raw.customer_name,
+            customerEmail: raw.customer_email || '',
+            oldStatus: oldStatus || undefined,
+            newStatus: newStatus,
+            deliveryMethod: raw.delivery_method,
+            paymentMethod: raw.payment_method || undefined,
+            pickupLocation: raw.pickup_location || undefined,
+            cancellationReason: cancellationReason?.trim() || undefined,
+            // Financial fields required by Landing email templates
+            total: raw.total ?? 0,
+            subtotal: raw.subtotal ?? raw.total ?? 0,
+            shippingCost: raw.shipping_cost ?? 0,
+            items: (raw.order_items ?? []).map((item) => ({
+              ...item,
+              image_url: item.products?.image_url ?? null,
+            })),
+            // Loyalty code for the completion email
+            discountCode: discountCodeForEmail,
+          }).catch((err) => console.error('[triggerOrderStatusEmail] Error:', err))
+        }
 
         // ── WhatsApp trigger ──────────────────────────────────────────────────
         // Fully independent from Email: if WA fails, email still fires.
