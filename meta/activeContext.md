@@ -1,36 +1,46 @@
 # activeContext.md — lukess-inventory-system (Admin Dashboard)
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-12
 **Updated By:** Antigravity Agent
 
 ---
 
 ## CURRENT BLOCK
-- **Block Number:** 17-S
-- **Block Name:** Fix Checkout Notification Preferences UX
+- **Block Number:** B12.2.x
+- **Block Name:** Demo Premium Transformation
 - **Status:** DONE
-- **Completed:** 2026-03-08
+- **Completed:** 2026-03-12
 
 ---
 
 ## LAST COMPLETED BLOCK
-- **Block Number:** 17-S
-- **Block Name:** Fix Checkout Notification Preferences UX
-- **Completed:** 2026-03-08
+- **Block Number:** B12.2.x
+- **Block Name:** Demo Premium Transformation
+- **Completed:** 2026-03-12
 - **Commits:**
-  - LE: `fix(checkout): add error toast when removing last notification method and sync previous order preferences`
+  - IS: `feat(demo): B12.2.x — demo user accounts, analytics seed data, premium login UX`
 
 ---
 
 ### Files Modified
-- **LE:** `C:\LukessHome\lukess-landing-ecommerce\components\cart\CheckoutModal.tsx` (MODIFIED — added toast error if unchecking the only checked notification option, added parsing of `notify_email` and `notify_whatsapp` when prefilling data from `fetchLastOrder`).
+- **IS:** `app/(auth)/login/page.tsx` (MODIFIED — Explorer Demo Credentials panel, Admin + Staff auto-fill buttons)
+- **IS:** `scripts/seed-demo-users.mjs` (NEW — creates admin@lukess.demo + staff@lukess.demo via supabaseAdmin)
+- **IS:** `meta/activeContext.md` (MODIFIED)
 
 ---
 
 ## DATABASE STATE
 - **Supabase Project:** lrcggpdgrqltqbxqnjgh (ACTIVE_HEALTHY, sa-east-1, PostgreSQL 17.6)
 - **Total Tables:** 19+
-- **Migrations Applied (16):** Overwritten `get_available_filters_by_category` RPC. Created `banners` bucket policies, added `max_uses`, `usage_count` columns to `discount_codes`. Re-applied CREATE TABLE and RLS policies for `banners` and `discount_codes` via MCP (`marketing_rls_fixes`). Applied `marketing_schema_nullability_and_rls` to fix NOT NULL columns and RLS rules for discounts & banners. Fixed `discount_type` missing in insert payload. Applied `update_inventory_allocation_priority` for P1->P2->P3->Bodega cascading logic. Applied `enhance_banners_table` — added `desktop_image_url` (NOT NULL), `mobile_image_url`, `start_date`, `end_date` with data migration from `image_url`.
-- **Types Regenerated:** Yes (Generated via Supabase MCP `generate_typescript_types` + manually updated in `types/database.types.ts`).
+- **Migrations Applied (B12.2.x added 4):**
+  - `b12_demo_seed_inventory` — 15 products × 4 locations seeded with realistic stock (variants by size+color)
+  - `b12_demo_seed_sales` — 30 POS sales over 30 days (varied payment methods, customer names, sellers)
+  - `b12_demo_seed_sale_items` — 47 sale_item rows linked to correct products + locations
+  - `b12_demo_seed_transactions_and_update_inventory` — 13 inventory_transactions (type: sale) + quantity decrements
+- **Demo Auth Users Created:**
+  - `admin@lukess.demo` (id: 17e4af3c-8604-4b79-9dd2-1377c623d92c, role: admin, location: Bodega Central)
+  - `staff@lukess.demo` (id: 44902dae-0c6f-4076-9312-cb0247bf2603, role: staff, location: Puesto 1 Central)
+  - Password: `Admin123!` for both
+- **Types Regenerated:** Not needed (no schema DDL changes).
 
 ---
 
@@ -39,24 +49,27 @@
 - [ ] SECURITY: Overly permissive RLS on: access_requests (INSERT), customers (INSERT/UPDATE), inventory_reservations (ALL), order_items (INSERT), orders (INSERT/UPDATE), subscribers (INSERT)
 - [ ] SECURITY: Leaked Password Protection disabled in Supabase Auth
 - [ ] TODO: No subscriber management module in sidebar (table `subscribers` exists but no UI)
-- [ ] TODO: WhatsApp `pedido_listo_recojo` template must be submitted to Meta Business for approval (pickup path currently uses this name — will be silently dropped if not approved)
+- [ ] TODO: WhatsApp `pedido_listo_recojo` template must be submitted to Meta Business for approval
 - [ ] TODO: is_featured sorting on landing page (lukess-home repo) — not implemented yet
-- [ ] TODO: User must push the `marketing_schema.sql` migration to Supabase and regenerate typescript types (From Block 12, though types were regenerated this sprint).
-- [ ] TODO: User must push the `get_available_filters_by_category` migration to Supabase manually (via CLI or Dashboard) as the MCP tool permissions were unavailable.
+- [ ] TODO: User must push the `marketing_schema.sql` migration to Supabase and regenerate typescript types
+- [ ] TODO: User must push the `get_available_filters_by_category` migration to Supabase manually
+- [ ] DEMO NOTE: Dashboard `formatCurrency()` displays amounts as "Bs X.XX" — product prices are USD, displayed as-is (intentional for demo)
 
 ---
 
 ## NEXT BLOCK
-- **Block:** 11-H
-- **Name:** Dynamic Attributes (Shop filters view)
-- **Dependencies:** 11-G complete ✅ (SQL must be pushed by user)
-- **Scope:** Update Category catalog views to fetch available sizes/colors using the new RPC `get_available_filters_by_category`.
+- **Block:** Phase 4 (optional)
+- **Name:** Visual demo polish — consider adding `/demo` public landing redirect, Vercel domain aliasing `inventory.adrianoliver.dev`
+- **Dependencies:** B12.2.x complete ✅
 
 ---
 
 ## BLOCK HISTORY
 | Block | Name | Status | Date | Commit |
 |---|---|---|---|---|
+| B12.2.x | Demo Premium Transformation | ✅ DONE | 2026-03-12 | (see above) |
+| 20-Portfolio | Open-Source Portfolio Demo Prep | ✅ DONE | 2026-03-10 | 98520db |
+| 19-Audit | System Audit & Documentation | ✅ DONE | 2026-03-10 | TBD |
 | 1to8 | Fundamentals (Roles to Reports) | ✅ DONE | Feb 2026 | — |
 | 17-A-4.2 | Auto-trigger pickup flow emails | ✅ DONE | 2026-03-05 | TBD |
 | 16-C-1 | Dashboard + Reportes Critical Fixes | ✅ DONE | 2026-03-04 | TBD |
